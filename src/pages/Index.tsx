@@ -1,7 +1,7 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ScanFace, HeartPulse, Apple, MessageCircle, ArrowRight, Leaf, Shield } from "lucide-react";
-import heroBg from "@/assets/hero-bg.jpg";
+import { useAuth } from "@/hooks/useAuth";
 
 const features = [
   {
