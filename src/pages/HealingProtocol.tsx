@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Sun, Moon, Calendar, AlertTriangle, Clock, Shield, Sparkles, ArrowRight, Circle, AlertCircle, Ban } from "lucide-react";
-import { useLatestAnalysis } from "@/hooks/useAnalysis";
+import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 
 const defaultMorning = [
   { step: 1, action: "Rinse face with lukewarm water", note: "Preserve natural oils — skip cleanser in the morning" },
@@ -17,7 +17,7 @@ const defaultEvening = [
 ];
 
 const HealingProtocol = () => {
-  const { data: analysis } = useLatestAnalysis();
+  const { currentAnalysis: analysis } = useCurrentAnalysis();
   const protocol = analysis?.healing_protocol;
   const hasAnalysis = !!analysis;
 

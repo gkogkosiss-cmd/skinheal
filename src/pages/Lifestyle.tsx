@@ -2,10 +2,10 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Moon, Sun, Droplets, Dumbbell, Brain, Heart, ArrowRight, AlertCircle, Circle, CheckSquare } from "lucide-react";
-import { useLatestAnalysis } from "@/hooks/useAnalysis";
+import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 
 const Lifestyle = () => {
-  const { data: analysis } = useLatestAnalysis();
+  const { currentAnalysis: analysis } = useCurrentAnalysis();
   const protocol = analysis?.healing_protocol;
   const hasAnalysis = !!analysis;
 

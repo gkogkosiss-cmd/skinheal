@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Heart, Microscope, ShieldCheck, Pill, Utensils, ArrowRight, AlertCircle, AlertTriangle, Calendar } from "lucide-react";
-import { useLatestAnalysis } from "@/hooks/useAnalysis";
+import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 
 const gutSkinConnections = [
   { title: "Microbiome Balance", desc: "Your gut hosts trillions of bacteria. When the balance shifts, inflammation often increases throughout the body — including the skin." },
@@ -26,7 +26,7 @@ const supplements = [
 ];
 
 const GutHealth = () => {
-  const { data: analysis } = useLatestAnalysis();
+  const { currentAnalysis: analysis } = useCurrentAnalysis();
   const protocol = analysis?.healing_protocol;
   const hasAnalysis = !!analysis;
 

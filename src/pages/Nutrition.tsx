@@ -2,7 +2,8 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Check, X, Leaf, ArrowRight, AlertCircle, Droplets, Target, Utensils, FlaskConical } from "lucide-react";
-import { useLatestAnalysis, type FoodItem } from "@/hooks/useAnalysis";
+import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { type FoodItem } from "@/hooks/useAnalysis";
 
 const defaultGoodFoods: FoodItem[] = [
   { food: "Fatty Fish (salmon, sardines, mackerel)", reason: "Rich in omega-3s which often help reduce skin inflammation" },
@@ -23,7 +24,7 @@ const defaultBadFoods: FoodItem[] = [
 ];
 
 const Nutrition = () => {
-  const { data: analysis } = useLatestAnalysis();
+  const { currentAnalysis: analysis } = useCurrentAnalysis();
   const protocol = analysis?.healing_protocol;
   const hasAnalysis = !!analysis;
 

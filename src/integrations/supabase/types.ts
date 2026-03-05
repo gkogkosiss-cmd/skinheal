@@ -53,6 +53,83 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_records: {
+        Row: {
+          answers: Json
+          created_at: string
+          daily_plan: Json
+          gut_health_plan: Json
+          healing_protocol: Json
+          id: string
+          image_observations: Json
+          lifestyle_plan: Json
+          nutrition_plan: Json
+          photo_url: string | null
+          results: Json
+          root_causes: Json
+          safety_flags: Json
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          daily_plan?: Json
+          gut_health_plan?: Json
+          healing_protocol?: Json
+          id?: string
+          image_observations?: Json
+          lifestyle_plan?: Json
+          nutrition_plan?: Json
+          photo_url?: string | null
+          results?: Json
+          root_causes?: Json
+          safety_flags?: Json
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          daily_plan?: Json
+          gut_health_plan?: Json
+          healing_protocol?: Json
+          id?: string
+          image_observations?: Json
+          lifestyle_plan?: Json
+          nutrition_plan?: Json
+          photo_url?: string | null
+          results?: Json
+          root_causes?: Json
+          safety_flags?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_state: {
+        Row: {
+          latest_analysis_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          latest_analysis_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          latest_analysis_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_state_latest_analysis_id_fkey"
+            columns: ["latest_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

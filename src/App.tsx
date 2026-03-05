@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { CurrentAnalysisProvider } from "@/hooks/useCurrentAnalysis";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import SkinAnalysis from "./pages/SkinAnalysis";
@@ -25,19 +26,21 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/analysis" element={<SkinAnalysis />} />
-            <Route path="/protocol" element={<HealingProtocol />} />
-            <Route path="/nutrition" element={<Nutrition />} />
-            <Route path="/gut-health" element={<GutHealth />} />
-            <Route path="/lifestyle" element={<Lifestyle />} />
-            <Route path="/progress" element={<Progress />} />
-            <Route path="/coach" element={<AICoach />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <CurrentAnalysisProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/analysis" element={<SkinAnalysis />} />
+              <Route path="/protocol" element={<HealingProtocol />} />
+              <Route path="/nutrition" element={<Nutrition />} />
+              <Route path="/gut-health" element={<GutHealth />} />
+              <Route path="/lifestyle" element={<Lifestyle />} />
+              <Route path="/progress" element={<Progress />} />
+              <Route path="/coach" element={<AICoach />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </CurrentAnalysisProvider>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
