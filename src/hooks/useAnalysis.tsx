@@ -57,7 +57,7 @@ export const useLatestAnalysis = () => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as Analysis | null;
+      return data as unknown as Analysis | null;
     },
     enabled: !!user,
   });
