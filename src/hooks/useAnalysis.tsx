@@ -18,15 +18,49 @@ export interface RootCause {
   description: string;
 }
 
+export interface TriggerFood {
+  food: string;
+  approach: string;
+}
+
+export interface MealTemplate {
+  breakfast: string;
+  lunch: string;
+  dinner: string;
+  snack: string;
+}
+
+export interface GutDayPlan {
+  day: string;
+  focus: string;
+}
+
 export interface HealingProtocolData {
+  whatIsHappening?: string;
   morningRoutine: string[];
   eveningRoutine: string[];
   weeklyTreatments: string[];
+  triggersToAvoid?: string[];
+  safetyGuidance?: string;
+  timeline: string;
+  foodPriorities?: string[];
   foodsToEat: FoodItem[];
   foodsToAvoid: FoodItem[];
+  mealTemplate?: MealTemplate;
+  commonTriggerFoods?: TriggerFood[];
+  hydrationGuidance?: string;
+  gutExplanation?: string;
+  sevenDayGutPlan?: GutDayPlan[];
+  digestiveSupport?: string[];
+  gutCautions?: string;
+  sleepPlan?: string[];
+  stressPlan?: string[];
+  exerciseGuidance?: string[];
+  sunlightGuidance?: string[];
+  dailyChecklist?: string[];
+  thisWeekFocus?: string;
   gutHealth: string[];
   lifestyle: string[];
-  timeline: string;
 }
 
 export interface Analysis {

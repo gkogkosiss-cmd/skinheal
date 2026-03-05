@@ -1,27 +1,25 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Check, X, Flame, Leaf, ArrowRight, AlertCircle } from "lucide-react";
+import { Check, X, Leaf, ArrowRight, AlertCircle, Droplets, Target, Utensils, FlaskConical } from "lucide-react";
 import { useLatestAnalysis, type FoodItem } from "@/hooks/useAnalysis";
 
 const defaultGoodFoods: FoodItem[] = [
-  { food: "Wild Salmon", reason: "Rich in omega-3 fatty acids that reduce inflammation and strengthen cell membranes" },
-  { food: "Blueberries & Berries", reason: "Packed with antioxidants and polyphenols that protect against oxidative skin damage" },
-  { food: "Leafy Greens", reason: "High in vitamins A, C, K and folate — essential for skin cell turnover and repair" },
-  { food: "Fermented Foods", reason: "Kimchi, sauerkraut, kefir — provide beneficial bacteria to restore gut microbiome balance" },
-  { food: "Bone Broth", reason: "Contains collagen, glycine, and glutamine that support gut lining and skin structure" },
-  { food: "Sweet Potatoes", reason: "Beta-carotene converts to vitamin A, supporting skin cell renewal and barrier function" },
-  { food: "Avocado", reason: "Healthy monounsaturated fats and vitamin E protect against oxidative damage" },
-  { food: "Turmeric", reason: "Curcumin is a powerful anti-inflammatory compound that modulates immune response" },
+  { food: "Fatty Fish (salmon, sardines, mackerel)", reason: "Rich in omega-3s which often help reduce skin inflammation" },
+  { food: "Berries (blueberries, strawberries)", reason: "Packed with antioxidants that may protect against oxidative skin damage" },
+  { food: "Leafy Greens (spinach, kale)", reason: "High in vitamins A, C, K — commonly linked to skin cell repair" },
+  { food: "Fermented Foods (kimchi, sauerkraut, kefir)", reason: "Provide beneficial bacteria that many people find supports gut-skin health" },
+  { food: "Sweet Potatoes", reason: "Beta-carotene converts to vitamin A, which often supports skin cell renewal" },
+  { food: "Avocado", reason: "Healthy fats and vitamin E that may help protect against oxidative damage" },
+  { food: "Nuts and Seeds (walnuts, flax, chia)", reason: "Good source of omega-3s, zinc, and vitamin E" },
 ];
 
 const defaultBadFoods: FoodItem[] = [
-  { food: "Refined Sugar", reason: "Spikes insulin and IGF-1, increasing sebum production and systemic inflammation" },
-  { food: "Ultra-Processed Foods", reason: "Contain preservatives, emulsifiers, and artificial additives that damage gut lining" },
-  { food: "High Glycemic Carbs", reason: "White bread, pasta, rice — rapidly elevate blood sugar and trigger inflammatory cascades" },
-  { food: "Dairy (especially skim milk)", reason: "Contains hormones and growth factors that can exacerbate acne and inflammation" },
-  { food: "Seed Oils (excess)", reason: "High omega-6 content promotes pro-inflammatory pathways when consumed in excess" },
-  { food: "Alcohol", reason: "Depletes zinc, disrupts gut permeability, and triggers inflammation" },
+  { food: "Refined Sugar", reason: "Commonly linked to increased inflammation and sebum production in many people" },
+  { food: "Ultra-Processed Foods", reason: "Often contain additives that may disrupt gut health and increase inflammation" },
+  { food: "Excessive Dairy", reason: "Some people notice their skin reacts to dairy — worth testing if you suspect it" },
+  { food: "High Glycemic Carbs (white bread, pastries)", reason: "May rapidly elevate blood sugar, which is often linked to inflammatory responses" },
+  { food: "Alcohol", reason: "Can deplete zinc, disrupt sleep, and increase inflammation for many people" },
 ];
 
 const Nutrition = () => {
@@ -31,6 +29,10 @@ const Nutrition = () => {
 
   const goodFoods = protocol?.foodsToEat?.length ? protocol.foodsToEat : defaultGoodFoods;
   const badFoods = protocol?.foodsToAvoid?.length ? protocol.foodsToAvoid : defaultBadFoods;
+  const foodPriorities = protocol?.foodPriorities || [];
+  const mealTemplate = protocol?.mealTemplate;
+  const triggerFoods = protocol?.commonTriggerFoods || [];
+  const hydration = protocol?.hydrationGuidance;
 
   return (
     <Layout>
@@ -38,7 +40,7 @@ const Nutrition = () => {
         <p className="text-sm text-primary font-medium mb-1">Nutrition</p>
         <h1 className="font-serif text-3xl md:text-4xl mb-2">Food as Medicine</h1>
         <p className="text-muted-foreground mb-8">
-          {hasAnalysis ? "Personalized dietary guidance based on your skin analysis." : "What you eat directly affects inflammation, hormones, and skin healing."}
+          {hasAnalysis ? "Personalized dietary guidance based on your skin analysis." : "What you eat directly influences inflammation, hormones, and skin healing."}
         </p>
 
         {!hasAnalysis && (
@@ -56,12 +58,33 @@ const Nutrition = () => {
         )}
 
         <div className="space-y-8">
+          {/* Food Priorities */}
+          {foodPriorities.length > 0 && (
+            <div className="card-elevated gradient-sage">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Target className="w-5 h-5 text-primary" />
+                </div>
+                <h2 className="font-serif text-xl">Food Priorities for Your Case</h2>
+              </div>
+              <div className="space-y-3">
+                {foodPriorities.map((rule: string, i: number) => (
+                  <div key={i} className="flex items-start gap-3 text-sm">
+                    <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0 mt-0.5">{i + 1}</span>
+                    <p className="text-muted-foreground">{rule}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Foods to Eat */}
           <div className="card-elevated">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
                 <Leaf className="w-5 h-5 text-accent-foreground" />
               </div>
-              <h2 className="font-serif text-xl">Best Foods for Your Skin</h2>
+              <h2 className="font-serif text-xl">Foods to Lean On</h2>
             </div>
             <div className="space-y-4">
               {goodFoods.map((f: FoodItem, i: number) => (
@@ -78,12 +101,13 @@ const Nutrition = () => {
             </div>
           </div>
 
+          {/* Foods to Avoid */}
           <div className="card-elevated">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
                 <X className="w-5 h-5 text-destructive" />
               </div>
-              <h2 className="font-serif text-xl">Foods to Avoid</h2>
+              <h2 className="font-serif text-xl">Foods to Limit for Now</h2>
             </div>
             <div className="space-y-4">
               {badFoods.map((f: FoodItem, i: number) => (
@@ -100,9 +124,68 @@ const Nutrition = () => {
             </div>
           </div>
 
+          {/* Meal Template */}
+          {mealTemplate && (
+            <div className="card-elevated">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
+                  <Utensils className="w-5 h-5 text-accent-foreground" />
+                </div>
+                <h2 className="font-serif text-xl">Example Day of Eating</h2>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {[
+                  { label: "Breakfast", value: mealTemplate.breakfast },
+                  { label: "Lunch", value: mealTemplate.lunch },
+                  { label: "Dinner", value: mealTemplate.dinner },
+                  { label: "Snack", value: mealTemplate.snack },
+                ].map((meal) => (
+                  <div key={meal.label} className="p-4 rounded-xl bg-muted/50">
+                    <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">{meal.label}</p>
+                    <p className="text-sm text-muted-foreground">{meal.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Hydration */}
+          {hydration && (
+            <div className="card-elevated gradient-warm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                  <Droplets className="w-5 h-5 text-secondary-foreground" />
+                </div>
+                <h2 className="font-serif text-xl">Hydration</h2>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">{hydration}</p>
+            </div>
+          )}
+
+          {/* Common Trigger Foods to Test */}
+          {triggerFoods.length > 0 && (
+            <div className="card-elevated">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                  <FlaskConical className="w-5 h-5 text-secondary-foreground" />
+                </div>
+                <h2 className="font-serif text-xl">Common Triggers to Test</h2>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">These foods commonly affect skin for some people. You can test by removing one at a time for 2-3 weeks, then reintroducing slowly.</p>
+              <div className="space-y-4">
+                {triggerFoods.map((t: any, i: number) => (
+                  <div key={i} className="p-4 rounded-xl bg-muted/50">
+                    <p className="font-medium text-sm mb-1">{t.food}</p>
+                    <p className="text-xs text-muted-foreground">{t.approach}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-start gap-2 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <p>This platform provides educational skin wellness insights and is not medical advice.</p>
+            <p>This is educational information, not medical advice. If symptoms are severe, spreading, painful, infected, or persistent, consult a dermatologist.</p>
           </div>
         </div>
       </motion.div>

@@ -1,20 +1,19 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Sun, Moon, Calendar, AlertTriangle, Clock, Shield, Sparkles, ArrowRight, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import { Sun, Moon, Calendar, AlertTriangle, Clock, Shield, Sparkles, ArrowRight, Circle, AlertCircle, Ban } from "lucide-react";
 import { useLatestAnalysis } from "@/hooks/useAnalysis";
 
 const defaultMorning = [
-  { step: 1, action: "Rinse face with lukewarm water only", note: "No cleanser in the morning to preserve natural oils" },
-  { step: 2, action: "Apply a gentle ceramide moisturizer", note: "Look for ceramides, niacinamide, and hyaluronic acid" },
-  { step: 3, action: "Apply SPF 30+ mineral sunscreen", note: "Zinc oxide based — least irritating for compromised skin" },
+  { step: 1, action: "Rinse face with lukewarm water", note: "Preserve natural oils — skip cleanser in the morning" },
+  { step: 2, action: "Apply a gentle ceramide moisturizer", note: "Look for ceramides, niacinamide, or hyaluronic acid" },
+  { step: 3, action: "Apply SPF 30+ mineral sunscreen", note: "Zinc oxide based — least irritating for sensitive skin" },
 ];
 
 const defaultEvening = [
-  { step: 1, action: "Double cleanse with oil-based cleanser", note: "Removes sunscreen and sebum gently" },
-  { step: 2, action: "Follow with a gentle, pH-balanced cleanser", note: "pH 5.0–5.5 to support the acid mantle" },
-  { step: 3, action: "Apply targeted treatment (if prescribed)", note: "Antifungal cream or calming serum" },
-  { step: 4, action: "Seal with ceramide moisturizer", note: "Rebuilds the skin barrier overnight" },
+  { step: 1, action: "Gentle cleanser with lukewarm water", note: "pH 5.0-5.5 to support the skin barrier" },
+  { step: 2, action: "Apply targeted treatment if recommended", note: "Only if specifically needed for your condition" },
+  { step: 3, action: "Seal with ceramide moisturizer", note: "Helps rebuild the skin barrier overnight" },
 ];
 
 const HealingProtocol = () => {
@@ -32,16 +31,21 @@ const HealingProtocol = () => {
 
   const weeklyTreatments = protocol?.weeklyTreatments?.length
     ? protocol.weeklyTreatments
-    : ["Zinc pyrithione or ketoconazole wash — leave on 5 min (2–3x/week)", "Colloidal oat mask for soothing (1x/week)"];
+    : ["Gentle exfoliation with a soft cloth 1-2x per week", "Calming mask with oatmeal or aloe 1x per week"];
 
-  const timeline = protocol?.timeline || "Most users begin seeing improvement within 7–14 days. Full results typically take 4–8 weeks of consistent protocol adherence.";
+  const timeline = protocol?.timeline || "Many people notice initial changes within 7-14 days. More significant improvement often takes 4-8 weeks of consistent daily care.";
 
-  // Build daily checklist
-  const dailyChecklist = [
-    ...(morningSteps.map((s: any) => ({ label: s.action, period: "Morning" }))),
-    ...(eveningSteps.map((s: any) => ({ label: s.action, period: "Evening" }))),
-    ...(weeklyTreatments.slice(0, 1).map((t: string) => ({ label: t, period: "Weekly" }))),
-  ];
+  const triggersToAvoid = protocol?.triggersToAvoid?.length
+    ? protocol.triggersToAvoid
+    : ["Harsh scrubs or exfoliants", "Fragranced products near affected areas", "Touching or picking at the skin", "Very hot water on the face"];
+
+  const dailyChecklist = protocol?.dailyChecklist?.length
+    ? protocol.dailyChecklist
+    : [
+        ...morningSteps.map((s: any) => s.action),
+        ...eveningSteps.map((s: any) => s.action),
+        ...(weeklyTreatments.length > 0 ? [weeklyTreatments[0]] : []),
+      ];
 
   return (
     <Layout>
@@ -71,17 +75,29 @@ const HealingProtocol = () => {
         )}
 
         <div className="space-y-8">
-          {/* Daily Checklist Card */}
+          {/* What We Think Is Happening */}
+          {hasAnalysis && (protocol?.whatIsHappening || analysis.biological_explanation) && (
+            <div className="card-elevated gradient-sage">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                </div>
+                <h2 className="font-serif text-xl">What We Think Is Happening</h2>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {protocol?.whatIsHappening || analysis.biological_explanation}
+              </p>
+            </div>
+          )}
+
+          {/* Daily Checklist */}
           <div className="card-elevated">
             <h3 className="font-serif text-xl mb-4">Daily Healing Checklist</h3>
             <div className="space-y-3">
-              {dailyChecklist.map((item: any, i: number) => (
+              {dailyChecklist.map((item: string, i: number) => (
                 <label key={i} className="flex items-center gap-3 cursor-pointer group">
                   <Circle className="w-5 h-5 text-border group-hover:text-primary/50 transition-colors shrink-0" />
-                  <div className="flex-1">
-                    <span className="text-sm text-foreground">{item.label}</span>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground px-2 py-0.5 rounded-full bg-muted">{item.period}</span>
+                  <span className="text-sm text-foreground">{item}</span>
                 </label>
               ))}
             </div>
@@ -139,13 +155,31 @@ const HealingProtocol = () => {
               <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-accent-foreground" />
               </div>
-              <h2 className="font-serif text-xl">Weekly Treatments</h2>
+              <h2 className="font-serif text-xl">Weekly Support</h2>
             </div>
             <ul className="space-y-3">
-              {weeklyTreatments.map((t: string) => (
-                <li key={t} className="flex items-start gap-3 text-sm">
-                  <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  {t}
+              {weeklyTreatments.map((t: string, i: number) => (
+                <li key={i} className="flex items-start gap-3 text-sm">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
+                  <span className="text-muted-foreground">{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Triggers to Avoid */}
+          <div className="card-elevated">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <Ban className="w-5 h-5 text-destructive" />
+              </div>
+              <h2 className="font-serif text-xl">What to Avoid</h2>
+            </div>
+            <ul className="space-y-3">
+              {triggersToAvoid.map((t: string, i: number) => (
+                <li key={i} className="flex items-start gap-3 text-sm">
+                  <div className="w-1.5 h-1.5 rounded-full bg-destructive mt-2 shrink-0" />
+                  <span className="text-muted-foreground">{t}</span>
                 </li>
               ))}
             </ul>
@@ -162,10 +196,24 @@ const HealingProtocol = () => {
             <p className="text-sm text-muted-foreground leading-relaxed">{timeline}</p>
           </div>
 
+          {/* Safety Guidance */}
+          <div className="p-5 rounded-2xl border border-destructive/20 bg-destructive/5">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <h3 className="font-serif text-lg text-destructive">If Things Get Worse</h3>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+              {protocol?.safetyGuidance || "If your symptoms worsen, spread rapidly, become very painful, or show signs of infection, please consult a dermatologist or healthcare provider promptly."}
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              <span className="font-medium text-foreground">Red flags to watch for:</span> fever, pus or discharge, severe swelling, rapidly spreading rash, eye involvement, or intense pain. These warrant prompt medical attention.
+            </p>
+          </div>
+
           {/* Disclaimer */}
           <div className="flex items-start gap-2 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <p>This platform provides educational skin wellness insights and is not medical advice.</p>
+            <p>This is educational information, not medical advice. If symptoms are severe, spreading, painful, infected, or persistent, consult a dermatologist.</p>
           </div>
         </div>
       </motion.div>
