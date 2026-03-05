@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analyses: {
+        Row: {
+          biological_explanation: string | null
+          conditions: Json | null
+          created_at: string
+          diagnostic_answers: Json | null
+          healing_protocol: Json | null
+          id: string
+          image_url: string | null
+          root_causes: Json | null
+          user_id: string
+          visual_features: Json | null
+        }
+        Insert: {
+          biological_explanation?: string | null
+          conditions?: Json | null
+          created_at?: string
+          diagnostic_answers?: Json | null
+          healing_protocol?: Json | null
+          id?: string
+          image_url?: string | null
+          root_causes?: Json | null
+          user_id: string
+          visual_features?: Json | null
+        }
+        Update: {
+          biological_explanation?: string | null
+          conditions?: Json | null
+          created_at?: string
+          diagnostic_answers?: Json | null
+          healing_protocol?: Json | null
+          id?: string
+          image_url?: string | null
+          root_causes?: Json | null
+          user_id?: string
+          visual_features?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

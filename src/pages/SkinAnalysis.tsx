@@ -1,9 +1,12 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Upload, Camera, ChevronRight, AlertCircle, Sparkles, Loader2, ArrowLeft, Sun, Moon, Calendar, Utensils, Ban, Heart, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Step = "upload" | "analyzing-photo" | "questions" | "health-questions" | "loading" | "results";
 
@@ -59,6 +62,7 @@ const SkinAnalysis = () => {
   const [step, setStep] = useState<Step>("upload");
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [dynamicQuestions, setDynamicQuestions] = useState<DynamicQuestion[]>([]);
   const [visualFeatures, setVisualFeatures] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -68,8 +72,12 @@ const SkinAnalysis = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const processImage = (file: File) => {
+    setImageFile(file);
     const reader = new FileReader();
     reader.onload = async (e) => {
       const dataUrl = e.target?.result as string;
@@ -121,6 +129,48 @@ const SkinAnalysis = () => {
     }
   };
 
+  const saveAnalysis = async (analysisData: AnalysisResult) => {
+    if (!user) return;
+
+    try {
+      let imageUrl: string | null = null;
+
+      // Upload photo to storage
+      if (imageFile) {
+        const ext = imageFile.name.split(".").pop() || "jpg";
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("skin-photos")
+          .upload(path, imageFile);
+        if (!uploadError) {
+          imageUrl = path;
+        }
+      }
+
+      // Save analysis record
+      const { error } = await supabase.from("analyses").insert({
+        user_id: user.id,
+        image_url: imageUrl,
+        visual_features: visualFeatures,
+        diagnostic_answers: answers,
+        conditions: analysisData.conditions,
+        root_causes: analysisData.rootCauses,
+        biological_explanation: analysisData.biologicalExplanation,
+        healing_protocol: analysisData.healingProtocol,
+      } as any);
+
+      if (error) {
+        console.error("Failed to save analysis:", error);
+      } else {
+        // Invalidate queries so other pages refresh
+        queryClient.invalidateQueries({ queryKey: ["latest-analysis"] });
+        queryClient.invalidateQueries({ queryKey: ["all-analyses"] });
+      }
+    } catch (err) {
+      console.error("Save analysis error:", err);
+    }
+  };
+
   const runFullAnalysis = async () => {
     setStep("loading");
     try {
@@ -131,6 +181,9 @@ const SkinAnalysis = () => {
       if (data.error) throw new Error(data.error);
       setResults(data);
       setStep("results");
+
+      // Save in background
+      saveAnalysis(data);
     } catch (err: any) {
       toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
       setStep("upload");
@@ -186,7 +239,7 @@ const SkinAnalysis = () => {
               </div>
               <div className="flex items-start gap-2 mt-4 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <p>Your photos are analyzed securely and never stored. This is educational guidance, not a medical diagnosis.</p>
+                <p>Your photos are stored securely in your account. This is educational guidance, not a medical diagnosis.</p>
               </div>
             </motion.div>
           )}
@@ -213,7 +266,6 @@ const SkinAnalysis = () => {
           {step === "questions" && dynamicQuestions.length > 0 && (
             <motion.div key="questions" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.4, ease: easeSmooth }}>
               <div className="card-elevated">
-                {/* Visual features chips */}
                 {visualFeatures.length > 0 && currentQ === 0 && (
                   <div className="mb-6">
                     <p className="text-xs text-muted-foreground mb-2">Detected features:</p>
@@ -375,7 +427,6 @@ const SkinAnalysis = () => {
               {/* Healing Protocol */}
               {results.healingProtocol && (
                 <>
-                  {/* Morning Routine */}
                   <div className="card-elevated">
                     <div className="flex items-center gap-2 mb-4">
                       <Sun className="w-5 h-5 text-primary" />
@@ -391,7 +442,6 @@ const SkinAnalysis = () => {
                     </div>
                   </div>
 
-                  {/* Evening Routine */}
                   <div className="card-elevated">
                     <div className="flex items-center gap-2 mb-4">
                       <Moon className="w-5 h-5 text-primary" />
@@ -407,7 +457,6 @@ const SkinAnalysis = () => {
                     </div>
                   </div>
 
-                  {/* Weekly Treatments */}
                   <div className="card-elevated">
                     <div className="flex items-center gap-2 mb-4">
                       <Calendar className="w-5 h-5 text-primary" />
@@ -422,7 +471,6 @@ const SkinAnalysis = () => {
                     </div>
                   </div>
 
-                  {/* Foods */}
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="card-elevated">
                       <div className="flex items-center gap-2 mb-4">
@@ -454,7 +502,6 @@ const SkinAnalysis = () => {
                     </div>
                   </div>
 
-                  {/* Gut Health */}
                   <div className="card-elevated">
                     <div className="flex items-center gap-2 mb-4">
                       <Heart className="w-5 h-5 text-primary" />
@@ -469,7 +516,6 @@ const SkinAnalysis = () => {
                     </div>
                   </div>
 
-                  {/* Lifestyle */}
                   <div className="card-elevated">
                     <div className="flex items-center gap-2 mb-4">
                       <Activity className="w-5 h-5 text-primary" />
@@ -484,7 +530,6 @@ const SkinAnalysis = () => {
                     </div>
                   </div>
 
-                  {/* Timeline */}
                   <div className="card-elevated gradient-warm">
                     <h3 className="font-serif text-xl mb-3">Expected Timeline</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">{results.healingProtocol.timeline}</p>
@@ -498,22 +543,31 @@ const SkinAnalysis = () => {
                 This platform provides educational skin wellness insights and is not medical advice. Consult a dermatologist for professional assessment.
               </div>
 
-              {/* Start over */}
-              <button
-                onClick={() => {
-                  setStep("upload");
-                  setAnswers({});
-                  setCurrentQ(0);
-                  setHealthQ(0);
-                  setResults(null);
-                  setImageBase64(null);
-                  setImagePreview(null);
-                }}
-                className="flex items-center gap-2 text-sm text-primary font-medium hover:underline"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Start a new analysis
-              </button>
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                  View Dashboard
+                </button>
+                <button
+                  onClick={() => {
+                    setStep("upload");
+                    setAnswers({});
+                    setCurrentQ(0);
+                    setHealthQ(0);
+                    setResults(null);
+                    setImageBase64(null);
+                    setImagePreview(null);
+                    setImageFile(null);
+                  }}
+                  className="flex items-center gap-2 text-sm text-primary font-medium hover:underline"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Start a new analysis
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
