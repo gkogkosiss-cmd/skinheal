@@ -131,61 +131,82 @@ const SkinAnalysis = () => {
   };
 
   const saveAnalysis = async (analysisData: AnalysisResult) => {
-    if (!user) return;
+    if (!user) throw new Error("Please log in before running an analysis.");
 
-    try {
-      let imageUrl: string | null = null;
+    let imageUrl: string | null = null;
 
-      // Upload photo to storage
-      if (imageFile) {
-        const ext = imageFile.name.split(".").pop() || "jpg";
-        const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("skin-photos")
-          .upload(path, imageFile);
-        if (!uploadError) {
-          imageUrl = path;
-        }
+    if (imageFile) {
+      const ext = imageFile.name.split(".").pop() || "jpg";
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("skin-photos")
+        .upload(path, imageFile);
+
+      if (uploadError) {
+        throw new Error("Photo upload failed. Please try again.");
       }
 
-      // Save analysis record
-      const { error } = await supabase.from("analyses").insert({
-        user_id: user.id,
-        image_url: imageUrl,
-        visual_features: visualFeatures,
-        diagnostic_answers: answers,
-        conditions: analysisData.conditions,
-        root_causes: analysisData.rootCauses,
-        biological_explanation: analysisData.biologicalExplanation,
-        healing_protocol: analysisData.healingProtocol,
-      } as any);
-
-      if (error) {
-        console.error("Failed to save analysis:", error);
-      } else {
-        // Invalidate queries so other pages refresh
-        queryClient.invalidateQueries({ queryKey: ["latest-analysis"] });
-        queryClient.invalidateQueries({ queryKey: ["all-analyses"] });
-      }
-    } catch (err) {
-      console.error("Save analysis error:", err);
+      imageUrl = path;
     }
+
+    const normalized = normalizeAnalysisRecordPayload({
+      analysis: analysisData,
+      answers,
+      visualFeatures,
+    });
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("analysis_records" as any)
+      .insert({
+        user_id: user.id,
+        photo_url: imageUrl,
+        image_observations: normalized.image_observations,
+        answers: normalized.answers,
+        results: normalized.results,
+        root_causes: normalized.root_causes,
+        healing_protocol: normalized.healing_protocol,
+        nutrition_plan: normalized.nutrition_plan,
+        gut_health_plan: normalized.gut_health_plan,
+        lifestyle_plan: normalized.lifestyle_plan,
+        daily_plan: normalized.daily_plan,
+        safety_flags: normalized.safety_flags,
+      })
+      .select("id")
+      .single();
+
+    if (insertError || !inserted?.id) {
+      throw new Error("Failed to save your analysis. Please retry.");
+    }
+
+    const { error: stateError } = await setLatestAnalysisId(user.id, inserted.id);
+    if (stateError) {
+      throw new Error("Saved analysis, but failed to set it as current. Please retry.");
+    }
+
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: latestAnalysisQueryKey(user.id) }),
+      queryClient.invalidateQueries({ queryKey: allAnalysesQueryKey(user.id) }),
+    ]);
   };
 
   const runFullAnalysis = async () => {
     setStep("loading");
+
     try {
       const { data, error } = await supabase.functions.invoke("analyze-skin", {
         body: { imageBase64, answers },
       });
+
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-      setResults(data);
-      setStep("results");
 
-      // Save analysis and await it
-      await saveAnalysis(data);
-      toast({ title: "Analysis saved", description: "Your results are now available across all sections." });
+      const generated = data as AnalysisResult;
+      await saveAnalysis(generated);
+
+      setResults(generated);
+      setStep("results");
+      toast({ title: "Saved", description: "Analysis saved and synced across all sections." });
+      navigate("/dashboard");
     } catch (err: any) {
       toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
       setStep("upload");
