@@ -323,7 +323,7 @@ const Progress = () => {
                 {/* Biological explanation */}
                 {selectedReport.biological_explanation && (
                   <>
-                    <h3 className="font-serif text-lg mb-2">What's Happening</h3>
+                    <h3 className="font-serif text-lg mb-2">What We Think Is Happening</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed mb-6">{selectedReport.biological_explanation}</p>
                   </>
                 )}
@@ -354,6 +354,75 @@ const Progress = () => {
                     </div>
                   </>
                 )}
+
+                <h3 className="font-serif text-lg mb-3">Healing Protocol</h3>
+                <div className="space-y-3 mb-6">
+                  <div className="p-3 rounded-xl bg-muted/50">
+                    <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Morning</p>
+                    <p className="text-xs text-muted-foreground">{selectedReport.healing_protocol.morningRoutine?.join(" • ") || "No saved morning routine."}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-muted/50">
+                    <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Evening</p>
+                    <p className="text-xs text-muted-foreground">{selectedReport.healing_protocol.eveningRoutine?.join(" • ") || "No saved evening routine."}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-muted/50">
+                    <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Weekly Support</p>
+                    <p className="text-xs text-muted-foreground">{selectedReport.healing_protocol.weeklyTreatments?.join(" • ") || "No saved weekly support."}</p>
+                  </div>
+                </div>
+
+                <h3 className="font-serif text-lg mb-3">Nutrition</h3>
+                <div className="p-3 rounded-xl bg-muted/50 mb-6">
+                  <p className="text-xs text-muted-foreground mb-2">Priorities: {selectedReport.nutrition_plan.priorities?.join(" • ") || "No saved priorities."}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Meal template: {selectedReport.nutrition_plan.one_day_template?.breakfast || "-"} / {selectedReport.nutrition_plan.one_day_template?.lunch || "-"} / {selectedReport.nutrition_plan.one_day_template?.dinner || "-"}
+                  </p>
+                </div>
+
+                <h3 className="font-serif text-lg mb-3">Gut Health</h3>
+                <div className="p-3 rounded-xl bg-muted/50 mb-6">
+                  <p className="text-xs text-muted-foreground mb-2">{selectedReport.gut_health_plan.explanation_simple || "No saved gut explanation."}</p>
+                  <p className="text-xs text-muted-foreground">
+                    7-day plan: {(selectedReport.gut_health_plan.seven_day_plan || []).map((d: any) => `${d.day}`).join(", ") || "No saved 7-day plan."}
+                  </p>
+                </div>
+
+                <h3 className="font-serif text-lg mb-3">Lifestyle</h3>
+                <div className="p-3 rounded-xl bg-muted/50 mb-6">
+                  <p className="text-xs text-muted-foreground">
+                    {[...(selectedReport.lifestyle_plan.sleep || []), ...(selectedReport.lifestyle_plan.stress || []), ...(selectedReport.lifestyle_plan.exercise || []), ...(selectedReport.lifestyle_plan.habits || [])].slice(0, 6).join(" • ") || "No saved lifestyle plan."}
+                  </p>
+                </div>
+
+                <h3 className="font-serif text-lg mb-3">Daily Plan</h3>
+                <div className="p-3 rounded-xl bg-muted/50 mb-6">
+                  <p className="text-xs text-muted-foreground">
+                    {[...(selectedReport.daily_plan.morning || []), ...(selectedReport.daily_plan.midday || []), ...(selectedReport.daily_plan.evening || []), ...(selectedReport.daily_plan.weekly || [])].join(" • ") || "No saved daily plan."}
+                  </p>
+                </div>
+
+                <div className="flex gap-3 mb-4">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await setAsCurrentPlan(selectedReport.id);
+                        toast({ title: "Current plan updated", description: "All sections now use this saved analysis." });
+                        setSelectedReport(null);
+                      } catch (error: any) {
+                        toast({ title: "Failed to set current plan", description: error.message, variant: "destructive" });
+                      }
+                    }}
+                    className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity"
+                  >
+                    Set as Current Plan
+                  </button>
+                  <button
+                    onClick={() => setSelectedReport(null)}
+                    className="px-4 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-medium hover:bg-accent transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
 
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-secondary text-[10px] text-muted-foreground">
                   <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
