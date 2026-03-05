@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import {
   ScanFace, HeartPulse, Apple, Salad, Activity,
-  TrendingUp, MessageCircle, CheckCircle2, Circle, ArrowRight
+  TrendingUp, MessageCircle, CheckCircle2, Circle, ArrowRight, Sparkles, AlertCircle
 } from "lucide-react";
+import { useLatestAnalysis } from "@/hooks/useAnalysis";
+import { useAuth } from "@/hooks/useAuth";
 
 const quickActions = [
   { path: "/analysis", label: "Skin Analysis", icon: ScanFace, color: "bg-accent" },
@@ -13,16 +15,30 @@ const quickActions = [
   { path: "/coach", label: "AI Coach", icon: MessageCircle, color: "bg-secondary" },
 ];
 
-const dailyChecklist = [
-  { label: "Gentle cleanser — morning", done: false },
-  { label: "Apply moisturizer with ceramides", done: false },
-  { label: "SPF 30+ sunscreen", done: false },
-  { label: "Drink 2L water", done: false },
-  { label: "Take probiotic supplement", done: false },
-  { label: "Evening cleanse — double cleanse", done: false },
-];
-
 const Dashboard = () => {
+  const { user } = useAuth();
+  const { data: analysis, isLoading } = useLatestAnalysis();
+  const hasAnalysis = !!analysis;
+
+  const topCondition = analysis?.conditions?.[0];
+  const protocol = analysis?.healing_protocol;
+
+  // Build daily checklist from protocol
+  const dailyChecklist = protocol
+    ? [
+        ...(protocol.morningRoutine?.slice(0, 3) || []).map((s: string) => ({ label: s, period: "Morning" })),
+        ...(protocol.eveningRoutine?.slice(0, 2) || []).map((s: string) => ({ label: s, period: "Evening" })),
+        ...(protocol.gutHealth?.slice(0, 1) || []).map((s: string) => ({ label: s, period: "Daily" })),
+      ]
+    : [
+        { label: "Gentle cleanser — morning", period: "Morning" },
+        { label: "Apply moisturizer with ceramides", period: "Morning" },
+        { label: "SPF 30+ sunscreen", period: "Morning" },
+        { label: "Drink 2L water", period: "Daily" },
+        { label: "Take probiotic supplement", period: "Daily" },
+        { label: "Evening cleanse — double cleanse", period: "Evening" },
+      ];
+
   return (
     <Layout>
       <motion.div
@@ -38,19 +54,68 @@ const Dashboard = () => {
         <div className="card-elevated gradient-sage mb-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Current Condition</p>
-              <h2 className="font-serif text-2xl mb-1">Start your skin analysis</h2>
-              <p className="text-sm text-muted-foreground">Upload a photo to receive your personalized diagnosis and healing protocol.</p>
+              <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">
+                {hasAnalysis ? "Current Condition" : "Get Started"}
+              </p>
+              {hasAnalysis && topCondition ? (
+                <>
+                  <h2 className="font-serif text-2xl mb-1">{topCondition.condition}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {topCondition.probability}% likelihood — {topCondition.explanation?.slice(0, 120)}…
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="font-serif text-2xl mb-1">Start your skin analysis</h2>
+                  <p className="text-sm text-muted-foreground">Upload a photo to receive your personalized diagnosis and healing protocol.</p>
+                </>
+              )}
             </div>
             <Link
               to="/analysis"
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity shrink-0"
             >
-              Analyze Now
+              {hasAnalysis ? "New Analysis" : "Analyze Now"}
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
+
+        {/* Root Cause Summary (only if analysis exists) */}
+        {hasAnalysis && analysis.biological_explanation && (
+          <div className="card-elevated mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <h3 className="font-serif text-xl">What's Happening</h3>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">{analysis.biological_explanation}</p>
+          </div>
+        )}
+
+        {/* Condition Probabilities */}
+        {hasAnalysis && analysis.conditions?.length > 1 && (
+          <div className="card-elevated mb-8">
+            <h3 className="font-serif text-xl mb-4">Condition Probabilities</h3>
+            <div className="space-y-3">
+              {analysis.conditions.map((c: any, i: number) => (
+                <div key={i}>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="font-medium">{c.condition}</span>
+                    <span className="text-muted-foreground">{c.probability}%</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-1.5">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${c.probability}%` }}
+                      transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }}
+                      className="bg-primary h-1.5 rounded-full"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -74,39 +139,67 @@ const Dashboard = () => {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Daily Routine Checklist */}
           <div className="card-elevated">
-            <h3 className="font-serif text-xl mb-4">Daily Routine</h3>
+            <h3 className="font-serif text-xl mb-4">
+              {hasAnalysis ? "Your Daily Healing Plan" : "Daily Routine"}
+            </h3>
             <div className="space-y-3">
-              {dailyChecklist.map((item) => (
+              {dailyChecklist.map((item: any) => (
                 <label key={item.label} className="flex items-center gap-3 cursor-pointer group">
-                  {item.done ? (
-                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                  ) : (
-                    <Circle className="w-5 h-5 text-border group-hover:text-primary/50 transition-colors shrink-0" />
-                  )}
-                  <span className="text-sm text-foreground">{item.label}</span>
+                  <Circle className="w-5 h-5 text-border group-hover:text-primary/50 transition-colors shrink-0" />
+                  <div>
+                    <span className="text-sm text-foreground">{item.label}</span>
+                    <span className="text-[10px] text-muted-foreground ml-2">{item.period}</span>
+                  </div>
                 </label>
               ))}
             </div>
           </div>
 
-          {/* Weekly Insights */}
+          {/* Weekly Insights or Quick Actions Today */}
           <div className="card-elevated">
-            <h3 className="font-serif text-xl mb-4">Weekly Insights</h3>
+            <h3 className="font-serif text-xl mb-4">
+              {hasAnalysis ? "Quick Actions Today" : "Weekly Insights"}
+            </h3>
             <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/50">
-                <Salad className="w-5 h-5 text-primary" />
-                <p className="text-sm">Increase fermented foods this week for gut diversity</p>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
-                <Activity className="w-5 h-5 text-primary" />
-                <p className="text-sm">Aim for 7+ hours sleep for skin barrier repair</p>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/50">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                <p className="text-sm">Track progress — upload a new photo this week</p>
-              </div>
+              {hasAnalysis && protocol ? (
+                <>
+                  {protocol.weeklyTreatments?.slice(0, 2).map((t: string, i: number) => (
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-accent/50">
+                      <Activity className="w-5 h-5 text-primary shrink-0" />
+                      <p className="text-sm">{t}</p>
+                    </div>
+                  ))}
+                  {protocol.lifestyle?.slice(0, 2).map((l: string, i: number) => (
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
+                      <TrendingUp className="w-5 h-5 text-primary shrink-0" />
+                      <p className="text-sm">{l}</p>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/50">
+                    <Salad className="w-5 h-5 text-primary" />
+                    <p className="text-sm">Increase fermented foods this week for gut diversity</p>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
+                    <Activity className="w-5 h-5 text-primary" />
+                    <p className="text-sm">Aim for 7+ hours sleep for skin barrier repair</p>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/50">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    <p className="text-sm">Track progress — upload a new photo this week</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
+        </div>
+
+        {/* Disclaimer */}
+        <div className="flex items-start gap-2 mt-8 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <p>This platform provides educational skin wellness insights and is not medical advice.</p>
         </div>
       </motion.div>
     </Layout>
