@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Camera, Calendar, Plus, ArrowRight, AlertCircle, Target, Eye, X, ArrowLeftRight } from "lucide-react";
-import { useAllAnalyses, useLatestAnalysis, getSignedImageUrl, type Analysis } from "@/hooks/useAnalysis";
+import { useAllAnalyses, getSignedImageUrl, type Analysis } from "@/hooks/useAnalysis";
+import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { useToast } from "@/hooks/use-toast";
 
 const Progress = () => {
   const { data: analyses, isLoading } = useAllAnalyses();
