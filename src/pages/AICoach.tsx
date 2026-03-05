@@ -12,8 +12,7 @@ const AICoach = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { data: analysis } = useLatestAnalysis();
-  const { user } = useAuth();
+  const { currentAnalysis: analysis } = useCurrentAnalysis();
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
