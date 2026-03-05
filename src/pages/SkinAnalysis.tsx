@@ -7,7 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
-
+import { allAnalysesQueryKey, latestAnalysisQueryKey, setLatestAnalysisId } from "@/hooks/useAnalysis";
+import { normalizeAnalysisRecordPayload } from "@/lib/analysisRecord";
 type Step = "upload" | "analyzing-photo" | "questions" | "health-questions" | "loading" | "results";
 
 interface DynamicQuestion {
