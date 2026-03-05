@@ -26,7 +26,7 @@ const supplements = [
 ];
 
 const GutHealth = () => {
-  const { data: analysis } = useLatestAnalysis();
+  const { currentAnalysis: analysis } = useCurrentAnalysis();
   const protocol = analysis?.healing_protocol;
   const hasAnalysis = !!analysis;
 

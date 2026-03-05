@@ -16,8 +16,7 @@ const quickActions = [
 ];
 
 const Dashboard = () => {
-  const { user } = useAuth();
-  const { data: analysis, isLoading } = useLatestAnalysis();
+  const { currentAnalysis: analysis, isLoading } = useCurrentAnalysis();
   const hasAnalysis = !!analysis;
 
   const topCondition = analysis?.conditions?.[0];

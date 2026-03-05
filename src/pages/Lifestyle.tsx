@@ -5,7 +5,7 @@ import { Moon, Sun, Droplets, Dumbbell, Brain, Heart, ArrowRight, AlertCircle, C
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 
 const Lifestyle = () => {
-  const { data: analysis } = useLatestAnalysis();
+  const { currentAnalysis: analysis } = useCurrentAnalysis();
   const protocol = analysis?.healing_protocol;
   const hasAnalysis = !!analysis;
 
