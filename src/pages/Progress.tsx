@@ -9,7 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 
 const Progress = () => {
   const { data: analyses, isLoading } = useAllAnalyses();
-  const { data: latestAnalysis } = useLatestAnalysis();
+  const { currentAnalysis: latestAnalysis, setAsCurrentPlan } = useCurrentAnalysis();
+  const { toast } = useToast();
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [selectedReport, setSelectedReport] = useState<Analysis | null>(null);
   const [compareMode, setCompareMode] = useState(false);
