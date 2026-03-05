@@ -182,8 +182,9 @@ const SkinAnalysis = () => {
       setResults(data);
       setStep("results");
 
-      // Save in background
-      saveAnalysis(data);
+      // Save analysis and await it
+      await saveAnalysis(data);
+      toast({ title: "Analysis saved", description: "Your results are now available across all sections." });
     } catch (err: any) {
       toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
       setStep("upload");
