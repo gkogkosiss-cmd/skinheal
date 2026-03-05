@@ -155,7 +155,7 @@ const SkinAnalysis = () => {
       visualFeatures,
     });
 
-    const { data: inserted, error: insertError } = await supabase
+    const insertResponse = await supabase
       .from("analysis_records" as any)
       .insert({
         user_id: user.id,
@@ -173,6 +173,9 @@ const SkinAnalysis = () => {
       })
       .select("id")
       .single();
+
+    const inserted = insertResponse.data as unknown as { id: string } | null;
+    const insertError = insertResponse.error;
 
     if (insertError || !inserted?.id) {
       throw new Error("Failed to save your analysis. Please retry.");
