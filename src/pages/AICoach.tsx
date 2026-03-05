@@ -36,21 +36,25 @@ const AICoach = () => {
 
   const buildSystemContext = () => {
     if (!analysis) return "";
-    const topCondition = (analysis.conditions as any[])?.[0];
-    const protocol = analysis.healing_protocol;
-    return `\n\nUser's skin analysis context:
-- Top condition: ${topCondition?.condition} (${topCondition?.probability}% likelihood)
-- Conditions: ${(analysis.conditions as any[]).map((c: any) => `${c.condition} ${c.probability}%`).join(", ")}
-- Visual features: ${(analysis.visual_features as string[]).join(", ")}
-- Root causes: ${(analysis.root_causes as any[]).map((r: any) => r.title).join(", ")}
-- Morning routine: ${protocol?.morningRoutine?.join("; ")}
-- Evening routine: ${protocol?.eveningRoutine?.join("; ")}
-- Foods to eat: ${protocol?.foodsToEat?.map((f: any) => f.food).join(", ")}
-- Foods to avoid: ${protocol?.foodsToAvoid?.map((f: any) => f.food).join(", ")}
-- Gut health: ${protocol?.gutHealth?.join("; ")}
-- Lifestyle: ${protocol?.lifestyle?.join("; ")}
 
-Always answer based on this context. Be specific to their condition.`;
+    const topCondition = (analysis.conditions as any[])?.[0];
+    const nutrition = analysis.nutrition_plan;
+    const gut = analysis.gut_health_plan;
+    const lifestyle = analysis.lifestyle_plan;
+    const daily = analysis.daily_plan;
+
+    return `\n\nUser's current saved analysis context:
+- Top condition: ${topCondition?.condition} (${topCondition?.probability}% likelihood)
+- Possible conditions: ${(analysis.conditions as any[]).map((c: any) => `${c.condition} ${c.probability}%`).join(", ")}
+- Root causes: ${(analysis.root_causes as any[]).map((r: any) => r.title).join(", ")}
+- Food priorities: ${(nutrition?.priorities || []).join("; ")}
+- Foods to focus: ${(nutrition?.foods_to_focus || []).map((f: any) => f.food).join(", ")}
+- Foods to limit: ${(nutrition?.foods_to_limit || []).map((f: any) => f.food).join(", ")}
+- Gut plan: ${(gut?.seven_day_plan || []).map((d: any) => `${d.day}: ${(d.actions || []).join(" ")}`).join(" | ")}
+- Lifestyle plan: ${[...(lifestyle?.sleep || []), ...(lifestyle?.stress || []), ...(lifestyle?.exercise || []), ...(lifestyle?.habits || [])].join("; ")}
+- Daily plan: ${[...(daily?.morning || []), ...(daily?.midday || []), ...(daily?.evening || []), ...(daily?.weekly || [])].join("; ")}
+
+Always answer using this saved context. Keep language cautious and educational.`;
   };
 
   const send = async (text: string) => {
