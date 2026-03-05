@@ -50,6 +50,7 @@ const Progress = () => {
     : null;
 
   const protocol = latestAnalysis?.healing_protocol;
+  const currentAnalysisId = latestAnalysis?.id;
 
   return (
     <Layout>
