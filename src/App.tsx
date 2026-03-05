@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import Index from "./pages/Index";
+import { CurrentAnalysisProvider } from "@/hooks/useCurrentAnalysis";
 import Dashboard from "./pages/Dashboard";
 import SkinAnalysis from "./pages/SkinAnalysis";
 import HealingProtocol from "./pages/HealingProtocol";
