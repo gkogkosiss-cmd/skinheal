@@ -76,7 +76,7 @@ export const useAllAnalyses = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data || []) as Analysis[];
+      return (data || []) as unknown as Analysis[];
     },
     enabled: !!user,
   });
