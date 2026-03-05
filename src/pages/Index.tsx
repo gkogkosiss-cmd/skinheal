@@ -1,7 +1,7 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ScanFace, HeartPulse, Apple, MessageCircle, ArrowRight, Leaf, Shield } from "lucide-react";
-import heroBg from "@/assets/hero-bg.jpg";
+import { useAuth } from "@/hooks/useAuth";
 
 const features = [
   {
@@ -27,6 +27,17 @@ const features = [
 ];
 
 const Index = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleAnalyze = () => {
+    if (user) {
+      navigate("/analysis");
+    } else {
+      navigate("/auth?redirect=/analysis");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
@@ -80,13 +91,13 @@ const Index = () => {
             transition={{ duration: 0.6, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Link
-              to="/analysis"
+            <button
+              onClick={handleAnalyze}
               className="flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-primary text-primary-foreground font-medium text-base hover:opacity-90 transition-all duration-300"
             >
               Analyze My Skin
               <ArrowRight className="w-4 h-4" />
-            </Link>
+            </button>
             <Link
               to="/dashboard"
               className="flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-secondary text-secondary-foreground font-medium text-base hover:bg-muted transition-all duration-300"
