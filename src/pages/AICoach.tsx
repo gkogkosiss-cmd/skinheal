@@ -3,8 +3,7 @@ import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
 import { Send, Bot, User, Sparkles, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useLatestAnalysis } from "@/hooks/useAnalysis";
-import { useAuth } from "@/hooks/useAuth";
+import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 
 type Message = { role: "user" | "assistant"; content: string };
 
