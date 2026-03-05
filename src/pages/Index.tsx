@@ -48,37 +48,51 @@ const Index = () => {
       {/* Hero */}
       <section className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
-          <motion.div
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="text-sm font-medium text-primary tracking-wide uppercase mb-4"
+          >
+            AI-Powered Skin Wellness
+          </motion.p>
+          <motion.h1
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            className="font-serif text-4xl md:text-6xl lg:text-7xl text-foreground leading-[1.1] mb-6"
+          >
+            Understand your skin.
+            <br />
+            <span className="text-primary">Heal from within.</span>
+          </motion.h1>
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.7, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed"
           >
-            <p className="text-sm font-medium text-primary tracking-wide uppercase mb-4">
-              AI-Powered Skin Wellness
-            </p>
-            <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl text-foreground leading-[1.1] mb-6">
-              Understand your skin.
-              <br />
-              <span className="text-primary">Heal from within.</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
-              A premium AI platform that identifies your skin condition, explains the root cause, and gives you a complete healing protocol — from skincare to nutrition to gut health.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                to="/analysis"
-                className="flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-primary text-primary-foreground font-medium text-base hover:opacity-90 transition-opacity"
-              >
-                Analyze My Skin
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                to="/dashboard"
-                className="flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-secondary text-secondary-foreground font-medium text-base hover:bg-muted transition-colors"
-              >
-                Explore Dashboard
-              </Link>
-            </div>
+            A premium AI platform that identifies your skin condition, explains the root cause, and gives you a complete healing protocol — from skincare to nutrition to gut health.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
+            <Link
+              to="/analysis"
+              className="flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-primary text-primary-foreground font-medium text-base hover:opacity-90 transition-all duration-300"
+            >
+              Analyze My Skin
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-secondary text-secondary-foreground font-medium text-base hover:bg-muted transition-all duration-300"
+            >
+              Explore Dashboard
+            </Link>
           </motion.div>
         </div>
       </section>
