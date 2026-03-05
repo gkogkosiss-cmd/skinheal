@@ -6,8 +6,7 @@ import {
   TrendingUp, MessageCircle, ArrowRight, Sparkles, AlertCircle,
   Circle, AlertTriangle, Target
 } from "lucide-react";
-import { useLatestAnalysis } from "@/hooks/useAnalysis";
-import { useAuth } from "@/hooks/useAuth";
+import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 
 const quickActions = [
   { path: "/analysis", label: "Skin Analysis", icon: ScanFace, color: "bg-accent" },
