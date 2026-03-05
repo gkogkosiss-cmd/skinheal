@@ -26,19 +26,21 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/analysis" element={<SkinAnalysis />} />
-            <Route path="/protocol" element={<HealingProtocol />} />
-            <Route path="/nutrition" element={<Nutrition />} />
-            <Route path="/gut-health" element={<GutHealth />} />
-            <Route path="/lifestyle" element={<Lifestyle />} />
-            <Route path="/progress" element={<Progress />} />
-            <Route path="/coach" element={<AICoach />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <CurrentAnalysisProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/analysis" element={<SkinAnalysis />} />
+              <Route path="/protocol" element={<HealingProtocol />} />
+              <Route path="/nutrition" element={<Nutrition />} />
+              <Route path="/gut-health" element={<GutHealth />} />
+              <Route path="/lifestyle" element={<Lifestyle />} />
+              <Route path="/progress" element={<Progress />} />
+              <Route path="/coach" element={<AICoach />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </CurrentAnalysisProvider>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
