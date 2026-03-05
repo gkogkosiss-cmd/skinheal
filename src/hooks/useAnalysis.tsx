@@ -320,7 +320,7 @@ const fetchLatestAnalysisForUser = async (userId: string): Promise<Analysis | nu
     .eq("user_id", userId)
     .maybeSingle();
 
-  const stateData = stateResult.data as { latest_analysis_id: string | null } | null;
+  const stateData = stateResult.data as unknown as { latest_analysis_id: string | null } | null;
 
   let record: any = null;
 
