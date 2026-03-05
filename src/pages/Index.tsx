@@ -27,6 +27,17 @@ const features = [
 ];
 
 const Index = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleAnalyze = () => {
+    if (user) {
+      navigate("/analysis");
+    } else {
+      navigate("/auth?redirect=/analysis");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
