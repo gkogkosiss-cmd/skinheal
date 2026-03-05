@@ -314,11 +314,13 @@ export const latestAnalysisQueryKey = (userId?: string) => ["latest-analysis", u
 export const allAnalysesQueryKey = (userId?: string) => ["all-analyses", userId];
 
 const fetchLatestAnalysisForUser = async (userId: string): Promise<Analysis | null> => {
-  const { data: stateData } = await supabase
+  const stateResult = await supabase
     .from("user_state" as any)
     .select("latest_analysis_id")
     .eq("user_id", userId)
     .maybeSingle();
+
+  const stateData = stateResult.data as { latest_analysis_id: string | null } | null;
 
   let record: any = null;
 
