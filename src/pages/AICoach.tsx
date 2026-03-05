@@ -59,6 +59,15 @@ Always answer using this saved context. Keep language cautious and educational.`
 
   const send = async (text: string) => {
     if (!text.trim()) return;
+
+    if (!analysis) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Run your first skin analysis first, then I can tailor your plan to your saved results." },
+      ]);
+      return;
+    }
+
     const userMsg: Message = { role: "user", content: text.trim() };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
