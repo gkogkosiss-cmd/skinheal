@@ -154,9 +154,16 @@ const Progress = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center justify-between mb-1 gap-3">
                           <p className="font-medium text-sm">{getWeekLabel(i, analyses!.length)}</p>
-                          <span className="text-xs text-muted-foreground">{date.toLocaleDateString()}</span>
+                          <div className="flex items-center gap-2">
+                            {currentAnalysisId === a.id && (
+                              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
+                                Current plan
+                              </span>
+                            )}
+                            <span className="text-xs text-muted-foreground">{date.toLocaleDateString()}</span>
+                          </div>
                         </div>
                         {topCondition && (
                           <p className="text-xs text-muted-foreground mb-2">
