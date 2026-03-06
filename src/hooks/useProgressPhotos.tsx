@@ -145,6 +145,7 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
           baselineContext,
           previousScore,
           progressAnswers: progressAnswers || {},
+          bodyArea: detectedBodyArea,
         }),
       });
 
