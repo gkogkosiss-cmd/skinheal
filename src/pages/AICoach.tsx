@@ -195,9 +195,9 @@ If the user previously asked about something in this conversation, reference it 
   return (
     <Layout>
       <PremiumGate featureName="AI Skin Coach">
-      <div className="flex flex-col h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)]">
+      <div className="flex flex-col h-[calc(100vh-10rem)] sm:h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)]">
         {/* Header */}
-        <div className="mb-4 flex items-start justify-between">
+        <div className="mb-3 sm:mb-4 flex items-start justify-between">
           <div>
             <p className="text-sm text-primary font-medium mb-1">AI Skin Coach</p>
             <h1 className="font-serif text-3xl md:text-4xl mb-1">Ask anything</h1>
