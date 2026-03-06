@@ -1,0 +1,1 @@
+ALTER TABLE public.analysis_records ADD COLUMN IF NOT EXISTS photo_urls jsonb NOT NULL DEFAULT '[]'::jsonb;
