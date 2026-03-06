@@ -274,7 +274,12 @@ Return the FULL JSON response with ALL fields including bodyArea, skinScore and 
     let parsed;
     try {
       parsed = JSON.parse(content);
+      console.info("[analyze-skin] analysis completed", {
+        hasConditions: Array.isArray(parsed?.conditions),
+        hasQuestions: Array.isArray(parsed?.dynamicQuestions),
+      });
     } catch {
+      console.error("[analyze-skin] failed to parse AI response", { raw: content });
       parsed = { error: "Failed to parse AI response", raw: content };
     }
 
