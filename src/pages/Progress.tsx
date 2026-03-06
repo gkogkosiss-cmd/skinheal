@@ -2,22 +2,39 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Camera, Calendar, Plus, ArrowRight, AlertCircle, Target, Eye, X, ArrowLeftRight, Share2 } from "lucide-react";
-import { useAllAnalyses, getSignedImageUrl, type Analysis } from "@/hooks/useAnalysis";
+import { Camera, Calendar, Plus, ArrowRight, AlertCircle, Target, Eye, X, ArrowLeftRight, Share2, Trash2 } from "lucide-react";
+import { useAllAnalyses, getSignedImageUrl, deleteAnalysisRecord, type Analysis } from "@/hooks/useAnalysis";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
+import { allAnalysesQueryKey, latestAnalysisQueryKey } from "@/hooks/useAnalysis";
 import { useToast } from "@/hooks/use-toast";
-import { SkinScoreCard, type SkinScore } from "@/components/dashboard/SkinScoreCard";
+import { SkinScoreCard } from "@/components/dashboard/SkinScoreCard";
 import { ShareableProgressCard } from "@/components/progress/ShareableProgressCard";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Progress = () => {
   const { data: analyses, isLoading } = useAllAnalyses();
   const { currentAnalysis: latestAnalysis, setAsCurrentPlan } = useCurrentAnalysis();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [selectedReport, setSelectedReport] = useState<Analysis | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showShareCard, setShowShareCard] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Analysis | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const hasAnalyses = analyses && analyses.length > 0;
 
   useEffect(() => {
@@ -48,6 +65,25 @@ const Progress = () => {
     });
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget || !user) return;
+    setIsDeleting(true);
+    try {
+      await deleteAnalysisRecord(deleteTarget.id, user.id);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: allAnalysesQueryKey(user.id) }),
+        queryClient.invalidateQueries({ queryKey: latestAnalysisQueryKey(user.id) }),
+      ]);
+      if (selectedReport?.id === deleteTarget.id) setSelectedReport(null);
+      toast({ title: "Deleted", description: "Analysis removed successfully." });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   const compareAnalyses = compareIds.length === 2
     ? analyses?.filter((a) => compareIds.includes(a.id))
     : null;
@@ -55,7 +91,6 @@ const Progress = () => {
   const protocol = latestAnalysis?.healing_protocol;
   const currentAnalysisId = latestAnalysis?.id;
 
-  // For shareable card: find oldest and newest with scores
   const canShare = analyses && analyses.length >= 2 &&
     analyses[0]?.skin_score?.overall > 0 &&
     analyses[analyses.length - 1]?.skin_score?.overall > 0;
@@ -81,12 +116,12 @@ const Progress = () => {
             </div>
           </Link>
 
-          {/* Score Overview (latest) */}
+          {/* Score Overview */}
           {latestAnalysis?.skin_score?.overall > 0 && (
             <SkinScoreCard score={latestAnalysis.skin_score} />
           )}
 
-          {/* Share Progress Button */}
+          {/* Share Progress */}
           {canShare && (
             <button
               onClick={() => setShowShareCard(true)}
@@ -155,6 +190,11 @@ const Progress = () => {
                   const date = new Date(a.created_at);
                   const isSelected = compareIds.includes(a.id);
                   const score = a.skin_score?.overall;
+                  // Show score delta vs previous (next in array since sorted desc)
+                  const prevAnalysis = analyses![i + 1];
+                  const prevScore = prevAnalysis?.skin_score?.overall;
+                  const scoreDelta = score > 0 && prevScore > 0 ? score - prevScore : null;
+
                   return (
                     <motion.div
                       key={a.id}
@@ -170,7 +210,6 @@ const Progress = () => {
                         else setSelectedReport(a);
                       }}
                     >
-                      {/* Photo thumbnail */}
                       <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                         {imageUrls[a.id] ? (
                           <img src={imageUrls[a.id]} alt="Skin photo" className="w-full h-full object-cover" />
@@ -185,6 +224,11 @@ const Progress = () => {
                             {score > 0 && (
                               <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
                                 {score}/100
+                                {scoreDelta !== null && (
+                                  <span className={`ml-1 ${scoreDelta > 0 ? "text-primary" : scoreDelta < 0 ? "text-destructive" : ""}`}>
+                                    ({scoreDelta > 0 ? "+" : ""}{scoreDelta})
+                                  </span>
+                                )}
                               </span>
                             )}
                             {currentAnalysisId === a.id && (
@@ -262,6 +306,9 @@ const Progress = () => {
                         {diff > 0 ? `+${diff}` : diff}
                       </span>
                     </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {diff > 0 ? "Your skin appears to be improving based on the analysis comparison." : diff < 0 ? "Your skin may be showing some changes that need attention." : "Little visible change between these two analyses."}
+                    </p>
                   </div>
                 );
               })()}
@@ -410,28 +457,63 @@ const Progress = () => {
                   </>
                 )}
 
-                {/* Set as Current */}
-                {currentAnalysisId !== selectedReport.id && (
+                {/* Action buttons */}
+                <div className="space-y-3 mt-4">
+                  {currentAnalysisId !== selectedReport.id && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await setAsCurrentPlan(selectedReport.id);
+                          toast({ title: "Updated", description: "This analysis is now your active plan." });
+                          setSelectedReport(null);
+                        } catch (e: any) {
+                          toast({ title: "Error", description: e.message, variant: "destructive" });
+                        }
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                    >
+                      Set as Current Plan
+                    </button>
+                  )}
+
                   <button
-                    onClick={async () => {
-                      try {
-                        await setAsCurrentPlan(selectedReport.id);
-                        toast({ title: "Updated", description: "This analysis is now your active plan." });
-                        setSelectedReport(null);
-                      } catch (e: any) {
-                        toast({ title: "Error", description: e.message, variant: "destructive" });
-                      }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTarget(selectedReport);
                     }}
-                    className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/5 transition-colors"
                   >
-                    Set as Current Plan
+                    <Trash2 className="w-4 h-4" />
+                    Delete Analysis
                   </button>
-                )}
+                </div>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this analysis?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the photos and generated plan. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Shareable Progress Card */}
       {showShareCard && analyses && analyses.length >= 2 && (

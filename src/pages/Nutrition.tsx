@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Check, X, Leaf, ArrowRight, AlertCircle, Droplets, Target, Utensils, FlaskConical } from "lucide-react";
+import { Check, X, Leaf, ArrowRight, AlertCircle, Droplets, Target, Utensils, FlaskConical, CalendarDays, ChevronDown, ChevronUp } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
-import { type FoodItem } from "@/hooks/useAnalysis";
+import { type FoodItem, type MealPlanDay } from "@/hooks/useAnalysis";
 
 const defaultGoodFoods: FoodItem[] = [
   { food: "Fatty Fish (salmon, sardines, mackerel)", reason: "Rich in omega-3s which often help reduce skin inflammation" },
@@ -26,7 +27,9 @@ const defaultBadFoods: FoodItem[] = [
 const Nutrition = () => {
   const { currentAnalysis: analysis } = useCurrentAnalysis();
   const protocol = analysis?.healing_protocol;
+  const nutritionPlan = analysis?.nutrition_plan;
   const hasAnalysis = !!analysis;
+  const [expandedDay, setExpandedDay] = useState<number | null>(0);
 
   const goodFoods = protocol?.foodsToEat?.length ? protocol.foodsToEat : defaultGoodFoods;
   const badFoods = protocol?.foodsToAvoid?.length ? protocol.foodsToAvoid : defaultBadFoods;
@@ -34,6 +37,8 @@ const Nutrition = () => {
   const mealTemplate = protocol?.mealTemplate;
   const triggerFoods = protocol?.commonTriggerFoods || [];
   const hydration = protocol?.hydrationGuidance;
+  const sevenDayMealPlan = nutritionPlan?.seven_day_meal_plan || protocol?.sevenDayMealPlan || [];
+  const mealPlanPrinciples = nutritionPlan?.meal_plan_principles || protocol?.mealPlanPrinciples || [];
 
   return (
     <Layout>
@@ -75,6 +80,74 @@ const Nutrition = () => {
                     <p className="text-muted-foreground">{rule}</p>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* 7-Day Meal Plan */}
+          {sevenDayMealPlan.length > 0 && (
+            <div className="card-elevated">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <CalendarDays className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-serif text-xl">7-Day Skin Healing Meal Plan</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Anti-inflammatory, gut-supportive meals tailored to your analysis</p>
+                </div>
+              </div>
+
+              {/* Principles */}
+              {mealPlanPrinciples.length > 0 && (
+                <div className="p-4 rounded-xl bg-accent/50 mb-5">
+                  <p className="text-xs font-medium text-primary uppercase tracking-wide mb-2">Key Nutrition Principles</p>
+                  <div className="space-y-1.5">
+                    {mealPlanPrinciples.map((p: string, i: number) => (
+                      <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="text-primary font-bold mt-px">-</span>
+                        <span>{p}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {sevenDayMealPlan.map((day: MealPlanDay, i: number) => {
+                  const isExpanded = expandedDay === i;
+                  return (
+                    <div key={i} className="rounded-xl border border-border overflow-hidden">
+                      <button
+                        onClick={() => setExpandedDay(isExpanded ? null : i)}
+                        className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+                      >
+                        <span className="font-medium text-sm">{day.day}</span>
+                        {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                      </button>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="px-4 pb-4"
+                        >
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            {[
+                              { label: "Breakfast", value: day.breakfast },
+                              { label: "Lunch", value: day.lunch },
+                              { label: "Dinner", value: day.dinner },
+                              { label: "Snack", value: day.snack },
+                            ].map((meal) => (
+                              <div key={meal.label} className="p-3 rounded-lg bg-muted/50">
+                                <p className="text-[10px] font-medium text-primary uppercase tracking-wide mb-1">{meal.label}</p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">{meal.value}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -125,8 +198,8 @@ const Nutrition = () => {
             </div>
           </div>
 
-          {/* Meal Template */}
-          {mealTemplate && (
+          {/* Meal Template (single day fallback) */}
+          {mealTemplate && !sevenDayMealPlan.length && (
             <div className="card-elevated">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
