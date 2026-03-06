@@ -357,9 +357,7 @@ const Index = () => {
       <footer className="px-6 py-8 border-t border-border">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <Leaf className="w-4 h-4 text-primary-foreground" />
-            </div>
+            <img src={skinhealLogo} alt="SkinHeal" className="w-7 h-7 rounded-lg" />
             <span className="font-serif text-foreground">SkinHeal</span>
           </div>
           <div className="flex items-center gap-6 text-xs text-muted-foreground">

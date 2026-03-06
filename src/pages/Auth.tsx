@@ -72,9 +72,7 @@ const Auth = () => {
       >
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-10">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <Leaf className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src={skinhealLogo} alt="SkinHeal" className="w-10 h-10 rounded-xl" />
           <span className="font-serif text-2xl text-foreground">SkinHeal</span>
         </div>
 

@@ -66,9 +66,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 py-4 bg-background/80 backdrop-blur-lg border-b border-border">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Leaf className="w-4 h-4 text-primary-foreground" />
-          </div>
+          <img src={skinhealLogo} alt="SkinHeal" className="w-8 h-8 rounded-lg" />
           <span className="font-serif text-lg">SkinHeal</span>
         </Link>
         <button
