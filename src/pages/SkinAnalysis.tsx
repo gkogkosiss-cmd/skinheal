@@ -67,6 +67,7 @@ const SkinAnalysis = () => {
   const [images, setImages] = useState<Array<{ file: File; preview: string; base64: string }>>([]);
   const [dynamicQuestions, setDynamicQuestions] = useState<DynamicQuestion[]>([]);
   const [visualFeatures, setVisualFeatures] = useState<string[]>([]);
+  const [bodyArea, setBodyArea] = useState<string>("face");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [currentQ, setCurrentQ] = useState(0);
   const [healthQ, setHealthQ] = useState(0);
@@ -119,6 +120,7 @@ const SkinAnalysis = () => {
       if (data.error) throw new Error(data.error);
       setDynamicQuestions(data.dynamicQuestions || []);
       setVisualFeatures(data.visualFeatures || []);
+      if (data.bodyArea) setBodyArea(data.bodyArea);
       setStep("questions");
     } catch (err: any) {
       toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
@@ -188,7 +190,8 @@ const SkinAnalysis = () => {
         daily_plan: normalized.daily_plan,
         safety_flags: normalized.safety_flags,
         skin_score: normalized.skin_score,
-      })
+        body_area: bodyArea,
+      } as any)
       .select("id")
       .single();
 
@@ -223,6 +226,7 @@ const SkinAnalysis = () => {
       if (data.error) throw new Error(data.error);
 
       const generated = data as AnalysisResult;
+      if (data.bodyArea) setBodyArea(data.bodyArea);
       await saveAnalysis(generated);
 
       setResults(generated);

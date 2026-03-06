@@ -18,8 +18,29 @@ CRITICAL RULES:
 - Never use the asterisk symbol (*) in any text output.
 - When multiple images are provided, use ALL of them together to improve confidence, detect patterns across angles, and check consistency.
 
+BODY AREA DETECTION (CRITICAL):
+- FIRST, detect which body area is shown in the photos. Output a "bodyArea" field.
+- Valid areas: "face", "forehead", "cheeks", "nose", "chin", "neck", "chest", "shoulders", "back", "arms", "legs", "scalp", "hands", "other"
+- The detected body area MUST guide your analysis. Different body areas have different common conditions and care recommendations.
+
+BODY-AREA SPECIFIC FOCUS:
+- FACE/FOREHEAD/CHEEKS/NOSE/CHIN: acne vulgaris, rosacea, seborrheic dermatitis, clogged pores, oil imbalance, perioral dermatitis, contact dermatitis
+- NECK: acne mechanica, folliculitis, irritation from clothing/jewelry
+- BACK/CHEST/SHOULDERS: back acne (bacne), fungal folliculitis (malassezia), sweat-related irritation, friction acne, keratosis pilaris
+- SCALP: dandruff, seborrheic dermatitis, scalp psoriasis, folliculitis, dryness
+- ARMS/LEGS: keratosis pilaris, eczema, psoriasis, contact dermatitis, dryness, insect bites
+- HANDS: contact dermatitis, dryness, dyshidrotic eczema, irritant dermatitis
+
+RECOMMENDATIONS MUST ADAPT TO BODY AREA:
+- Face: gentle cleansers, barrier repair, SPF, avoid harsh scrubs
+- Back/Chest: breathable clothing, shower after sweating, benzoyl peroxide wash, avoid tight fabrics
+- Scalp: medicated shampoos, scalp hydration, gentle brushing, avoid excessive heat styling
+- Arms/Legs: exfoliation with AHAs/urea, rich moisturizers, avoid hot showers
+- Hands: frequent moisturizing, barrier creams, avoid irritants, use gloves for cleaning
+
 When given skin photo(s) and questionnaire answers, respond with a JSON object using this exact structure:
 {
+  "bodyArea": "face|forehead|cheeks|nose|chin|neck|chest|shoulders|back|arms|legs|scalp|hands|other",
   "visualFeatures": ["redness", "flaking", ...],
   "dynamicQuestions": [
     {"id": "q1", "question": "Does the area itch?", "options": ["Yes, frequently", "Occasionally", "Rarely or never"]},
@@ -33,7 +54,7 @@ When given skin photo(s) and questionnaire answers, respond with a JSON object u
     {"title": "Possible Trigger", "description": "Clear, simple explanation..."},
     ...
   ],
-  "biologicalExplanation": "A simple, human explanation of what may be happening in the skin. No jargon. 2-3 sentences max.",
+  "biologicalExplanation": "A simple, human explanation of what may be happening in the skin. No jargon. 2-3 sentences max. Reference the specific body area.",
   "skinScore": {
     "overall": 62,
     "factors": {
@@ -45,11 +66,11 @@ When given skin photo(s) and questionnaire answers, respond with a JSON object u
     }
   },
   "healingProtocol": {
-    "whatIsHappening": "A 2-3 sentence plain-language summary of what seems to be going on based on photos and answers.",
-    "morningRoutine": ["Step 1: Rinse with lukewarm water", "Step 2: Apply gentle moisturizer", ...],
-    "eveningRoutine": ["Step 1: Gentle cleanser", "Step 2: Apply treatment if needed", ...],
-    "weeklyTreatments": ["Specific weekly care steps relevant to the condition"],
-    "triggersToAvoid": ["Specific irritants or behaviors to avoid"],
+    "whatIsHappening": "A 2-3 sentence plain-language summary of what seems to be going on based on photos and answers. Reference the body area.",
+    "morningRoutine": ["Step 1: ...", "Step 2: ...", ...],
+    "eveningRoutine": ["Step 1: ...", "Step 2: ...", ...],
+    "weeklyTreatments": ["Specific weekly care steps relevant to the condition and body area"],
+    "triggersToAvoid": ["Specific irritants or behaviors to avoid for this body area"],
     "safetyGuidance": "Clear guidance on when to see a dermatologist. Include red flags like spreading rash, severe pain, swelling, pus or infection, eye involvement, or worsening despite care.",
     "timeline": "Realistic timeline with ranges.",
     "foodPriorities": ["Rule 1: Focus on anti-inflammatory whole foods", ...],
@@ -107,7 +128,8 @@ MULTI-IMAGE ANALYSIS RULES:
 - Note if images show different areas or the same area from different angles.
 - If any image is blurry or unclear, note it but still use whatever information is visible.
 
-Provide 2-4 possible conditions ranked by probability. Use cautious language throughout.`;
+Provide 2-4 possible conditions ranked by probability. Use cautious language throughout.
+Adapt ALL recommendations (routines, products, triggers) to the detected body area.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -117,7 +139,6 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Support both single image (legacy) and multiple images
     const images: string[] = [];
     if (Array.isArray(imagesBase64) && imagesBase64.length > 0) {
       images.push(...imagesBase64);
@@ -131,20 +152,19 @@ serve(async (req) => {
 
     const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
 
-    // Build image content parts
     const imageContentParts = images.map((img: string) => ({
       type: "image_url",
       image_url: { url: `data:image/jpeg;base64,${img}` },
     }));
 
-    // Step 1: Image only - generate dynamic questions
+    // Step 1: Image only - generate dynamic questions + detect body area
     if (!answers) {
       messages.push({
         role: "user",
         content: [
           {
             type: "text",
-            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos" : "this skin photo"}. Identify visual features across all images and generate 4-5 highly relevant diagnostic questions based on what you see. Return ONLY the visualFeatures and dynamicQuestions fields as JSON.`,
+            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos" : "this skin photo"}. FIRST detect which body area is shown (face, neck, back, chest, arms, legs, scalp, hands, etc). Then identify visual features across all images and generate 4-5 highly relevant diagnostic questions based on what you see and the body area. Return ONLY the bodyArea, visualFeatures, and dynamicQuestions fields as JSON.`,
           },
           ...imageContentParts,
         ],
@@ -160,25 +180,31 @@ serve(async (req) => {
             type: "text",
             text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos together" : "this skin photo"} along with the user's questionnaire answers. Provide a complete, thorough analysis.
 
+IMPORTANT - BODY AREA DETECTION:
+- First detect which body area is shown in the photos.
+- Adapt ALL your analysis, conditions, and recommendations to that specific body area.
+- Do NOT default to face-only conditions if the photos show another body part.
+
 User's answers: ${JSON.stringify(answers)}
 
 IMPORTANT GUIDELINES FOR YOUR RESPONSE:
 - Use cautious, educational language. Say "may", "often", "commonly" instead of definitive claims.
 - Reference what you actually see in the photos - do not fabricate observations.
 - If multiple photos are provided, note consistency or differences across views.
-- Make the healing protocol highly detailed and practical.
+- Make the healing protocol highly detailed and practical, adapted to the body area shown.
 - The meal template should be realistic and easy to follow.
 - IMPORTANT: Generate a complete sevenDayMealPlan array with 7 objects, each with day, breakfast, lunch, dinner, snack. Make meals anti-inflammatory, gut-supportive, and practical for everyday life. Each day should be different and varied.
 - Also generate mealPlanPrinciples: 5 key nutrition principles specific to the user's skin condition.
 - The 7-day gut plan should be progressive and gentle.
-- Daily checklist should be 5-8 items max.
+- Daily checklist should be 5-8 items max, adapted to the body area.
 - Keep routines minimal - focus on behavior and consistency over products.
 - Include specific safety guidance and red flags.
 - Never use the asterisk symbol in any text.
 - IMPORTANT: Include the skinScore field with overall score and all 5 factor scores with specific explanations that reference the actual images and answers.
 - Skin score explanations MUST reference what you observe, not generic text.
+- IMPORTANT: Include the bodyArea field indicating which body area you detected.
 
-Return the FULL JSON response with ALL fields including skinScore and the expanded healingProtocol.`,
+Return the FULL JSON response with ALL fields including bodyArea, skinScore and the expanded healingProtocol.`,
           },
           ...imageContentParts,
         ],

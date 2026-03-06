@@ -51,9 +51,10 @@ export const useProgressPhotos = () => {
     enabled: !!user,
   });
 
-  const uploadProgressPhoto = useCallback(async (files: File | File[], progressAnswers?: Record<string, string>) => {
+  const uploadProgressPhoto = useCallback(async (files: File | File[], progressAnswers?: Record<string, string>, bodyArea?: string) => {
     if (!user) throw new Error("Must be logged in");
     setUploading(true);
+    const detectedBodyArea = bodyArea || "face";
 
     try {
       const fileArray = Array.isArray(files) ? files : [files];
@@ -85,15 +86,19 @@ export const useProgressPhotos = () => {
       base64Images.push(base64);
       }
 
-      // Get previous score — from latest progress photo or from current analysis
+      // Get previous score — from latest progress photo OF SAME BODY AREA or from current analysis
       const photos = query.data || [];
-      const latestProgressScore = photos.length > 0 ? photos[0].score_estimate : null;
+      const sameAreaPhotos = photos.filter(p => {
+        const pArea = (p.progress_summary as any)?.bodyArea || (p as any).body_area || "face";
+        return pArea === detectedBodyArea;
+      });
+      const latestProgressScore = sameAreaPhotos.length > 0 ? sameAreaPhotos[0].score_estimate : null;
       const baselineScore = currentAnalysis?.skin_score?.overall || 50;
       const previousScore = latestProgressScore ?? baselineScore;
 
-      // Fetch previous photo for visual comparison
+      // Fetch previous photo OF SAME BODY AREA for visual comparison
       let previousImageBase64: string | null = null;
-      const previousPhotoUrl = photos.length > 0 ? photos[0].photo_url : currentAnalysis?.photo_url;
+      const previousPhotoUrl = sameAreaPhotos.length > 0 ? sameAreaPhotos[0].photo_url : currentAnalysis?.photo_url;
       if (previousPhotoUrl) {
         try {
           const { data: prevData } = await supabase.storage
@@ -140,6 +145,7 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
           baselineContext,
           previousScore,
           progressAnswers: progressAnswers || {},
+          bodyArea: detectedBodyArea,
         }),
       });
 
@@ -158,10 +164,11 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
         }
       }
 
-      // Store answers in the summary for history
+      // Store answers and body area in the summary for history
       if (progressAnswers) {
         progressSummary.progressAnswers = progressAnswers;
       }
+      progressSummary.bodyArea = progressSummary.bodyArea || detectedBodyArea;
 
       // Calculate new score with hard cap enforcement
       let adj = typeof progressSummary.scoreAdjustment === "number" ? progressSummary.scoreAdjustment : 0;
@@ -179,6 +186,7 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
           photo_url: uploadedPaths[0],
           progress_summary: progressSummary,
           score_estimate: scoreEstimate,
+          body_area: detectedBodyArea,
         } as any);
 
       if (insertError) throw insertError;
