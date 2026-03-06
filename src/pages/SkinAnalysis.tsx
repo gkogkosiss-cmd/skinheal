@@ -190,7 +190,8 @@ const SkinAnalysis = () => {
         daily_plan: normalized.daily_plan,
         safety_flags: normalized.safety_flags,
         skin_score: normalized.skin_score,
-      })
+        body_area: bodyArea,
+      } as any)
       .select("id")
       .single();
 
