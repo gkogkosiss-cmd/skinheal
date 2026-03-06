@@ -65,6 +65,7 @@ export type Database = {
           lifestyle_plan: Json
           nutrition_plan: Json
           photo_url: string | null
+          photo_urls: Json
           results: Json
           root_causes: Json
           safety_flags: Json
@@ -82,6 +83,7 @@ export type Database = {
           lifestyle_plan?: Json
           nutrition_plan?: Json
           photo_url?: string | null
+          photo_urls?: Json
           results?: Json
           root_causes?: Json
           safety_flags?: Json
@@ -99,6 +101,7 @@ export type Database = {
           lifestyle_plan?: Json
           nutrition_plan?: Json
           photo_url?: string | null
+          photo_urls?: Json
           results?: Json
           root_causes?: Json
           safety_flags?: Json

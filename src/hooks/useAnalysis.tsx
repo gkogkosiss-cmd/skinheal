@@ -115,6 +115,7 @@ export interface Analysis {
   created_at: string;
   image_url: string | null;
   photo_url: string | null;
+  photo_urls: string[];
   visual_features: string[];
   image_observations: string[];
   diagnostic_answers: Record<string, string>;
@@ -236,6 +237,7 @@ const mapRecordToAnalysis = (record: any): Analysis => {
     created_at: record.created_at,
     image_url: record.photo_url ?? null,
     photo_url: record.photo_url ?? null,
+    photo_urls: Array.isArray(record.photo_urls) ? record.photo_urls : (record.photo_url ? [record.photo_url] : []),
     visual_features: safeStringArray(record.image_observations),
     image_observations: safeStringArray(record.image_observations),
     diagnostic_answers: (record.answers ?? {}) as Record<string, string>,
@@ -420,4 +422,13 @@ export const getSignedImageUrl = async (path: string) => {
     .from("skin-photos")
     .createSignedUrl(path, 3600);
   return data?.signedUrl || null;
+};
+
+export const getSignedImageUrls = async (paths: string[]) => {
+  const results: Record<string, string> = {};
+  for (const path of paths) {
+    const url = await getSignedImageUrl(path);
+    if (url) results[path] = url;
+  }
+  return results;
 };

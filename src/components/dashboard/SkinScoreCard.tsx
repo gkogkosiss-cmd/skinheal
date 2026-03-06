@@ -11,11 +11,11 @@ export interface SkinScore {
 }
 
 const factorLabels: Record<string, string> = {
-  inflammation: "Inflammation",
-  gut_health: "Gut Health",
-  diet_quality: "Diet Quality",
-  lifestyle: "Lifestyle",
-  skin_barrier: "Skin Barrier",
+  inflammation: "Inflammation Impact",
+  gut_health: "Gut Health Influence",
+  diet_quality: "Nutrition Influence",
+  lifestyle: "Lifestyle Impact",
+  skin_barrier: "Barrier Health",
 };
 
 const getScoreColor = (score: number) => {
