@@ -41,7 +41,7 @@ const trustPoints = [
 ];
 
 const faqs = [
-  { q: "Is this a medical diagnosis?", a: "No. The Skin Guy AI provides educational skin wellness insights, not medical diagnoses. Always consult a dermatologist for medical concerns." },
+  { q: "Is this a medical diagnosis?", a: "No. SkinHeal provides educational skin wellness insights, not medical diagnoses. Always consult a dermatologist for medical concerns." },
   { q: "Is my photo secure?", a: "Yes. Your photos are encrypted, analyzed privately, and never shared. We take your privacy seriously." },
   { q: "How accurate is the analysis?", a: "Our AI identifies common skin conditions with probability scores. It's designed to be helpful and transparent, not to replace professional advice." },
   { q: "What body areas can I analyze?", a: "You can upload photos of your face, back, chest, arms, legs, scalp, hands, and more. The AI adapts its analysis to each body area." },
