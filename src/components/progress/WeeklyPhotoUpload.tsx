@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Loader2, TrendingUp, TrendingDown, Minus, Sparkles, ChevronRight, Plus, X } from "lucide-react";
+import { Camera, Loader2, TrendingUp, TrendingDown, Minus, Sparkles, ChevronRight, Plus, X, ImagePlus } from "lucide-react";
 import { useProgressPhotos, type ProgressChange } from "@/hooks/useProgressPhotos";
 import { toast } from "sonner";
 
@@ -17,31 +17,11 @@ const statusColor = (status: string) => {
 };
 
 const PROGRESS_QUESTIONS = [
-  {
-    key: "breakouts",
-    question: "Since your last check, do your breakouts seem:",
-    options: ["Better", "About the same", "Worse"],
-  },
-  {
-    key: "irritation",
-    question: "Does your skin feel:",
-    options: ["Less irritated", "About the same", "More irritated"],
-  },
-  {
-    key: "plan_adherence",
-    question: "Have you been following your daily healing plan this week?",
-    options: ["Mostly yes", "Partly", "Not really"],
-  },
-  {
-    key: "new_products",
-    question: "Have you introduced any new skincare products or foods recently?",
-    options: ["No", "Yes"],
-  },
-  {
-    key: "affected_area",
-    question: "Do you feel the affected area is:",
-    options: ["Calmer", "Unchanged", "More inflamed"],
-  },
+  { key: "breakouts", question: "Since your last check, do your breakouts seem:", options: ["Better", "About the same", "Worse"] },
+  { key: "irritation", question: "Does your skin feel:", options: ["Less irritated", "About the same", "More irritated"] },
+  { key: "plan_adherence", question: "Have you been following your daily healing plan this week?", options: ["Mostly yes", "Partly", "Not really"] },
+  { key: "new_products", question: "Have you introduced any new skincare products or foods recently?", options: ["No", "Yes"] },
+  { key: "affected_area", question: "Do you feel the affected area is:", options: ["Calmer", "Unchanged", "More inflamed"] },
 ];
 
 const MAX_PHOTOS = 5;
@@ -56,9 +36,10 @@ export const WeeklyPhotoUpload = () => {
   const [previews, setPreviews] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [currentQ, setCurrentQ] = useState(0);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
-  const addFiles = (files: FileList | null) => {
+  const addFiles = useCallback((files: FileList | null) => {
     if (!files) return;
     const newFiles = Array.from(files).slice(0, MAX_PHOTOS - selectedFiles.length);
     if (newFiles.length === 0) return;
@@ -66,24 +47,24 @@ export const WeeklyPhotoUpload = () => {
     const combined = [...selectedFiles, ...newFiles].slice(0, MAX_PHOTOS);
     setSelectedFiles(combined);
 
-    // Generate previews
     const newPreviews = [...previews];
     for (const file of newFiles) {
       newPreviews.push(URL.createObjectURL(file));
     }
     setPreviews(newPreviews.slice(0, MAX_PHOTOS));
-  };
+  }, [selectedFiles, previews]);
 
-  const removeFile = (index: number) => {
+  const removeFile = useCallback((index: number) => {
     URL.revokeObjectURL(previews[index]);
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
     setPreviews((prev) => prev.filter((_, i) => i !== index));
-  };
+  }, [previews]);
 
-  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFilesSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     addFiles(e.target.files);
-    if (fileRef.current) fileRef.current.value = "";
-  };
+    // Reset the input so the same file or new files can be selected again
+    e.target.value = "";
+  }, [addFiles]);
 
   const proceedToQuestions = () => {
     if (selectedFiles.length === 0) return;
@@ -129,31 +110,51 @@ export const WeeklyPhotoUpload = () => {
 
   return (
     <div className="space-y-4">
+      {/* Hidden file inputs */}
+      <input
+        ref={galleryRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleFilesSelected}
+      />
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFilesSelected}
+      />
+
       {/* Upload area */}
       {step === "upload" && (
         <div className="card-elevated">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleFilesSelected}
-          />
-
           {selectedFiles.length === 0 ? (
-            <div
-              onClick={() => fileRef.current?.click()}
-              className="border-dashed border-2 rounded-xl cursor-pointer hover:border-primary/30 transition-colors group"
-            >
-              <div className="flex flex-col items-center py-8 gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <Camera className="w-6 h-6 text-primary" />
-                </div>
-                <div className="text-center">
-                  <p className="font-medium text-sm mb-1">Upload weekly progress photos</p>
-                  <p className="text-xs text-muted-foreground">Upload up to 5 photos for a more accurate progress check</p>
-                </div>
+            <div className="flex flex-col items-center py-8 gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center">
+                <Camera className="w-6 h-6 text-primary" />
+              </div>
+              <div className="text-center px-2">
+                <p className="font-medium text-sm mb-1">Upload weekly progress photos</p>
+                <p className="text-xs text-muted-foreground">Upload up to 5 photos for a more accurate progress check</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+                <button
+                  onClick={() => cameraRef.current?.click()}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
+                >
+                  <Camera className="w-5 h-5" />
+                  Take Photo
+                </button>
+                <button
+                  onClick={() => galleryRef.current?.click()}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px]"
+                >
+                  <ImagePlus className="w-5 h-5" />
+                  Gallery
+                </button>
               </div>
             </div>
           ) : (
@@ -169,22 +170,47 @@ export const WeeklyPhotoUpload = () => {
                     <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                     <button
                       onClick={() => removeFile(i)}
-                      className="absolute top-1 right-1 w-7 h-7 rounded-full bg-background/80 flex items-center justify-center active:bg-destructive active:text-destructive-foreground transition-colors"
+                      className="absolute top-1 right-1 w-8 h-8 rounded-full bg-background/80 flex items-center justify-center active:bg-destructive active:text-destructive-foreground transition-colors"
+                      aria-label={`Remove photo ${i + 1}`}
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-4 h-4" />
                     </button>
+                    <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-background/80 text-[10px] font-medium">
+                      {i + 1}
+                    </span>
                   </div>
                 ))}
 
                 {selectedFiles.length < MAX_PHOTOS && (
                   <button
-                    onClick={() => fileRef.current?.click()}
-                    className="aspect-square rounded-xl border-2 border-dashed flex items-center justify-center hover:border-primary/30 transition-colors"
+                    onClick={() => galleryRef.current?.click()}
+                    className="aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 hover:border-primary/30 active:bg-muted transition-colors"
                   >
                     <Plus className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground">Add</span>
                   </button>
                 )}
               </div>
+
+              {/* Add more buttons */}
+              {selectedFiles.length < MAX_PHOTOS && (
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => cameraRef.current?.click()}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-border text-xs font-medium active:bg-muted transition-colors min-h-[44px]"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Take Photo
+                  </button>
+                  <button
+                    onClick={() => galleryRef.current?.click()}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-border text-xs font-medium active:bg-muted transition-colors min-h-[44px]"
+                  >
+                    <ImagePlus className="w-4 h-4" />
+                    From Gallery
+                  </button>
+                </div>
+              )}
 
               <button
                 onClick={proceedToQuestions}
@@ -234,16 +260,16 @@ export const WeeklyPhotoUpload = () => {
                   <button
                     key={opt}
                     onClick={() => handleAnswer(PROGRESS_QUESTIONS[currentQ].key, opt)}
-                    className="w-full text-left px-4 py-3 rounded-xl bg-muted/50 hover:bg-accent transition-colors text-sm flex items-center justify-between group"
+                    className="w-full text-left px-4 py-3 rounded-xl bg-muted/50 hover:bg-accent active:bg-accent transition-colors text-sm flex items-center justify-between min-h-[48px]"
                   >
                     <span>{opt}</span>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </button>
                 ))}
               </div>
             </motion.div>
 
-            <button onClick={reset} className="mt-4 text-xs text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={reset} className="mt-4 text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[44px]">
               Cancel
             </button>
           </motion.div>
@@ -260,7 +286,7 @@ export const WeeklyPhotoUpload = () => {
           >
             <div className="flex flex-col items-center py-8 gap-4">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
-              <div className="text-center">
+              <div className="text-center px-2">
                 <p className="font-medium text-sm mb-1">Analyzing your progress...</p>
                 <p className="text-xs text-muted-foreground">Comparing with your baseline — this is a quick check, not a full analysis</p>
               </div>
@@ -329,7 +355,7 @@ export const WeeklyPhotoUpload = () => {
               <p className="text-sm text-primary font-medium">{result.encouragement}</p>
             )}
 
-            <button onClick={reset} className="mt-4 text-xs text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={reset} className="mt-4 text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[44px]">
               Done
             </button>
           </motion.div>

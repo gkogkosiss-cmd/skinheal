@@ -10,7 +10,6 @@ interface PremiumGateProps {
 export const PremiumGate = ({ children, featureName }: PremiumGateProps) => {
   const { isPremium, isLoading, startCheckout, isCheckingOut } = useSubscription();
 
-  // Developer mode bypass — unlocks all premium sections in dev environment
   const isDevMode = import.meta.env.DEV;
 
   if (isLoading) return <>{children}</>;
@@ -21,8 +20,8 @@ export const PremiumGate = ({ children, featureName }: PremiumGateProps) => {
       <div className="pointer-events-none opacity-20 blur-[2px] select-none" aria-hidden="true">
         {children}
       </div>
-      <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none px-4">
-        <div className="card-elevated text-center max-w-sm w-full p-6 sm:p-8 pointer-events-auto shadow-2xl">
+      <div className="absolute inset-0 z-30 flex items-center justify-center px-4">
+        <div className="card-elevated text-center max-w-sm w-full p-6 sm:p-8 shadow-2xl">
           <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <Lock className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
           </div>

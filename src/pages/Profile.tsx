@@ -106,7 +106,7 @@ const Profile = () => {
 
   return (
     <Layout>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
+      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6 min-w-0">
         {/* Header */}
         <motion.div variants={fadeUp}>
           <h1 className="text-3xl font-serif text-foreground">Profile</h1>
@@ -377,8 +377,8 @@ const Profile = () => {
 };
 
 const InfoRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex items-center justify-between py-1.5">
-    <span className="text-sm text-muted-foreground">{label}</span>
+  <div className="flex items-center justify-between py-1.5 gap-3 min-w-0">
+    <span className="text-sm text-muted-foreground shrink-0">{label}</span>
     <span className="text-sm font-medium text-foreground">{value}</span>
   </div>
 );
