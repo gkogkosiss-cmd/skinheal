@@ -115,7 +115,7 @@ const Index = () => {
           >
             <button
               onClick={handleAnalyze}
-              className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary text-primary-foreground font-medium text-base hover:opacity-90 transition-all duration-300 shadow-lg"
+              className="flex items-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-primary text-primary-foreground font-medium text-sm sm:text-base active:opacity-80 transition-all duration-300 shadow-lg min-h-[48px]"
             >
               Analyze My Skin
               <ArrowRight className="w-4 h-4" />
