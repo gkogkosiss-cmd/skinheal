@@ -164,10 +164,11 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
         }
       }
 
-      // Store answers in the summary for history
+      // Store answers and body area in the summary for history
       if (progressAnswers) {
         progressSummary.progressAnswers = progressAnswers;
       }
+      progressSummary.bodyArea = progressSummary.bodyArea || detectedBodyArea;
 
       // Calculate new score with hard cap enforcement
       let adj = typeof progressSummary.scoreAdjustment === "number" ? progressSummary.scoreAdjustment : 0;
