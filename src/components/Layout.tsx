@@ -3,8 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, ScanFace, HeartPulse, Apple, Salad, Activity,
-  TrendingUp, MessageCircle, Menu, X, Leaf, UserCircle
+  TrendingUp, MessageCircle, Menu, X, UserCircle
 } from "lucide-react";
+import skinhealLogo from "@/assets/skinheal_logo.png";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: Home },
