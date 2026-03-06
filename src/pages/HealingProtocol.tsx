@@ -211,6 +211,7 @@ const HealingProtocol = () => {
           </div>
         </div>
       </motion.div>
+      </PremiumGate>
     </Layout>
   );
 };

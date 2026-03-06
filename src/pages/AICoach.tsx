@@ -319,6 +319,7 @@ If the user previously asked about something in this conversation, reference it 
           <p>Educational guidance only — not medical advice. If symptoms worsen, consult a dermatologist.</p>
         </div>
       </div>
+      </PremiumGate>
     </Layout>
   );
 };

@@ -53,8 +53,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           })}
         </nav>
 
-        <div className="mt-auto px-3 py-4 rounded-xl bg-sage-light text-xs text-muted-foreground leading-relaxed">
-          This platform provides educational skin wellness guidance and is not medical advice.
+        <div className="mt-auto space-y-3">
+          <div className="flex gap-3 px-3">
+            <Link to="/privacy" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
+            <Link to="/terms" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
+          </div>
+          <div className="px-3 py-4 rounded-xl bg-sage-light text-xs text-muted-foreground leading-relaxed">
+            This platform provides educational skin wellness guidance and is not medical advice.
+          </div>
         </div>
       </aside>
 

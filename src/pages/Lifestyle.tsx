@@ -149,6 +149,7 @@ const Lifestyle = () => {
           <p>This is educational information, not medical advice. If symptoms are severe, spreading, painful, infected, or persistent, consult a dermatologist.</p>
         </div>
       </motion.div>
+      </PremiumGate>
     </Layout>
   );
 };

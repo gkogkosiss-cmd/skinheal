@@ -265,6 +265,7 @@ const Nutrition = () => {
           </div>
         </div>
       </motion.div>
+      </PremiumGate>
     </Layout>
   );
 };

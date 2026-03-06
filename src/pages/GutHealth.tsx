@@ -213,6 +213,7 @@ const GutHealth = () => {
           </div>
         </div>
       </motion.div>
+      </PremiumGate>
     </Layout>
   );
 };
