@@ -123,6 +123,11 @@ const Progress = () => {
             <SkinScoreCard score={latestAnalysis.skin_score} />
           )}
 
+          {/* Score History Graph */}
+          {analyses && analyses.length >= 2 && (
+            <ScoreHistoryChart analyses={analyses} />
+          )}
+
           {/* Share Progress */}
           {canShare && (
             <button
