@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, ScanFace, HeartPulse, Apple, Salad, Activity,
-  TrendingUp, MessageCircle, Menu, X, Leaf
+  TrendingUp, MessageCircle, Menu, X, Leaf, UserCircle
 } from "lucide-react";
 
 const navItems = [
