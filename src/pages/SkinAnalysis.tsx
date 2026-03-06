@@ -435,12 +435,26 @@ const SkinAnalysis = () => {
         {/* Hidden file inputs - no capture on gallery picker so iOS/Android show full picker */}
         <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
+        <input ref={replaceInputRef} type="file" accept="image/*" className="hidden" onChange={handleReplaceSelect} />
 
         <AnimatePresence mode="wait">
           {/* STEP 1: Upload */}
           {step === "upload" && (
             <motion.div key="upload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
               <div className="card-elevated">
+                {isSelecting && (
+                  <div className="mb-4 p-3 rounded-xl bg-secondary text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Preparing your images...
+                  </div>
+                )}
+
+                {selectionError && (
+                  <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive">
+                    {selectionError}
+                  </div>
+                )}
+
                 {/* Image previews */}
                 {images.length > 0 && (
                   <div className="mb-6">
@@ -450,23 +464,36 @@ const SkinAnalysis = () => {
                         <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${(images.length / MAX_IMAGES) * 100}%` }} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
+
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
                       {images.map((img, i) => (
-                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
-                          <img src={img.preview} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
-                          <button
-                            onClick={() => removeImage(i)}
-                            className="absolute top-1 right-1 w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center"
-                          >
-                            <X className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
-                          </button>
+                        <div key={img.id} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                          <img src={img.preview} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                          <div className="absolute top-1 right-1 flex gap-1">
+                            <button
+                              onClick={() => openReplacePicker(i)}
+                              className="w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center"
+                              aria-label={`Replace photo ${i + 1}`}
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => removeImage(i)}
+                              className="w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center"
+                              aria-label={`Remove photo ${i + 1}`}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                           <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-background/80 text-[10px] font-medium">{i + 1}</span>
                         </div>
                       ))}
+
                       {images.length < MAX_IMAGES && (
                         <button
                           onClick={() => fileInputRef.current?.click()}
-                          className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 hover:border-primary/30 transition-colors"
+                          disabled={isSelecting}
+                          className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 hover:border-primary/30 transition-colors disabled:opacity-40"
                         >
                           <ImagePlus className="w-5 h-5 text-muted-foreground" />
                           <span className="text-[10px] text-muted-foreground">Add</span>
@@ -485,20 +512,22 @@ const SkinAnalysis = () => {
                     <div className="text-center">
                       <p className="font-serif text-xl mb-1">Upload clear photos of your skin</p>
                       <p className="text-sm text-muted-foreground max-w-sm">
-                        Upload up to 5 clear photos of the affected area from different angles or lighting for a more complete analysis.
+                        Upload up to 5 clear photos for a better analysis.
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
                       <button
                         onClick={() => cameraInputRef.current?.click()}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
+                        disabled={isSelecting}
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px] disabled:opacity-40"
                       >
                         <Camera className="w-5 h-5" />
                         Take Photo
                       </button>
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px]"
+                        disabled={isSelecting}
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px] disabled:opacity-40"
                       >
                         <Upload className="w-5 h-5" />
                         Upload Photos
@@ -509,10 +538,11 @@ const SkinAnalysis = () => {
 
                 {/* Action buttons when images selected */}
                 {images.length > 0 && (
-                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={startAnalysis}
-                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
+                      disabled={isSelecting || images.length === 0}
+                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px] disabled:opacity-40"
                     >
                       <Sparkles className="w-4 h-4" />
                       Analyze {images.length} Photo{images.length > 1 ? "s" : ""}
@@ -520,15 +550,17 @@ const SkinAnalysis = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => cameraInputRef.current?.click()}
-                        disabled={images.length >= MAX_IMAGES}
+                        disabled={images.length >= MAX_IMAGES || isSelecting}
                         className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
+                        aria-label="Take another photo"
                       >
                         <Camera className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={images.length >= MAX_IMAGES}
+                        disabled={images.length >= MAX_IMAGES || isSelecting}
                         className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
+                        aria-label="Add photos from gallery"
                       >
                         <ImagePlus className="w-5 h-5" />
                       </button>
