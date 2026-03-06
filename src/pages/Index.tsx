@@ -65,7 +65,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4 bg-background/70 backdrop-blur-xl border-b border-border">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 md:px-12 py-3 sm:py-4 bg-background/70 backdrop-blur-xl border-b border-border">
         <div className="flex items-center gap-2.5">
           <img src={skinhealLogo} alt="SkinHeal" className="w-9 h-9 rounded-xl" />
           <span className="font-serif text-xl text-foreground">SkinHeal</span>
@@ -79,8 +79,8 @@ const Index = () => {
       </nav>
 
       {/* HERO */}
-      <section className="relative pt-32 pb-16 md:pt-44 md:pb-28 overflow-hidden">
-        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
+      <section className="relative pt-28 pb-12 sm:pt-32 sm:pb-16 md:pt-44 md:pb-28 overflow-hidden">
+        <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -93,7 +93,7 @@ const Index = () => {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.15, ease }}
-            className="font-serif text-4xl md:text-6xl lg:text-7xl text-foreground leading-[1.1] mb-6"
+            className="font-serif text-3xl sm:text-4xl md:text-6xl lg:text-7xl text-foreground leading-[1.1] mb-5 sm:mb-6"
           >
             Understand your skin.
             <br />
@@ -103,7 +103,7 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.35, ease }}
-            className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed"
+            className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
           >
             Upload a photo and receive personalized skin insights, healing guidance, and nutrition recommendations — powered by AI.
           </motion.p>
@@ -115,7 +115,7 @@ const Index = () => {
           >
             <button
               onClick={handleAnalyze}
-              className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary text-primary-foreground font-medium text-base hover:opacity-90 transition-all duration-300 shadow-lg"
+              className="flex items-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-primary text-primary-foreground font-medium text-sm sm:text-base active:opacity-80 transition-all duration-300 shadow-lg min-h-[48px]"
             >
               Analyze My Skin
               <ArrowRight className="w-4 h-4" />
@@ -354,7 +354,7 @@ const Index = () => {
       </section>
 
       {/* FOOTER */}
-      <footer className="px-6 py-8 border-t border-border">
+      <footer className="px-4 sm:px-6 py-8 border-t border-border">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src={skinhealLogo} alt="SkinHeal" className="w-7 h-7 rounded-lg" />

@@ -136,7 +136,6 @@ export const WeeklyPhotoUpload = () => {
             ref={fileRef}
             type="file"
             accept="image/*"
-            capture="environment"
             multiple
             className="hidden"
             onChange={handleFilesSelected}
@@ -170,9 +169,9 @@ export const WeeklyPhotoUpload = () => {
                     <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                     <button
                       onClick={() => removeFile(i)}
-                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-background/80 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                      className="absolute top-1 right-1 w-7 h-7 rounded-full bg-background/80 flex items-center justify-center active:bg-destructive active:text-destructive-foreground transition-colors"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
@@ -189,7 +188,7 @@ export const WeeklyPhotoUpload = () => {
 
               <button
                 onClick={proceedToQuestions}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
               >
                 Continue
                 <ChevronRight className="w-4 h-4" />

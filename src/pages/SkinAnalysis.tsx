@@ -251,7 +251,7 @@ const SkinAnalysis = () => {
         <h1 className="font-serif text-3xl md:text-4xl mb-2">Analyze your skin</h1>
         <p className="text-muted-foreground mb-8">Upload up to 5 clear photos from different angles for the most thorough analysis.</p>
 
-        {/* Hidden file inputs */}
+        {/* Hidden file inputs - no capture on gallery picker so iOS/Android show full picker */}
         <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
 
@@ -269,15 +269,15 @@ const SkinAnalysis = () => {
                         <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${(images.length / MAX_IMAGES) * 100}%` }} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
                       {images.map((img, i) => (
-                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
+                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
                           <img src={img.preview} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                           <button
                             onClick={() => removeImage(i)}
-                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-1 right-1 w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center"
                           >
-                            <X className="w-3 h-3" />
+                            <X className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                           </button>
                           <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-background/80 text-[10px] font-medium">{i + 1}</span>
                         </div>
@@ -310,16 +310,16 @@ const SkinAnalysis = () => {
                     <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
                       <button
                         onClick={() => cameraInputRef.current?.click()}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
                       >
-                        <Camera className="w-4 h-4" />
+                        <Camera className="w-5 h-5" />
                         Take Photo
                       </button>
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px]"
                       >
-                        <Upload className="w-4 h-4" />
+                        <Upload className="w-5 h-5" />
                         Upload Photos
                       </button>
                     </div>
@@ -328,10 +328,10 @@ const SkinAnalysis = () => {
 
                 {/* Action buttons when images selected */}
                 {images.length > 0 && (
-                  <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={startAnalysis}
-                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
                     >
                       <Sparkles className="w-4 h-4" />
                       Analyze {images.length} Photo{images.length > 1 ? "s" : ""}
@@ -340,16 +340,16 @@ const SkinAnalysis = () => {
                       <button
                         onClick={() => cameraInputRef.current?.click()}
                         disabled={images.length >= MAX_IMAGES}
-                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-40"
+                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
                       >
-                        <Camera className="w-4 h-4" />
+                        <Camera className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={images.length >= MAX_IMAGES}
-                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-40"
+                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
                       >
-                        <ImagePlus className="w-4 h-4" />
+                        <ImagePlus className="w-5 h-5" />
                       </button>
                     </div>
                   </div>
