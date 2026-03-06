@@ -80,7 +80,7 @@ export const getFileFingerprint = (file: File) => `${file.name}-${file.size}-${f
 
 export const validateImageFile = (file: File): string | null => {
   const extension = getExtension(file.name);
-  const hasSupportedExtension = extension ? SUPPORTED_EXTENSIONS.includes(extension) : false;
+  const hasSupportedExtension = extension ? SUPPORTED_EXTENSIONS.includes(extension) : true;
 
   const hasSupportedMime = file.type
     ? file.type.startsWith("image/") && (SUPPORTED_MIME_TYPES.has(file.type) || hasSupportedExtension)
