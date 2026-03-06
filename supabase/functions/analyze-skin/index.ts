@@ -180,9 +180,9 @@ serve(async (req) => {
 
     const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
 
-    const imageContentParts = images.map((img: string) => ({
+    const imageContentParts = images.map((img) => ({
       type: "image_url",
-      image_url: { url: `data:image/jpeg;base64,${img}` },
+      image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
     }));
 
     // Step 1: Image only - generate dynamic questions + detect body area
