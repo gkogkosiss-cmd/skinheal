@@ -99,6 +99,16 @@ export interface SafetyFlags {
   if_this_gets_worse: string;
 }
 
+export interface SkinScoreFactor {
+  score: number;
+  explanation: string;
+}
+
+export interface SkinScore {
+  overall: number;
+  factors: Record<string, SkinScoreFactor>;
+}
+
 export interface Analysis {
   id: string;
   user_id: string;
@@ -119,6 +129,7 @@ export interface Analysis {
   lifestyle_plan: LifestylePlan;
   daily_plan: DailyPlan;
   safety_flags: SafetyFlags;
+  skin_score: SkinScore;
 }
 
 const safeStringArray = (value: unknown): string[] =>
