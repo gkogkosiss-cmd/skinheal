@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Camera, Calendar, Plus, ArrowRight, AlertCircle, Target, Eye, X, ArrowLeftRight, Share2, Trash2 } from "lucide-react";
+import { Camera, Calendar, ArrowRight, AlertCircle, Target, Eye, X, ArrowLeftRight, Share2, Trash2 } from "lucide-react";
 import { useAllAnalyses, getSignedImageUrl, deleteAnalysisRecord, type Analysis } from "@/hooks/useAnalysis";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { SkinScoreCard } from "@/components/dashboard/SkinScoreCard";
 import { ShareableProgressCard } from "@/components/progress/ShareableProgressCard";
 import { ScoreHistoryChart } from "@/components/progress/ScoreHistoryChart";
+import { WeeklyPhotoUpload } from "@/components/progress/WeeklyPhotoUpload";
+import { ProgressTimeline } from "@/components/progress/ProgressTimeline";
 import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 import {
   AlertDialog,
@@ -53,11 +55,6 @@ const Progress = () => {
     };
     loadImages();
   }, [analyses]);
-
-  const getWeekLabel = (index: number, total: number) => {
-    if (index === total - 1) return "Week 0 — First scan";
-    return `Week ${total - 1 - index} — Updated scan`;
-  };
 
   const toggleCompareId = (id: string) => {
     setCompareIds((prev) => {
@@ -105,18 +102,23 @@ const Progress = () => {
         <p className="text-muted-foreground mb-8">Upload weekly photos to visualize your improvement over time.</p>
 
         <div className="space-y-8">
-          {/* Upload New */}
-          <Link to="/analysis" className="card-elevated border-dashed border-2 cursor-pointer hover:border-primary/30 transition-colors group block">
-            <div className="flex flex-col items-center py-10 gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                <Plus className="w-7 h-7 text-primary" />
+          {/* Weekly Progress Photo Upload */}
+          {hasAnalyses && <WeeklyPhotoUpload />}
+
+          {/* New Full Analysis */}
+          {!hasAnalyses && (
+            <Link to="/analysis" className="card-elevated border-dashed border-2 cursor-pointer hover:border-primary/30 transition-colors group block">
+              <div className="flex flex-col items-center py-10 gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                  <Camera className="w-7 h-7 text-primary" />
+                </div>
+                <div className="text-center">
+                  <p className="font-medium mb-1">Start your first analysis</p>
+                  <p className="text-xs text-muted-foreground">Upload a photo to get your personalized skin assessment</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="font-medium mb-1">Add this week's photo</p>
-                <p className="text-xs text-muted-foreground">Take a clear photo in the same lighting as previous weeks</p>
-              </div>
-            </div>
-          </Link>
+            </Link>
+          )}
 
           {/* Score Overview */}
           {latestAnalysis?.skin_score?.overall > 0 && (
@@ -150,21 +152,10 @@ const Progress = () => {
             </div>
           )}
 
-          {!hasAnalyses && !isLoading && (
-            <div className="card-elevated gradient-sage">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-serif text-xl mb-1">No analyses yet</h2>
-                  <p className="text-sm text-muted-foreground">Complete your first skin analysis to start tracking progress.</p>
-                </div>
-                <Link to="/analysis" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity shrink-0">
-                  Start Analysis <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-          )}
+          {/* Unified Timeline */}
+          {hasAnalyses && analyses && <ProgressTimeline analyses={analyses} />}
 
-          {/* Timeline */}
+          {/* Analysis History with Compare */}
           {hasAnalyses && (
             <div className="card-elevated">
               <div className="flex items-center justify-between mb-5">
@@ -172,7 +163,7 @@ const Progress = () => {
                   <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
                     <Calendar className="w-5 h-5 text-secondary-foreground" />
                   </div>
-                  <h2 className="font-serif text-xl">Analysis History</h2>
+                  <h2 className="font-serif text-xl">Full Analyses</h2>
                 </div>
                 {analyses!.length >= 2 && (
                   <button
@@ -191,13 +182,12 @@ const Progress = () => {
                 <p className="text-xs text-muted-foreground mb-4">Select two analyses to compare side by side.</p>
               )}
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {analyses!.map((a, i) => {
                   const topCondition = a.conditions?.[0];
                   const date = new Date(a.created_at);
                   const isSelected = compareIds.includes(a.id);
                   const score = a.skin_score?.overall;
-                  // Show score delta vs previous (next in array since sorted desc)
                   const prevAnalysis = analyses![i + 1];
                   const prevScore = prevAnalysis?.skin_score?.overall;
                   const scoreDelta = score > 0 && prevScore > 0 ? score - prevScore : null;
@@ -208,7 +198,7 @@ const Progress = () => {
                       initial={{ opacity: 0, x: -10 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 }}
+                      transition={{ delay: i * 0.08 }}
                       className={`flex gap-4 items-start p-3 rounded-xl transition-colors cursor-pointer ${
                         compareMode && isSelected ? "bg-primary/5 ring-1 ring-primary/30" : "hover:bg-muted/50"
                       }`}
@@ -217,7 +207,7 @@ const Progress = () => {
                         else setSelectedReport(a);
                       }}
                     >
-                      <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                      <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                         {imageUrls[a.id] ? (
                           <img src={imageUrls[a.id]} alt="Skin photo" className="w-full h-full object-cover" />
                         ) : (
@@ -226,7 +216,9 @@ const Progress = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1 gap-3">
-                          <p className="font-medium text-sm">{getWeekLabel(i, analyses!.length)}</p>
+                          <p className="font-medium text-sm">
+                            {i === analyses!.length - 1 ? "Initial Analysis" : `Analysis ${analyses!.length - i}`}
+                          </p>
                           <div className="flex items-center gap-2">
                             {score > 0 && (
                               <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
@@ -247,16 +239,9 @@ const Progress = () => {
                           </div>
                         </div>
                         {topCondition && (
-                          <p className="text-xs text-muted-foreground mb-2">
+                          <p className="text-xs text-muted-foreground">
                             {topCondition.condition} — {topCondition.probability}% likelihood
                           </p>
-                        )}
-                        {(a.visual_features as string[])?.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {(a.visual_features as string[]).slice(0, 4).map((f: string) => (
-                              <span key={f} className="px-2 py-0.5 rounded-full bg-accent text-[10px] font-medium text-accent-foreground capitalize">{f}</span>
-                            ))}
-                          </div>
                         )}
                         {!compareMode && (
                           <button className="flex items-center gap-1 text-xs text-primary font-medium mt-2 hover:underline">
@@ -291,12 +276,10 @@ const Progress = () => {
                     {a.skin_score?.overall > 0 && (
                       <p className="text-xs text-primary font-bold">Score: {a.skin_score.overall}/100</p>
                     )}
-                    <p className="text-xs text-muted-foreground">{a.conditions?.[0]?.condition}</p>
                   </div>
                 ))}
               </div>
 
-              {/* Score comparison */}
               {compareAnalyses[0]?.skin_score?.overall > 0 && compareAnalyses[1]?.skin_score?.overall > 0 && (() => {
                 const [older, newer] = compareAnalyses[0].created_at > compareAnalyses[1].created_at
                   ? [compareAnalyses[1], compareAnalyses[0]]
@@ -319,33 +302,18 @@ const Progress = () => {
                   </div>
                 );
               })()}
-
-              <div className="space-y-3">
-                <h4 className="font-medium text-sm">Key Differences</h4>
-                {(() => {
-                  const [older, newer] = compareAnalyses[0].created_at > compareAnalyses[1].created_at
-                    ? [compareAnalyses[1], compareAnalyses[0]]
-                    : [compareAnalyses[0], compareAnalyses[1]];
-                  const olderFeatures = new Set(older.visual_features as string[]);
-                  const newerFeatures = new Set(newer.visual_features as string[]);
-                  const resolved = [...olderFeatures].filter((f) => !newerFeatures.has(f));
-                  const newIssues = [...newerFeatures].filter((f) => !olderFeatures.has(f));
-                  return (
-                    <>
-                      {resolved.length > 0 && (
-                        <p className="text-sm text-primary">Possibly improved: {resolved.join(", ")}</p>
-                      )}
-                      {newIssues.length > 0 && (
-                        <p className="text-sm text-destructive">New observations: {newIssues.join(", ")}</p>
-                      )}
-                      {resolved.length === 0 && newIssues.length === 0 && (
-                        <p className="text-sm text-muted-foreground">Visual features are similar between both scans.</p>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
             </div>
+          )}
+
+          {/* New Full Analysis Link */}
+          {hasAnalyses && (
+            <Link to="/analysis" className="card-elevated flex items-center justify-between hover:bg-muted/50 transition-colors block">
+              <div>
+                <p className="font-medium text-sm">Run a new full analysis</p>
+                <p className="text-xs text-muted-foreground">Complete diagnostic with new photos and questions</p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-muted-foreground" />
+            </Link>
           )}
 
           {/* Reminder */}
@@ -356,7 +324,7 @@ const Progress = () => {
                 <h3 className="font-medium text-sm">Weekly reminder</h3>
               </div>
               <p className="text-xs text-muted-foreground">
-                For best results, upload a new photo every week in similar lighting and angle. This helps track changes accurately over time.
+                For best results, upload a progress photo every week in similar lighting and angle. This helps track changes accurately over time.
               </p>
             </div>
           )}
@@ -404,7 +372,6 @@ const Progress = () => {
                   {new Date(selectedReport.created_at).toLocaleDateString()} at {new Date(selectedReport.created_at).toLocaleTimeString()}
                 </p>
 
-                {/* Score */}
                 {selectedReport.skin_score?.overall > 0 && (
                   <div className="mb-6">
                     <SkinScoreCard score={selectedReport.skin_score} />
@@ -417,7 +384,6 @@ const Progress = () => {
                   </div>
                 )}
 
-                {/* Conditions */}
                 <h3 className="font-serif text-lg mb-3">Suspected Conditions</h3>
                 <div className="space-y-3 mb-6">
                   {selectedReport.conditions?.map((c: any, i: number) => (
@@ -436,7 +402,6 @@ const Progress = () => {
                   ))}
                 </div>
 
-                {/* Biological explanation */}
                 {selectedReport.biological_explanation && (
                   <>
                     <h3 className="font-serif text-lg mb-2">What We Think Is Happening</h3>
@@ -444,7 +409,6 @@ const Progress = () => {
                   </>
                 )}
 
-                {/* Root Causes */}
                 {selectedReport.root_causes?.length > 0 && (
                   <>
                     <h3 className="font-serif text-lg mb-3">Possible Triggers</h3>
@@ -459,19 +423,6 @@ const Progress = () => {
                   </>
                 )}
 
-                {/* Visual Features */}
-                {(selectedReport.visual_features as string[])?.length > 0 && (
-                  <>
-                    <h3 className="font-serif text-lg mb-3">Observed Features</h3>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {(selectedReport.visual_features as string[]).map((f: string) => (
-                        <span key={f} className="px-3 py-1 rounded-full bg-accent text-xs font-medium text-accent-foreground capitalize">{f}</span>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {/* Action buttons */}
                 <div className="space-y-3 mt-4">
                   {currentAnalysisId !== selectedReport.id && (
                     <button
@@ -529,7 +480,6 @@ const Progress = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Shareable Progress Card */}
       {showShareCard && analyses && analyses.length >= 2 && (
         <ShareableProgressCard
           oldScore={analyses[analyses.length - 1].skin_score}
