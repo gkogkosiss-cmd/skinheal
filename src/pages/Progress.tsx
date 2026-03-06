@@ -361,6 +361,13 @@ const Progress = () => {
             </div>
           )}
 
+          {/* Feedback */}
+          {hasAnalyses && (
+            <div className="card-elevated">
+              <FeedbackWidget context="progress" />
+            </div>
+          )}
+
           <div className="flex items-start gap-2 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <p>This platform provides educational skin wellness insights and is not medical advice.</p>
