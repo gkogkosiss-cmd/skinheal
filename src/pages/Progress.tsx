@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Camera, Calendar, Plus, ArrowRight, AlertCircle, Target, Eye, X, ArrowLeftRight } from "lucide-react";
+import { Camera, Calendar, Plus, ArrowRight, AlertCircle, Target, Eye, X, ArrowLeftRight, Share2 } from "lucide-react";
 import { useAllAnalyses, getSignedImageUrl, type Analysis } from "@/hooks/useAnalysis";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useToast } from "@/hooks/use-toast";
+import { SkinScoreCard, type SkinScore } from "@/components/dashboard/SkinScoreCard";
+import { ShareableProgressCard } from "@/components/progress/ShareableProgressCard";
 
 const Progress = () => {
   const { data: analyses, isLoading } = useAllAnalyses();
@@ -15,6 +17,7 @@ const Progress = () => {
   const [selectedReport, setSelectedReport] = useState<Analysis | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showShareCard, setShowShareCard] = useState(false);
   const hasAnalyses = analyses && analyses.length > 0;
 
   useEffect(() => {
@@ -52,6 +55,11 @@ const Progress = () => {
   const protocol = latestAnalysis?.healing_protocol;
   const currentAnalysisId = latestAnalysis?.id;
 
+  // For shareable card: find oldest and newest with scores
+  const canShare = analyses && analyses.length >= 2 &&
+    analyses[0]?.skin_score?.overall > 0 &&
+    analyses[analyses.length - 1]?.skin_score?.overall > 0;
+
   return (
     <Layout>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -72,6 +80,22 @@ const Progress = () => {
               </div>
             </div>
           </Link>
+
+          {/* Score Overview (latest) */}
+          {latestAnalysis?.skin_score?.overall > 0 && (
+            <SkinScoreCard score={latestAnalysis.skin_score} />
+          )}
+
+          {/* Share Progress Button */}
+          {canShare && (
+            <button
+              onClick={() => setShowShareCard(true)}
+              className="w-full card-elevated gradient-sage flex items-center justify-center gap-3 py-4 cursor-pointer hover:opacity-90 transition-opacity"
+            >
+              <Share2 className="w-5 h-5 text-primary" />
+              <span className="font-medium text-sm">Share Your Progress</span>
+            </button>
+          )}
 
           {/* This Week Focus */}
           {protocol?.thisWeekFocus && (
@@ -127,9 +151,10 @@ const Progress = () => {
 
               <div className="space-y-6">
                 {analyses!.map((a, i) => {
-                  const topCondition = (a.conditions as any[])?.[0];
+                  const topCondition = a.conditions?.[0];
                   const date = new Date(a.created_at);
                   const isSelected = compareIds.includes(a.id);
+                  const score = a.skin_score?.overall;
                   return (
                     <motion.div
                       key={a.id}
@@ -157,9 +182,14 @@ const Progress = () => {
                         <div className="flex items-center justify-between mb-1 gap-3">
                           <p className="font-medium text-sm">{getWeekLabel(i, analyses!.length)}</p>
                           <div className="flex items-center gap-2">
+                            {score > 0 && (
+                              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                                {score}/100
+                              </span>
+                            )}
                             {currentAnalysisId === a.id && (
-                              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium">
-                                Current plan
+                              <span className="px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-[10px] font-medium">
+                                Current
                               </span>
                             )}
                             <span className="text-xs text-muted-foreground">{date.toLocaleDateString()}</span>
@@ -207,10 +237,35 @@ const Progress = () => {
                       )}
                     </div>
                     <p className="text-xs font-medium">{new Date(a.created_at).toLocaleDateString()}</p>
-                    <p className="text-xs text-muted-foreground">{(a.conditions as any[])?.[0]?.condition}</p>
+                    {a.skin_score?.overall > 0 && (
+                      <p className="text-xs text-primary font-bold">Score: {a.skin_score.overall}/100</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">{a.conditions?.[0]?.condition}</p>
                   </div>
                 ))}
               </div>
+
+              {/* Score comparison */}
+              {compareAnalyses[0]?.skin_score?.overall > 0 && compareAnalyses[1]?.skin_score?.overall > 0 && (() => {
+                const [older, newer] = compareAnalyses[0].created_at > compareAnalyses[1].created_at
+                  ? [compareAnalyses[1], compareAnalyses[0]]
+                  : [compareAnalyses[0], compareAnalyses[1]];
+                const diff = newer.skin_score.overall - older.skin_score.overall;
+                return (
+                  <div className="p-4 rounded-xl bg-muted/50 mb-4">
+                    <p className="text-sm font-medium mb-2">Score Change</p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-bold">{older.skin_score.overall}</span>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-lg font-bold">{newer.skin_score.overall}</span>
+                      <span className={`text-sm font-semibold ${diff > 0 ? "text-primary" : diff < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                        {diff > 0 ? `+${diff}` : diff}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="space-y-3">
                 <h4 className="font-medium text-sm">Key Differences</h4>
                 {(() => {
@@ -221,15 +276,8 @@ const Progress = () => {
                   const newerFeatures = new Set(newer.visual_features as string[]);
                   const resolved = [...olderFeatures].filter((f) => !newerFeatures.has(f));
                   const newIssues = [...newerFeatures].filter((f) => !olderFeatures.has(f));
-                  const olderTop = (older.conditions as any[])?.[0];
-                  const newerTop = (newer.conditions as any[])?.[0];
                   return (
                     <>
-                      {olderTop && newerTop && (
-                        <p className="text-sm text-muted-foreground">
-                          Top condition: {olderTop.condition} ({olderTop.probability}%) → {newerTop.condition} ({newerTop.probability}%)
-                        </p>
-                      )}
                       {resolved.length > 0 && (
                         <p className="text-sm text-primary">Possibly improved: {resolved.join(", ")}</p>
                       )}
@@ -261,7 +309,7 @@ const Progress = () => {
 
           <div className="flex items-start gap-2 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <p>This is educational information, not medical advice. If symptoms are severe, spreading, painful, infected, or persistent, consult a dermatologist.</p>
+            <p>This platform provides educational skin wellness insights and is not medical advice.</p>
           </div>
         </div>
       </motion.div>
@@ -295,6 +343,13 @@ const Progress = () => {
                   {new Date(selectedReport.created_at).toLocaleDateString()} at {new Date(selectedReport.created_at).toLocaleTimeString()}
                 </p>
 
+                {/* Score */}
+                {selectedReport.skin_score?.overall > 0 && (
+                  <div className="mb-6">
+                    <SkinScoreCard score={selectedReport.skin_score} />
+                  </div>
+                )}
+
                 {imageUrls[selectedReport.id] && (
                   <div className="w-full aspect-video rounded-xl overflow-hidden bg-muted mb-6">
                     <img src={imageUrls[selectedReport.id]} alt="Skin photo" className="w-full h-full object-cover" />
@@ -304,7 +359,7 @@ const Progress = () => {
                 {/* Conditions */}
                 <h3 className="font-serif text-lg mb-3">Suspected Conditions</h3>
                 <div className="space-y-3 mb-6">
-                  {(selectedReport.conditions as any[])?.map((c: any, i: number) => (
+                  {selectedReport.conditions?.map((c: any, i: number) => (
                     <div key={i}>
                       <div className="flex items-center justify-between text-sm mb-1">
                         <span className="font-medium">{c.condition}</span>
@@ -329,11 +384,11 @@ const Progress = () => {
                 )}
 
                 {/* Root Causes */}
-                {(selectedReport.root_causes as any[])?.length > 0 && (
+                {selectedReport.root_causes?.length > 0 && (
                   <>
                     <h3 className="font-serif text-lg mb-3">Possible Triggers</h3>
                     <div className="space-y-2 mb-6">
-                      {(selectedReport.root_causes as any[]).map((rc: any, i: number) => (
+                      {selectedReport.root_causes.map((rc: any, i: number) => (
                         <div key={i} className="p-3 rounded-xl bg-muted/50">
                           <p className="font-medium text-sm">{rc.title}</p>
                           <p className="text-xs text-muted-foreground">{rc.description}</p>
@@ -355,84 +410,41 @@ const Progress = () => {
                   </>
                 )}
 
-                <h3 className="font-serif text-lg mb-3">Healing Protocol</h3>
-                <div className="space-y-3 mb-6">
-                  <div className="p-3 rounded-xl bg-muted/50">
-                    <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Morning</p>
-                    <p className="text-xs text-muted-foreground">{selectedReport.healing_protocol.morningRoutine?.join(" • ") || "No saved morning routine."}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-muted/50">
-                    <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Evening</p>
-                    <p className="text-xs text-muted-foreground">{selectedReport.healing_protocol.eveningRoutine?.join(" • ") || "No saved evening routine."}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-muted/50">
-                    <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Weekly Support</p>
-                    <p className="text-xs text-muted-foreground">{selectedReport.healing_protocol.weeklyTreatments?.join(" • ") || "No saved weekly support."}</p>
-                  </div>
-                </div>
-
-                <h3 className="font-serif text-lg mb-3">Nutrition</h3>
-                <div className="p-3 rounded-xl bg-muted/50 mb-6">
-                  <p className="text-xs text-muted-foreground mb-2">Priorities: {selectedReport.nutrition_plan.priorities?.join(" • ") || "No saved priorities."}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Meal template: {selectedReport.nutrition_plan.one_day_template?.breakfast || "-"} / {selectedReport.nutrition_plan.one_day_template?.lunch || "-"} / {selectedReport.nutrition_plan.one_day_template?.dinner || "-"}
-                  </p>
-                </div>
-
-                <h3 className="font-serif text-lg mb-3">Gut Health</h3>
-                <div className="p-3 rounded-xl bg-muted/50 mb-6">
-                  <p className="text-xs text-muted-foreground mb-2">{selectedReport.gut_health_plan.explanation_simple || "No saved gut explanation."}</p>
-                  <p className="text-xs text-muted-foreground">
-                    7-day plan: {(selectedReport.gut_health_plan.seven_day_plan || []).map((d: any) => `${d.day}`).join(", ") || "No saved 7-day plan."}
-                  </p>
-                </div>
-
-                <h3 className="font-serif text-lg mb-3">Lifestyle</h3>
-                <div className="p-3 rounded-xl bg-muted/50 mb-6">
-                  <p className="text-xs text-muted-foreground">
-                    {[...(selectedReport.lifestyle_plan.sleep || []), ...(selectedReport.lifestyle_plan.stress || []), ...(selectedReport.lifestyle_plan.exercise || []), ...(selectedReport.lifestyle_plan.habits || [])].slice(0, 6).join(" • ") || "No saved lifestyle plan."}
-                  </p>
-                </div>
-
-                <h3 className="font-serif text-lg mb-3">Daily Plan</h3>
-                <div className="p-3 rounded-xl bg-muted/50 mb-6">
-                  <p className="text-xs text-muted-foreground">
-                    {[...(selectedReport.daily_plan.morning || []), ...(selectedReport.daily_plan.midday || []), ...(selectedReport.daily_plan.evening || []), ...(selectedReport.daily_plan.weekly || [])].join(" • ") || "No saved daily plan."}
-                  </p>
-                </div>
-
-                <div className="flex gap-3 mb-4">
+                {/* Set as Current */}
+                {currentAnalysisId !== selectedReport.id && (
                   <button
                     onClick={async () => {
                       try {
                         await setAsCurrentPlan(selectedReport.id);
-                        toast({ title: "Current plan updated", description: "All sections now use this saved analysis." });
+                        toast({ title: "Updated", description: "This analysis is now your active plan." });
                         setSelectedReport(null);
-                      } catch (error: any) {
-                        toast({ title: "Failed to set current plan", description: error.message, variant: "destructive" });
+                      } catch (e: any) {
+                        toast({ title: "Error", description: e.message, variant: "destructive" });
                       }
                     }}
-                    className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity"
+                    className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
                   >
                     Set as Current Plan
                   </button>
-                  <button
-                    onClick={() => setSelectedReport(null)}
-                    className="px-4 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-medium hover:bg-accent transition-colors"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <div className="flex items-start gap-2 p-3 rounded-xl bg-secondary text-[10px] text-muted-foreground">
-                  <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
-                  <p>Educational information only — not medical advice.</p>
-                </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Shareable Progress Card */}
+      {showShareCard && analyses && analyses.length >= 2 && (
+        <ShareableProgressCard
+          oldScore={analyses[analyses.length - 1].skin_score}
+          newScore={analyses[0].skin_score}
+          oldDate={analyses[analyses.length - 1].created_at}
+          newDate={analyses[0].created_at}
+          weekStart={0}
+          weekEnd={analyses.length - 1}
+          onClose={() => setShowShareCard(false)}
+        />
+      )}
     </Layout>
   );
 };
