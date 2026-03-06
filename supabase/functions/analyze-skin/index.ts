@@ -44,44 +44,61 @@ When given a skin photo and questionnaire answers, respond with a JSON object us
     ...
   ],
   "biologicalExplanation": "A simple, human explanation of what may be happening in the skin. No jargon. 2-3 sentences max.",
+  "skinScore": {
+    "overall": 62,
+    "factors": {
+      "inflammation": {"score": 72, "explanation": "Brief explanation of how inflammation markers appear in the image and answers."},
+      "gut_health": {"score": 58, "explanation": "Brief explanation based on dietary and digestive answers."},
+      "diet_quality": {"score": 65, "explanation": "Brief explanation based on food habits reported."},
+      "lifestyle": {"score": 70, "explanation": "Brief explanation based on sleep, stress, exercise patterns."},
+      "skin_barrier": {"score": 60, "explanation": "Brief explanation of barrier health based on visual cues."}
+    }
+  },
   "healingProtocol": {
-    "whatIsHappening": "A 2-3 sentence plain-language summary of what seems to be going on. Use cautious language like 'Your skin appears to show...' or 'Based on what we can see...'",
+    "whatIsHappening": "A 2-3 sentence plain-language summary of what seems to be going on.",
     "morningRoutine": ["Step 1: Rinse with lukewarm water", "Step 2: Apply gentle moisturizer", ...],
     "eveningRoutine": ["Step 1: Gentle cleanser", "Step 2: Apply treatment if needed", ...],
     "weeklyTreatments": ["Specific weekly care steps relevant to the condition"],
-    "triggersToAvoid": ["Specific irritants or behaviors to avoid based on the condition"],
-    "safetyGuidance": "Clear guidance on when to see a dermatologist. Include red flags: fever, pus, severe swelling, spreading rash, eye involvement, intense pain.",
-    "timeline": "Realistic timeline with ranges. Example: 'Many people notice initial changes within 7-14 days. More significant improvement often takes 4-8 weeks of consistent daily care.'",
-    "foodPriorities": ["Rule 1: Focus on anti-inflammatory whole foods", "Rule 2: ...", ...],
+    "triggersToAvoid": ["Specific irritants or behaviors to avoid"],
+    "safetyGuidance": "Clear guidance on when to see a dermatologist. Include red flags.",
+    "timeline": "Realistic timeline with ranges.",
+    "foodPriorities": ["Rule 1: Focus on anti-inflammatory whole foods", ...],
     "foodsToEat": [{"food": "Wild Salmon", "reason": "Rich in omega-3s which often help reduce skin inflammation"}],
-    "foodsToAvoid": [{"food": "Refined Sugar", "reason": "Commonly linked to increased inflammation and sebum production in many people"}],
+    "foodsToAvoid": [{"food": "Refined Sugar", "reason": "Commonly linked to increased inflammation"}],
     "mealTemplate": {
-      "breakfast": "Overnight oats with berries, chia seeds, and a drizzle of honey",
-      "lunch": "Grilled salmon salad with leafy greens, avocado, and olive oil dressing",
-      "dinner": "Baked sweet potato with steamed vegetables and a small portion of lean protein",
-      "snack": "Handful of walnuts with an apple, or plain yogurt with blueberries"
+      "breakfast": "Overnight oats with berries, chia seeds, and honey",
+      "lunch": "Grilled salmon salad with leafy greens and avocado",
+      "dinner": "Baked sweet potato with steamed vegetables and lean protein",
+      "snack": "Handful of walnuts with an apple"
     },
-    "commonTriggerFoods": [{"food": "Dairy", "approach": "Try reducing for 2-3 weeks and observe if skin changes. Reintroduce slowly."}],
-    "hydrationGuidance": "Aim for 2-3 liters of water daily. Herbal teas count. Avoid excessive caffeine and alcohol which can dehydrate skin.",
-    "gutExplanation": "A simple 2-3 sentence explanation of how gut health connects to this specific skin presentation. No jargon.",
+    "commonTriggerFoods": [{"food": "Dairy", "approach": "Try reducing for 2-3 weeks and observe."}],
+    "hydrationGuidance": "Aim for 2-3 liters of water daily.",
+    "gutExplanation": "A simple 2-3 sentence explanation of gut-skin connection for this case.",
     "sevenDayGutPlan": [
-      {"day": "Days 1-2", "focus": "Add one serving of fermented food (yogurt, kimchi, or sauerkraut). Increase water intake to 2L."},
-      {"day": "Days 3-4", "focus": "Add a high-fiber vegetable to each meal. Continue fermented foods daily."},
-      {"day": "Days 5-6", "focus": "Reduce ultra-processed snacks. Replace with whole food alternatives like nuts, fruit, or hummus with vegetables."},
-      {"day": "Day 7", "focus": "Review how you feel. Many people notice less bloating and more energy by now. Continue this pattern."}
+      {"day": "Days 1-2", "focus": "Add one serving of fermented food. Increase water to 2L."},
+      {"day": "Days 3-4", "focus": "Add high-fiber vegetable to each meal."},
+      {"day": "Days 5-6", "focus": "Reduce ultra-processed snacks."},
+      {"day": "Day 7", "focus": "Review progress. Continue the pattern."}
     ],
-    "digestiveSupport": ["Eat slowly and chew thoroughly", "Include protein and fiber at each meal", ...],
-    "gutCautions": "If you have IBS, reflux, or known food intolerances, adjust this plan carefully. Consider working with a nutritionist for personalized guidance.",
-    "sleepPlan": ["Keep a consistent bedtime within 30 minutes each night", "Make your room dark and cool (18-20C / 65-68F)", "Avoid screens 30-60 minutes before bed"],
-    "stressPlan": ["Try 2-minute breathing exercises: breathe in for 4 counts, hold for 4, out for 6", "Take a 10-minute walk outside daily", "Write down 3 things that went well today before bed"],
-    "exerciseGuidance": ["Aim for 20-30 minutes of moderate movement most days", "Walking, yoga, and swimming are gentle on inflamed skin", "Shower soon after sweating to prevent irritation"],
-    "sunlightGuidance": ["Get 10-15 minutes of morning sunlight for vitamin D and circadian rhythm", "Use mineral SPF 30+ on affected areas if spending extended time outdoors", "Avoid prolonged midday sun on compromised skin"],
-    "dailyChecklist": ["Gentle morning cleanse", "Apply moisturizer", "Drink 2L+ water", "Eat one serving of vegetables at each meal", "10-minute walk or movement", "Evening cleanse", "Apply any treatment", "Wind down 30 min before sleep"],
-    "thisWeekFocus": "A specific, encouraging 1-2 sentence focus for this week based on the condition. Example: 'This week, focus on keeping your routine simple and consistent. Your skin barrier needs time and gentleness to recover.'",
-    "gutHealth": ["Detailed gut health recommendations specific to the condition"],
-    "lifestyle": ["Detailed lifestyle recommendations specific to the condition"]
+    "digestiveSupport": ["Eat slowly and chew thoroughly", "Include protein and fiber at each meal"],
+    "gutCautions": "If you have IBS or reflux, adjust carefully.",
+    "sleepPlan": ["Keep a consistent bedtime", "Make room dark and cool", "Avoid screens before bed"],
+    "stressPlan": ["2-minute breathing exercises", "10-minute walk outside daily", "Write 3 things that went well"],
+    "exerciseGuidance": ["20-30 minutes moderate movement", "Walking, yoga, swimming", "Shower after sweating"],
+    "sunlightGuidance": ["10-15 min morning sunlight", "Use mineral SPF 30+", "Avoid prolonged midday sun"],
+    "dailyChecklist": ["Gentle morning cleanse", "Apply moisturizer", "Drink 2L+ water", "Eat vegetables at each meal", "10-minute walk", "Evening cleanse", "Wind down before sleep"],
+    "thisWeekFocus": "A specific 1-2 sentence focus for this week.",
+    "gutHealth": ["Detailed gut health recommendations"],
+    "lifestyle": ["Detailed lifestyle recommendations"]
   }
 }
+
+SKIN SCORE RULES:
+- The overall score ranges from 0-100 where 100 is optimal skin health.
+- Calculate based on: visual severity from the photo, user answers about diet/stress/sleep/hydration.
+- Each factor score should be 0-100.
+- Be realistic but not discouraging. Most people with visible issues score 40-70.
+- Provide clear, specific explanations for each factor.
 
 Provide 2-4 possible conditions ranked by probability. Use cautious language throughout.`
       },
@@ -124,8 +141,9 @@ IMPORTANT GUIDELINES FOR YOUR RESPONSE:
 - Keep routines minimal — focus on behavior and consistency over products.
 - Include specific safety guidance and red flags.
 - Never use the asterisk symbol in any text.
+- IMPORTANT: Include the skinScore field with overall score and all 5 factor scores with explanations.
 
-Return the FULL JSON response with ALL fields including the expanded healingProtocol.`
+Return the FULL JSON response with ALL fields including skinScore and the expanded healingProtocol.`
           },
           {
             type: "image_url",

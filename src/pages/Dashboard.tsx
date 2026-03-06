@@ -4,9 +4,12 @@ import Layout from "@/components/Layout";
 import {
   ScanFace, HeartPulse, Apple, Salad, Activity,
   TrendingUp, MessageCircle, ArrowRight, Sparkles, AlertCircle,
-  Circle, AlertTriangle, Target
+  AlertTriangle, Target
 } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { SkinScoreCard } from "@/components/dashboard/SkinScoreCard";
+import { WeeklyCheckReminder } from "@/components/dashboard/WeeklyCheckReminder";
+import { DailyHealingPlan } from "@/components/dashboard/DailyHealingPlan";
 
 const quickActions = [
   { path: "/analysis", label: "Skin Analysis", icon: ScanFace, color: "bg-accent" },
@@ -21,23 +24,7 @@ const Dashboard = () => {
 
   const topCondition = analysis?.conditions?.[0];
   const protocol = analysis?.healing_protocol;
-
-  const dailyChecklist = protocol?.dailyChecklist?.length
-    ? protocol.dailyChecklist
-    : protocol
-      ? [
-          ...(protocol.morningRoutine?.slice(0, 2) || []),
-          ...(protocol.eveningRoutine?.slice(0, 2) || []),
-          ...(protocol.gutHealth?.slice(0, 1) || []),
-        ]
-      : [
-          "Gentle cleanser — morning",
-          "Apply moisturizer",
-          "SPF 30+ sunscreen",
-          "Drink 2L water",
-          "Evening cleanse",
-          "Take probiotic supplement",
-        ];
+  const skinScore = analysis?.skin_score;
 
   return (
     <Layout>
@@ -47,7 +34,7 @@ const Dashboard = () => {
         <p className="text-muted-foreground mb-8">Track your healing journey and stay on protocol.</p>
 
         {/* Status Card */}
-        <div className="card-elevated gradient-sage mb-8">
+        <div className="card-elevated gradient-sage mb-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">
@@ -73,9 +60,25 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Skin Score + Weekly Check (side by side on desktop) */}
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {hasAnalysis && skinScore && skinScore.overall > 0 ? (
+            <SkinScoreCard score={skinScore} />
+          ) : (
+            <div className="card-elevated flex flex-col items-center justify-center py-10 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mb-4">
+                <TrendingUp className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="font-serif text-lg mb-1">Skin Health Score</h3>
+              <p className="text-xs text-muted-foreground max-w-[200px]">Complete an analysis to get your personalized score</p>
+            </div>
+          )}
+          <WeeklyCheckReminder lastAnalysisDate={analysis?.created_at} />
+        </div>
+
         {/* What's Happening */}
         {hasAnalysis && (protocol?.whatIsHappening || analysis.biological_explanation) && (
-          <div className="card-elevated mb-8">
+          <div className="card-elevated mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-5 h-5 text-primary" />
               <h3 className="font-serif text-xl">What We Think Is Happening</h3>
@@ -86,34 +89,9 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Condition Probabilities */}
-        {hasAnalysis && analysis.conditions?.length > 1 && (
-          <div className="card-elevated mb-8">
-            <h3 className="font-serif text-xl mb-4">Suspected Conditions</h3>
-            <div className="space-y-3">
-              {analysis.conditions.map((c: any, i: number) => (
-                <div key={i}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="font-medium">{c.condition}</span>
-                    <span className="text-muted-foreground">{c.probability}% likelihood</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-1.5">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${c.probability}%` }}
-                      transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }}
-                      className="bg-primary h-1.5 rounded-full"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* This Week Focus */}
         {hasAnalysis && protocol?.thisWeekFocus && (
-          <div className="card-elevated gradient-warm mb-8">
+          <div className="card-elevated gradient-warm mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Target className="w-5 h-5 text-primary" />
               <h3 className="font-serif text-xl">This Week's Focus</h3>
@@ -123,7 +101,7 @@ const Dashboard = () => {
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {quickActions.map((action, i) => (
             <motion.div key={action.path} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}>
               <Link to={action.path} className="card-elevated-hover flex flex-col items-center text-center py-6 gap-3">
@@ -136,66 +114,46 @@ const Dashboard = () => {
           ))}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Daily Checklist */}
-          <div className="card-elevated">
-            <h3 className="font-serif text-xl mb-4">
-              {hasAnalysis ? "Your Daily Healing Plan" : "Daily Routine"}
-            </h3>
+        {/* Daily Healing Plan */}
+        <div className="mb-6">
+          <DailyHealingPlan plan={analysis?.daily_plan} />
+        </div>
+
+        {/* Progress Snapshot */}
+        <div className="card-elevated mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif text-xl">Your Progress</h3>
+            <Link to="/progress" className="flex items-center gap-1 text-xs text-primary font-medium hover:underline">
+              View all <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          {hasAnalysis ? (
             <div className="space-y-3">
-              {dailyChecklist.map((item: string, i: number) => (
-                <label key={i} className="flex items-center gap-3 cursor-pointer group">
-                  <Circle className="w-5 h-5 text-border group-hover:text-primary/50 transition-colors shrink-0" />
-                  <span className="text-sm text-foreground">{item}</span>
-                </label>
+              {analysis.conditions?.slice(0, 2).map((c: any, i: number) => (
+                <div key={i}>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="font-medium">{c.condition}</span>
+                    <span className="text-muted-foreground">{c.probability}%</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-1.5">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${c.probability}%` }}
+                      transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }}
+                      className="bg-primary h-1.5 rounded-full"
+                    />
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
-
-          {/* Quick Actions Today */}
-          <div className="card-elevated">
-            <h3 className="font-serif text-xl mb-4">
-              {hasAnalysis ? "Quick Actions Today" : "Weekly Insights"}
-            </h3>
-            <div className="space-y-4">
-              {hasAnalysis && protocol ? (
-                <>
-                  {protocol.weeklyTreatments?.slice(0, 2).map((t: string, i: number) => (
-                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-accent/50">
-                      <Activity className="w-5 h-5 text-primary shrink-0" />
-                      <p className="text-sm">{t}</p>
-                    </div>
-                  ))}
-                  {protocol.lifestyle?.slice(0, 2).map((l: string, i: number) => (
-                    <div key={`l-${i}`} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
-                      <TrendingUp className="w-5 h-5 text-primary shrink-0" />
-                      <p className="text-sm">{l}</p>
-                    </div>
-                  ))}
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/50">
-                    <Salad className="w-5 h-5 text-primary" />
-                    <p className="text-sm">Increase fermented foods this week for gut diversity</p>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
-                    <Activity className="w-5 h-5 text-primary" />
-                    <p className="text-sm">Aim for 7+ hours sleep for skin barrier repair</p>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-accent/50">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                    <p className="text-sm">Track progress — upload a new photo this week</p>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Complete your first analysis to start tracking progress.</p>
+          )}
         </div>
 
         {/* Safety / Red Flags */}
         {hasAnalysis && protocol?.safetyGuidance && (
-          <div className="mt-8 p-5 rounded-2xl border border-destructive/20 bg-destructive/5">
+          <div className="p-5 rounded-2xl border border-destructive/20 bg-destructive/5 mb-6">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="w-5 h-5 text-destructive" />
               <h3 className="font-serif text-lg text-destructive">When to See a Doctor</h3>
@@ -205,9 +163,9 @@ const Dashboard = () => {
         )}
 
         {/* Disclaimer */}
-        <div className="flex items-start gap-2 mt-8 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
+        <div className="flex items-start gap-2 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <p>This is educational information, not medical advice. If symptoms are severe, spreading, painful, infected, or persistent, consult a dermatologist.</p>
+          <p>This platform provides educational skin wellness insights and is not medical advice.</p>
         </div>
       </motion.div>
     </Layout>

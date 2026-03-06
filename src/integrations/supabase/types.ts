@@ -68,6 +68,7 @@ export type Database = {
           results: Json
           root_causes: Json
           safety_flags: Json
+          skin_score: Json
           user_id: string
         }
         Insert: {
@@ -84,6 +85,7 @@ export type Database = {
           results?: Json
           root_causes?: Json
           safety_flags?: Json
+          skin_score?: Json
           user_id: string
         }
         Update: {
@@ -100,6 +102,7 @@ export type Database = {
           results?: Json
           root_causes?: Json
           safety_flags?: Json
+          skin_score?: Json
           user_id?: string
         }
         Relationships: []

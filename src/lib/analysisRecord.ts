@@ -30,6 +30,22 @@ type TriggerFood = {
   approach: string;
 };
 
+type SkinScoreFactor = {
+  score: number;
+  explanation: string;
+};
+
+type SkinScore = {
+  overall: number;
+  factors: {
+    inflammation?: SkinScoreFactor;
+    gut_health?: SkinScoreFactor;
+    diet_quality?: SkinScoreFactor;
+    lifestyle?: SkinScoreFactor;
+    skin_barrier?: SkinScoreFactor;
+  };
+};
+
 type AIHealingProtocol = {
   whatIsHappening?: string;
   morningRoutine?: string[];
@@ -67,6 +83,7 @@ export type AnalysisResultInput = {
   rootCauses?: RootCause[];
   biologicalExplanation?: string;
   healingProtocol?: AIHealingProtocol;
+  skinScore?: SkinScore;
 };
 
 const safeArray = (value: unknown): string[] => (Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
@@ -90,12 +107,7 @@ const splitDailyPlan = (items: string[]) => {
     }
   });
 
-  return {
-    morning,
-    midday,
-    evening,
-    weekly,
-  };
+  return { morning, midday, evening, weekly };
 };
 
 const toTimelineObject = (timeline?: string) => {
@@ -107,12 +119,29 @@ const toTimelineObject = (timeline?: string) => {
       weeks6to12: "Longer-term stability commonly takes 6-12 weeks.",
     };
   }
-
   return {
     week1: "Many people notice early changes within 7-14 days.",
     weeks2to4: "Steadier improvements often appear over weeks 2-4.",
     weeks6to12: "More durable recovery commonly takes 6-12 weeks of consistency.",
     raw,
+  };
+};
+
+const normalizeSkinScore = (skinScore?: SkinScore) => {
+  if (!skinScore || typeof skinScore.overall !== "number") {
+    return { overall: 0, factors: {} };
+  }
+  return {
+    overall: Math.max(0, Math.min(100, skinScore.overall)),
+    factors: Object.fromEntries(
+      Object.entries(skinScore.factors || {}).map(([key, val]) => [
+        key,
+        {
+          score: Math.max(0, Math.min(100, val?.score || 0)),
+          explanation: val?.explanation || "",
+        },
+      ])
+    ),
   };
 };
 
@@ -139,6 +168,7 @@ export const normalizeAnalysisRecordPayload = ({
     answers,
     results: Array.isArray(analysis.conditions) ? analysis.conditions : [],
     root_causes: Array.isArray(analysis.rootCauses) ? analysis.rootCauses : [],
+    skin_score: normalizeSkinScore(analysis.skinScore),
     healing_protocol: {
       what_is_happening: protocol.whatIsHappening || analysis.biologicalExplanation || "",
       morning: [{ title: "Morning routine", steps: morningRoutine }],
