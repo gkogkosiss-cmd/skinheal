@@ -1,13 +1,14 @@
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ScanFace, HeartPulse, Apple, MessageCircle, ArrowRight, Leaf, Shield,
+  ScanFace, HeartPulse, Apple, MessageCircle, ArrowRight, Shield,
   Upload, Sparkles, ClipboardCheck, TrendingUp, Lock, Brain, Eye,
   ChevronRight, CheckCircle2
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import SkinScoreDemo from "@/components/landing/SkinScoreDemo";
+import skinhealLogo from "@/assets/skinheal_logo.png";
 
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -66,9 +67,7 @@ const Index = () => {
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4 bg-background/70 backdrop-blur-xl border-b border-border">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-            <Leaf className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src={skinhealLogo} alt="SkinHeal" className="w-9 h-9 rounded-xl" />
           <span className="font-serif text-xl text-foreground">SkinHeal</span>
         </div>
         <button
@@ -358,9 +357,7 @@ const Index = () => {
       <footer className="px-6 py-8 border-t border-border">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <Leaf className="w-4 h-4 text-primary-foreground" />
-            </div>
+            <img src={skinhealLogo} alt="SkinHeal" className="w-7 h-7 rounded-lg" />
             <span className="font-serif text-foreground">SkinHeal</span>
           </div>
           <div className="flex items-center gap-6 text-xs text-muted-foreground">

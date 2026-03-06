@@ -3,8 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, ScanFace, HeartPulse, Apple, Salad, Activity,
-  TrendingUp, MessageCircle, Menu, X, Leaf, UserCircle
+  TrendingUp, MessageCircle, Menu, X, UserCircle
 } from "lucide-react";
+import skinhealLogo from "@/assets/skinheal_logo.png";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: Home },
@@ -27,9 +28,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card/50 p-6 gap-2 fixed h-full">
         <Link to="/" className="flex items-center gap-2.5 mb-8 px-2">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-            <Leaf className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src={skinhealLogo} alt="SkinHeal" className="w-9 h-9 rounded-xl" />
           <span className="font-serif text-xl text-foreground">SkinHeal</span>
         </Link>
 
@@ -67,9 +66,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 py-4 bg-background/80 backdrop-blur-lg border-b border-border">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Leaf className="w-4 h-4 text-primary-foreground" />
-          </div>
+          <img src={skinhealLogo} alt="SkinHeal" className="w-8 h-8 rounded-lg" />
           <span className="font-serif text-lg">SkinHeal</span>
         </Link>
         <button
