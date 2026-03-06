@@ -269,15 +269,15 @@ const SkinAnalysis = () => {
                         <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${(images.length / MAX_IMAGES) * 100}%` }} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
                       {images.map((img, i) => (
-                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
+                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
                           <img src={img.preview} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                           <button
                             onClick={() => removeImage(i)}
-                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-1 right-1 w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center"
                           >
-                            <X className="w-3 h-3" />
+                            <X className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                           </button>
                           <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-background/80 text-[10px] font-medium">{i + 1}</span>
                         </div>
