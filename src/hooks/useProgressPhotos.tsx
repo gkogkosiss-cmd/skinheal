@@ -170,6 +170,31 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
     }
   }, [user, currentAnalysis, queryClient, query.data]);
 
+  const deleteProgressPhoto = useCallback(async (photoId: string) => {
+    if (!user?.id) throw new Error("Must be logged in");
+
+    const { data: photo } = await supabase
+      .from("progress_photos" as any)
+      .select("photo_url")
+      .eq("id", photoId)
+      .eq("user_id", user.id)
+      .single();
+
+    const photoUrl = (photo as any)?.photo_url;
+    if (photoUrl) {
+      await supabase.storage.from("skin-photos").remove([photoUrl]);
+    }
+
+    const { error } = await supabase
+      .from("progress_photos" as any)
+      .delete()
+      .eq("id", photoId)
+      .eq("user_id", user.id);
+
+    if (error) throw error;
+    await queryClient.invalidateQueries({ queryKey: progressPhotosQueryKey(user.id) });
+  }, [user, queryClient]);
+
   return {
     photos: query.data || [],
     isLoading: query.isLoading,
