@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, ScanFace, HeartPulse, Apple, Salad, Activity,
-  TrendingUp, MessageCircle, Menu, X, Leaf
+  TrendingUp, MessageCircle, Menu, X, Leaf, UserCircle
 } from "lucide-react";
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { path: "/lifestyle", label: "Lifestyle", icon: Activity },
   { path: "/progress", label: "Progress", icon: TrendingUp },
   { path: "/coach", label: "AI Coach", icon: MessageCircle },
+  { path: "/profile", label: "Profile", icon: UserCircle },
 ];
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
