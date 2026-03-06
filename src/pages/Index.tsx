@@ -65,7 +65,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4 bg-background/70 backdrop-blur-xl border-b border-border">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 md:px-12 py-3 sm:py-4 bg-background/70 backdrop-blur-xl border-b border-border">
         <div className="flex items-center gap-2.5">
           <img src={skinhealLogo} alt="SkinHeal" className="w-9 h-9 rounded-xl" />
           <span className="font-serif text-xl text-foreground">SkinHeal</span>
