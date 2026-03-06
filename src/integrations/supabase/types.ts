@@ -183,6 +183,39 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          age_range: string | null
+          created_at: string
+          id: string
+          name: string | null
+          profile_photo_url: string | null
+          skin_concern: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age_range?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          profile_photo_url?: string | null
+          skin_concern?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age_range?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          profile_photo_url?: string | null
+          skin_concern?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       progress_photos: {
         Row: {
           analysis_id: string | null
@@ -261,6 +294,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_notifications: {
+        Row: {
+          daily_plan_reminder: boolean
+          meal_reminder: boolean
+          updated_at: string
+          user_id: string
+          weekly_check_reminder: boolean
+        }
+        Insert: {
+          daily_plan_reminder?: boolean
+          meal_reminder?: boolean
+          updated_at?: string
+          user_id: string
+          weekly_check_reminder?: boolean
+        }
+        Update: {
+          daily_plan_reminder?: boolean
+          meal_reminder?: boolean
+          updated_at?: string
+          user_id?: string
+          weekly_check_reminder?: boolean
+        }
+        Relationships: []
       }
       user_state: {
         Row: {
