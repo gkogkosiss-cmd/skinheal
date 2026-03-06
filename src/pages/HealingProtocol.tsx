@@ -92,18 +92,8 @@ const HealingProtocol = () => {
             </div>
           )}
 
-          {/* Daily Checklist */}
-          <div className="card-elevated">
-            <h3 className="font-serif text-xl mb-4">Daily Healing Checklist</h3>
-            <div className="space-y-3">
-              {dailyChecklist.map((item: string, i: number) => (
-                <label key={i} className="flex items-center gap-3 cursor-pointer group">
-                  <Circle className="w-5 h-5 text-border group-hover:text-primary/50 transition-colors shrink-0" />
-                  <span className="text-sm text-foreground">{item}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          {/* Interactive Daily Checklist */}
+          <DailyHealingChecklist />
 
           {/* Morning Routine */}
           <div className="card-elevated">
