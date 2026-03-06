@@ -86,6 +86,7 @@ const PrivacyPolicy = () => {
       </motion.div>
     </div>
   </div>
-);
+  );
+};
 
 export default PrivacyPolicy;

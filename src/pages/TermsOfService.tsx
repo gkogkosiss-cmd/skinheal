@@ -93,6 +93,7 @@ const TermsOfService = () => {
       </motion.div>
     </div>
   </div>
-);
+  );
+};
 
 export default TermsOfService;

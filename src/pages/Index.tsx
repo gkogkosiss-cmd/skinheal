@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   ScanFace, HeartPulse, Apple, MessageCircle, ArrowRight, Leaf, Shield,
   Upload, Sparkles, ClipboardCheck, TrendingUp, Lock, Brain, Eye,
-  ChevronRight, CheckCircle2, BarChart3
+  ChevronRight, CheckCircle2
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
