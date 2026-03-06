@@ -73,6 +73,13 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Daily Progress Indicator */}
+        {hasAnalysis && (
+          <div className="mb-6">
+            <DailyProgressIndicator />
+          </div>
+        )}
+
         {/* Skin Score + Weekly Check (side by side on desktop) */}
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           {hasAnalysis && skinScore && skinScore.overall > 0 ? (
