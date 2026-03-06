@@ -303,66 +303,84 @@ const SkinAnalysis = () => {
 
   const saveAnalysis = async (analysisData: AnalysisResult) => {
     if (!user) throw new Error("Please log in before running an analysis.");
+    if (images.length === 0) throw new Error("Please add at least one photo before analysis.");
 
-    // Upload all images
     const photoUrls: string[] = [];
-    for (const img of images) {
-      const ext = img.file.name.split(".").pop() || "jpg";
-      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("skin-photos")
-        .upload(path, img.file);
-      if (uploadError) {
-        console.error("Photo upload failed:", uploadError);
-        continue;
+
+    try {
+      console.info("[SkinAnalysis] uploading photos", { imageCount: images.length });
+
+      for (const [index, img] of images.entries()) {
+        const path = `${user.id}/${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("skin-photos")
+          .upload(path, img.file, { contentType: img.file.type || "image/jpeg" });
+
+        if (uploadError) {
+          throw new Error("We couldn’t upload one of your images. Please try again.");
+        }
+
+        photoUrls.push(path);
       }
-      photoUrls.push(path);
+
+      if (photoUrls.length === 0) {
+        throw new Error("No image was uploaded. Please select images and retry.");
+      }
+
+      const normalized = normalizeAnalysisRecordPayload({
+        analysis: analysisData,
+        answers,
+        visualFeatures,
+      });
+
+      const insertResponse = await supabase
+        .from("analysis_records" as any)
+        .insert({
+          user_id: user.id,
+          photo_url: photoUrls[0] || null,
+          photo_urls: photoUrls,
+          image_observations: normalized.image_observations,
+          answers: normalized.answers,
+          results: normalized.results,
+          root_causes: normalized.root_causes,
+          healing_protocol: normalized.healing_protocol,
+          nutrition_plan: normalized.nutrition_plan,
+          gut_health_plan: normalized.gut_health_plan,
+          lifestyle_plan: normalized.lifestyle_plan,
+          daily_plan: normalized.daily_plan,
+          safety_flags: normalized.safety_flags,
+          skin_score: normalized.skin_score,
+          body_area: bodyArea,
+        } as any)
+        .select("id")
+        .single();
+
+      const inserted = insertResponse.data as unknown as { id: string } | null;
+      const insertError = insertResponse.error;
+
+      if (insertError || !inserted?.id) {
+        throw new Error("Failed to save your analysis. Please retry.");
+      }
+
+      const { error: stateError } = await setLatestAnalysisId(user.id, inserted.id);
+      if (stateError) {
+        throw new Error("Saved analysis, but failed to set it as current. Please retry.");
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: latestAnalysisQueryKey(user.id) }),
+        queryClient.invalidateQueries({ queryKey: allAnalysesQueryKey(user.id) }),
+      ]);
+
+      console.info("[SkinAnalysis] analysis saved", { analysisId: inserted.id, uploadedImages: photoUrls.length });
+    } catch (error) {
+      if (photoUrls.length > 0) {
+        await supabase.storage.from("skin-photos").remove(photoUrls);
+      }
+
+      console.error("[SkinAnalysis] save analysis failed", error);
+      throw error;
     }
-
-    const normalized = normalizeAnalysisRecordPayload({
-      analysis: analysisData,
-      answers,
-      visualFeatures,
-    });
-
-    const insertResponse = await supabase
-      .from("analysis_records" as any)
-      .insert({
-        user_id: user.id,
-        photo_url: photoUrls[0] || null,
-        photo_urls: photoUrls,
-        image_observations: normalized.image_observations,
-        answers: normalized.answers,
-        results: normalized.results,
-        root_causes: normalized.root_causes,
-        healing_protocol: normalized.healing_protocol,
-        nutrition_plan: normalized.nutrition_plan,
-        gut_health_plan: normalized.gut_health_plan,
-        lifestyle_plan: normalized.lifestyle_plan,
-        daily_plan: normalized.daily_plan,
-        safety_flags: normalized.safety_flags,
-        skin_score: normalized.skin_score,
-        body_area: bodyArea,
-      } as any)
-      .select("id")
-      .single();
-
-    const inserted = insertResponse.data as unknown as { id: string } | null;
-    const insertError = insertResponse.error;
-
-    if (insertError || !inserted?.id) {
-      throw new Error("Failed to save your analysis. Please retry.");
-    }
-
-    const { error: stateError } = await setLatestAnalysisId(user.id, inserted.id);
-    if (stateError) {
-      throw new Error("Saved analysis, but failed to set it as current. Please retry.");
-    }
-
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: latestAnalysisQueryKey(user.id) }),
-      queryClient.invalidateQueries({ queryKey: allAnalysesQueryKey(user.id) }),
-    ]);
   };
 
   const runFullAnalysis = async () => {
