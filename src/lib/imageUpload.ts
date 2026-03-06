@@ -80,10 +80,13 @@ export const getFileFingerprint = (file: File) => `${file.name}-${file.size}-${f
 
 export const validateImageFile = (file: File): string | null => {
   const extension = getExtension(file.name);
-  const isTypeSupported = file.type.startsWith("image/") && (SUPPORTED_MIME_TYPES.has(file.type) || !!extension);
-  const isExtSupported = extension ? SUPPORTED_EXTENSIONS.includes(extension) : true;
+  const hasSupportedExtension = extension ? SUPPORTED_EXTENSIONS.includes(extension) : false;
 
-  if (!isTypeSupported || !isExtSupported) {
+  const hasSupportedMime = file.type
+    ? file.type.startsWith("image/") && (SUPPORTED_MIME_TYPES.has(file.type) || hasSupportedExtension)
+    : hasSupportedExtension;
+
+  if (!hasSupportedMime || !hasSupportedExtension) {
     return "Please upload JPG, PNG, WEBP, or HEIC images.";
   }
 
@@ -96,27 +99,46 @@ export const validateImageFile = (file: File): string | null => {
 };
 
 export const prepareImageForAnalysis = async (file: File): Promise<PreparedImage> => {
-  const processedBlob = await convertImageToJpeg(file);
-  const processedName = `${baseName(file.name)}.jpg`;
-  const processedFile = new File([processedBlob], processedName, {
-    type: "image/jpeg",
-    lastModified: Date.now(),
-  });
+  try {
+    const processedBlob = await convertImageToJpeg(file);
+    const processedName = `${baseName(file.name)}.jpg`;
+    const processedFile = new File([processedBlob], processedName, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
 
-  const dataUrl = await readBlobAsDataUrl(processedBlob);
-  const base64 = dataUrl.split(",")[1] || "";
-  const previewUrl = URL.createObjectURL(processedFile);
+    const dataUrl = await readBlobAsDataUrl(processedBlob);
+    const base64 = dataUrl.split(",")[1] || "";
+    const previewUrl = URL.createObjectURL(processedFile);
 
-  if (!base64) {
-    URL.revokeObjectURL(previewUrl);
-    throw new Error("Failed to prepare image for analysis.");
+    if (!base64) {
+      URL.revokeObjectURL(previewUrl);
+      throw new Error("Failed to prepare image for analysis.");
+    }
+
+    return {
+      file: processedFile,
+      base64,
+      mimeType: "image/jpeg",
+      previewUrl,
+      fingerprint: getFileFingerprint(processedFile),
+    };
+  } catch {
+    const dataUrl = await readBlobAsDataUrl(file);
+    const base64 = dataUrl.split(",")[1] || "";
+    const previewUrl = URL.createObjectURL(file);
+
+    if (!base64) {
+      URL.revokeObjectURL(previewUrl);
+      throw new Error("Could not decode this image. Try selecting a clearer JPG or PNG photo.");
+    }
+
+    return {
+      file,
+      base64,
+      mimeType: file.type && file.type.startsWith("image/") ? file.type : "image/jpeg",
+      previewUrl,
+      fingerprint: getFileFingerprint(file),
+    };
   }
-
-  return {
-    file: processedFile,
-    base64,
-    mimeType: "image/jpeg",
-    previewUrl,
-    fingerprint: getFileFingerprint(processedFile),
-  };
 };
