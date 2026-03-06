@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Moon, Sun, Droplets, Dumbbell, Brain, Heart, ArrowRight, AlertCircle, Circle, CheckSquare } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { PremiumGate } from "@/components/premium/PremiumGate";
 
 const Lifestyle = () => {
   const { currentAnalysis: analysis } = useCurrentAnalysis();
