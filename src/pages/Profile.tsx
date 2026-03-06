@@ -1,18 +1,19 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  User, CreditCard, Heart, Bell, Shield, HelpCircle, LogOut, ChevronRight,
-  Camera, Save, X, Trash2, Download, MessageSquare, ExternalLink
+  User, CreditCard, Heart, Shield, LogOut, ChevronRight,
+  Save, X, Trash2, MessageSquare, Sparkles, ExternalLink, FileText
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -21,16 +22,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
 const Profile = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, signOut } = useAuth();
-  const { profile, updateProfile, notifications, updateNotifications, deleteAccount, isLoadingProfile } = useProfile();
+  const { profile, updateProfile, deleteAccount } = useProfile();
   const { currentAnalysis } = useCurrentAnalysis();
+  const { isPremium, subscribed, subscriptionEnd, startCheckout, openCustomerPortal, isCheckingOut, refreshSubscription, isLoading: isSubLoading } = useSubscription();
   const { toast } = useToast();
 
   const [editing, setEditing] = useState(false);
@@ -39,6 +41,14 @@ const Profile = () => {
   const [editConcern, setEditConcern] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
   const [sendingFeedback, setSendingFeedback] = useState(false);
+
+  // Handle checkout success redirect
+  useEffect(() => {
+    if (searchParams.get("checkout") === "success") {
+      toast({ title: "Welcome to Premium!", description: "Your subscription is now active." });
+      refreshSubscription();
+    }
+  }, [searchParams]);
 
   if (!user) {
     navigate("/auth");
@@ -59,14 +69,6 @@ const Profile = () => {
       toast({ title: "Profile updated" });
     } catch {
       toast({ title: "Failed to save", variant: "destructive" });
-    }
-  };
-
-  const handleToggle = async (key: "weekly_check_reminder" | "daily_plan_reminder" | "meal_reminder", value: boolean) => {
-    try {
-      await updateNotifications.mutateAsync({ [key]: value });
-    } catch {
-      toast({ title: "Failed to update", variant: "destructive" });
     }
   };
 
@@ -108,7 +110,7 @@ const Profile = () => {
         {/* Header */}
         <motion.div variants={fadeUp}>
           <h1 className="text-3xl font-serif text-foreground">Profile</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage your account, preferences, and data.</p>
+          <p className="text-muted-foreground text-sm mt-1">Manage your account, subscription, and data.</p>
         </motion.div>
 
         {/* Section 1: User Information */}
@@ -119,12 +121,10 @@ const Profile = () => {
                 <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
                   <User className="w-5 h-5 text-accent-foreground" />
                 </div>
-                <CardTitle className="text-lg">Personal Information</CardTitle>
+                <CardTitle className="text-lg">Account Information</CardTitle>
               </div>
               {!editing && (
-                <Button variant="ghost" size="sm" onClick={startEditing}>
-                  Edit
-                </Button>
+                <Button variant="ghost" size="sm" onClick={startEditing}>Edit</Button>
               )}
             </CardHeader>
             <CardContent className="space-y-4">
@@ -191,15 +191,44 @@ const Profile = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
                 <div>
-                  <p className="font-medium text-foreground">Free Plan</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Core skin analysis and educational insights</p>
+                  <p className="font-medium text-foreground">{isPremium ? "Premium Plan" : "Free Plan"}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {isPremium
+                      ? `$9.99/month · Renews ${subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}`
+                      : "Basic skin analysis and score"}
+                  </p>
                 </div>
-                <span className="text-xs font-medium text-primary bg-accent px-3 py-1 rounded-full">Active</span>
+                <span className={`text-xs font-medium px-3 py-1 rounded-full ${isPremium ? "bg-primary/10 text-primary" : "bg-accent text-accent-foreground"}`}>
+                  {isPremium ? "Active" : "Free"}
+                </span>
               </div>
-              <Button variant="outline" className="w-full justify-between" disabled>
-                Upgrade to Premium <ChevronRight className="w-4 h-4" />
-              </Button>
-              <p className="text-xs text-muted-foreground text-center">Premium plan coming soon with weekly tracking, AI coaching, and personalized meal plans.</p>
+
+              {isPremium ? (
+                <Button variant="outline" className="w-full justify-between" onClick={openCustomerPortal}>
+                  <span className="flex items-center gap-2"><ExternalLink className="w-4 h-4" /> Manage Subscription</span>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <>
+                  <Button className="w-full justify-between gap-2" onClick={startCheckout} disabled={isCheckingOut || isSubLoading}>
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      {isCheckingOut ? "Loading..." : "Upgrade to Premium — $9.99/mo"}
+                    </span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  <div className="space-y-2 pt-2">
+                    <p className="text-xs font-medium text-foreground">Premium includes:</p>
+                    <ul className="space-y-1.5">
+                      {["Personalized Healing Protocol", "Nutrition & Meal Plans", "Gut Health Program", "Lifestyle Guidance", "AI Skin Coach", "Weekly Progress Insights"].map((f) => (
+                        <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Sparkles className="w-3 h-3 text-primary shrink-0" /> {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -219,9 +248,7 @@ const Profile = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Skin Health Score</p>
-                      <p className="text-3xl font-serif text-foreground">
-                        {scoreValue != null ? `${scoreValue}/100` : "—"}
-                      </p>
+                      <p className="text-3xl font-serif text-foreground">{scoreValue != null ? `${scoreValue}/100` : "—"}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">Last Scan</p>
@@ -246,39 +273,7 @@ const Profile = () => {
           </Card>
         </motion.div>
 
-        {/* Section 4: Notification Settings */}
-        <motion.div variants={fadeUp}>
-          <Card className="card-elevated">
-            <CardHeader className="flex flex-row items-center gap-3 pb-4">
-              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                <Bell className="w-5 h-5 text-accent-foreground" />
-              </div>
-              <CardTitle className="text-lg">Notification Preferences</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <ToggleRow
-                label="Weekly Skin Check Reminder"
-                description="Get reminded to upload your weekly progress photo"
-                checked={notifications?.weekly_check_reminder ?? true}
-                onCheckedChange={(v) => handleToggle("weekly_check_reminder", v)}
-              />
-              <ToggleRow
-                label="Daily Healing Plan Reminder"
-                description="Daily reminders for your healing checklist"
-                checked={notifications?.daily_plan_reminder ?? true}
-                onCheckedChange={(v) => handleToggle("daily_plan_reminder", v)}
-              />
-              <ToggleRow
-                label="Meal Plan Reminder"
-                description="Reminders for your nutrition plan"
-                checked={notifications?.meal_reminder ?? true}
-                onCheckedChange={(v) => handleToggle("meal_reminder", v)}
-              />
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Section 5: Privacy & Data */}
+        {/* Section 4: Privacy & Data */}
         <motion.div variants={fadeUp}>
           <Card className="card-elevated">
             <CardHeader className="flex flex-row items-center gap-3 pb-4">
@@ -288,10 +283,19 @@ const Profile = () => {
               <CardTitle className="text-lg">Privacy & Data</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-between" disabled>
-                <span className="flex items-center gap-2"><Download className="w-4 h-4" /> Download My Data</span>
-                <span className="text-xs text-muted-foreground">Coming soon</span>
-              </Button>
+              <Link to="/privacy" className="w-full">
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2"><Shield className="w-4 h-4" /> Privacy Policy</span>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </Link>
+
+              <Link to="/terms" className="w-full">
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> Terms of Service</span>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </Link>
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -319,12 +323,12 @@ const Profile = () => {
           </Card>
         </motion.div>
 
-        {/* Section 6: Support & Feedback */}
+        {/* Section 5: Support & Feedback */}
         <motion.div variants={fadeUp}>
           <Card className="card-elevated">
             <CardHeader className="flex flex-row items-center gap-3 pb-4">
               <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                <HelpCircle className="w-5 h-5 text-accent-foreground" />
+                <MessageSquare className="w-5 h-5 text-accent-foreground" />
               </div>
               <CardTitle className="text-lg">Support & Feedback</CardTitle>
             </CardHeader>
@@ -338,11 +342,7 @@ const Profile = () => {
                   className="resize-none h-24"
                 />
               </div>
-              <Button
-                size="sm"
-                onClick={handleSendFeedback}
-                disabled={sendingFeedback || !feedbackText.trim()}
-              >
+              <Button size="sm" onClick={handleSendFeedback} disabled={sendingFeedback || !feedbackText.trim()}>
                 <MessageSquare className="w-4 h-4 mr-1" />
                 {sendingFeedback ? "Sending..." : "Send Feedback"}
               </Button>
@@ -350,18 +350,16 @@ const Profile = () => {
           </Card>
         </motion.div>
 
-        {/* Section 7: App Information */}
+        {/* Section 6: App Information */}
         <motion.div variants={fadeUp}>
           <Card className="card-elevated">
             <CardContent className="py-5 space-y-3">
               <InfoRow label="App Version" value="1.0.0" />
-              <InfoRow label="Privacy Policy" value="Coming soon" />
-              <InfoRow label="Terms of Service" value="Coming soon" />
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Section 8: Logout */}
+        {/* Section 7: Logout */}
         <motion.div variants={fadeUp}>
           <Button
             variant="outline"
@@ -382,18 +380,6 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
   <div className="flex items-center justify-between py-1.5">
     <span className="text-sm text-muted-foreground">{label}</span>
     <span className="text-sm font-medium text-foreground">{value}</span>
-  </div>
-);
-
-const ToggleRow = ({
-  label, description, checked, onCheckedChange
-}: { label: string; description: string; checked: boolean; onCheckedChange: (v: boolean) => void }) => (
-  <div className="flex items-center justify-between">
-    <div>
-      <p className="text-sm font-medium text-foreground">{label}</p>
-      <p className="text-xs text-muted-foreground">{description}</p>
-    </div>
-    <Switch checked={checked} onCheckedChange={onCheckedChange} />
   </div>
 );
 
