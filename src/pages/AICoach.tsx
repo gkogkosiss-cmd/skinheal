@@ -120,16 +120,6 @@ If the user previously asked about something in this conversation, reference it 
   const send = async (text: string) => {
     if (!text.trim() || isTyping) return;
 
-    if (!analysis) {
-      const noAnalysisMsg: Message = {
-        role: "assistant",
-        content: "Run your first skin analysis first — then I can give you personalized guidance based on your results.",
-      };
-      setMessages((prev) => [...prev, noAnalysisMsg]);
-      await saveMessage("assistant", noAnalysisMsg.content);
-      return;
-    }
-
     const userMsg: Message = { role: "user", content: text.trim() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
@@ -139,23 +129,44 @@ If the user previously asked about something in this conversation, reference it 
 
     try {
       const systemContext = buildSystemContext();
-      // Send last 20 messages for context window
       const recentMessages = [...messages.slice(-19), userMsg].map((m) => ({
         role: m.role,
         content: m.content,
       }));
 
-      const { data, error } = await supabase.functions.invoke("ai-coach", {
-        body: { messages: recentMessages, systemContext },
+      // Use fetch directly to avoid supabase client invoke parsing issues
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/ai-coach`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`,
+          "apikey": supabaseKey,
+        },
+        body: JSON.stringify({ messages: recentMessages, systemContext }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error("AI Coach error:", response.status, errorBody);
+        if (response.status === 429) {
+          throw new Error("Rate limit reached. Please wait a moment and try again.");
+        }
+        if (response.status === 402) {
+          throw new Error("AI usage limit reached. Please try again later.");
+        }
+        throw new Error("Could not generate a reply. Please try again.");
+      }
+
+      const data = await response.json();
       const reply = data?.reply || "I'm sorry, I couldn't process your question. Please try again.";
 
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
       await saveMessage("assistant", reply);
-    } catch {
-      const errMsg = "Something went wrong. Please try again.";
+    } catch (err: any) {
+      const errMsg = err?.message || "I couldn't generate a reply this time. Please try again in a moment.";
       setMessages((prev) => [...prev, { role: "assistant", content: errMsg }]);
     } finally {
       setIsTyping(false);
