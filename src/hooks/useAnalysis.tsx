@@ -318,6 +318,10 @@ const mapRecordToAnalysis = (record: any): Analysis => {
       red_flags: safeStringArray(safetyRaw.red_flags),
       if_this_gets_worse: safetyRaw.if_this_gets_worse || "",
     },
+    skin_score: {
+      overall: (record.skin_score as any)?.overall || 0,
+      factors: (record.skin_score as any)?.factors || {},
+    },
   };
 };
 
