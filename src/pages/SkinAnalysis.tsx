@@ -282,6 +282,11 @@ const SkinAnalysis = () => {
 
   const handleDynamicAnswer = (answer: string) => {
     const q = dynamicQuestions[currentQ];
+    if (!q) {
+      setStep("health-questions");
+      return;
+    }
+
     setAnswers((prev) => ({ ...prev, [q.id]: answer }));
     if (currentQ < dynamicQuestions.length - 1) {
       setCurrentQ(currentQ + 1);
@@ -293,6 +298,11 @@ const SkinAnalysis = () => {
 
   const handleHealthAnswer = (answer: string) => {
     const q = healthQuestions[healthQ];
+    if (!q) {
+      runFullAnalysis();
+      return;
+    }
+
     setAnswers((prev) => ({ ...prev, [q.id]: answer }));
     if (healthQ < healthQuestions.length - 1) {
       setHealthQ(healthQ + 1);
