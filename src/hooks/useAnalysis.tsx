@@ -274,6 +274,8 @@ const mapRecordToAnalysis = (record: any): Analysis => {
         dinner: nutritionRaw?.one_day_template?.dinner || "",
         snack: nutritionRaw?.one_day_template?.snack || "",
       },
+      sevenDayMealPlan: Array.isArray(nutritionRaw.seven_day_meal_plan) ? nutritionRaw.seven_day_meal_plan : [],
+      mealPlanPrinciples: safeStringArray(nutritionRaw.meal_plan_principles),
       commonTriggerFoods: Array.isArray(nutritionRaw.optional_triggers_to_test)
         ? nutritionRaw.optional_triggers_to_test.map((item: any) => ({
             food: item?.trigger || "",

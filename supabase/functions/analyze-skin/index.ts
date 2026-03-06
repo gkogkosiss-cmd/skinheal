@@ -61,6 +61,16 @@ When given skin photo(s) and questionnaire answers, respond with a JSON object u
       "dinner": "Baked sweet potato with steamed vegetables and lean protein",
       "snack": "Handful of walnuts with an apple"
     },
+    "sevenDayMealPlan": [
+      {"day": "Day 1", "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..."},
+      {"day": "Day 2", "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..."},
+      {"day": "Day 3", "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..."},
+      {"day": "Day 4", "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..."},
+      {"day": "Day 5", "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..."},
+      {"day": "Day 6", "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..."},
+      {"day": "Day 7", "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..."}
+    ],
+    "mealPlanPrinciples": ["Focus on whole foods", "Reduce refined sugar", "Prioritize omega-3 fats", "Increase fiber diversity", "Support gut microbiome"],
     "commonTriggerFoods": [{"food": "Dairy", "approach": "Try reducing for 2-3 weeks and observe."}],
     "hydrationGuidance": "Aim for 2-3 liters of water daily.",
     "gutExplanation": "A simple 2-3 sentence explanation of how gut health may be connected to what is showing on the skin.",
