@@ -79,8 +79,8 @@ const Index = () => {
       </nav>
 
       {/* HERO */}
-      <section className="relative pt-32 pb-16 md:pt-44 md:pb-28 overflow-hidden">
-        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
+      <section className="relative pt-28 pb-12 sm:pt-32 sm:pb-16 md:pt-44 md:pb-28 overflow-hidden">
+        <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
