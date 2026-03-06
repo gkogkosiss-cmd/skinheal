@@ -41,13 +41,6 @@ const HealingProtocol = () => {
     ? protocol.triggersToAvoid
     : ["Harsh scrubs or exfoliants", "Fragranced products near affected areas", "Touching or picking at the skin", "Very hot water on the face"];
 
-  const dailyChecklist = protocol?.dailyChecklist?.length
-    ? protocol.dailyChecklist
-    : [
-        ...morningSteps.map((s: any) => s.action),
-        ...eveningSteps.map((s: any) => s.action),
-        ...(weeklyTreatments.length > 0 ? [weeklyTreatments[0]] : []),
-      ];
 
   return (
     <Layout>
