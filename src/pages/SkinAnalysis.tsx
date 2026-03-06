@@ -384,27 +384,38 @@ const SkinAnalysis = () => {
   };
 
   const runFullAnalysis = async () => {
+    if (images.length === 0 || isSelecting) {
+      toast({ title: "Add photos first", description: "Please add at least one clear photo before analysis." });
+      setStep("upload");
+      return;
+    }
+
     setStep("loading");
 
     try {
-      const imagesBase64 = images.map((img) => img.base64);
+      const imagesBase64 = images.map((img) => ({ base64: img.base64, mimeType: img.mimeType }));
+      console.info("[SkinAnalysis] full analysis started", { imageCount: imagesBase64.length, answerCount: Object.keys(answers).length });
+
       const { data, error } = await supabase.functions.invoke("analyze-skin", {
         body: { imagesBase64, answers },
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
 
       const generated = data as AnalysisResult;
-      if (data.bodyArea) setBodyArea(data.bodyArea);
+      if (data?.bodyArea) setBodyArea(data.bodyArea);
+
       await saveAnalysis(generated);
 
       setResults(generated);
       setStep("results");
       toast({ title: "Saved", description: "Analysis saved and synced across all sections." });
+      console.info("[SkinAnalysis] full analysis completed");
       navigate("/dashboard");
     } catch (err: any) {
-      toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
+      console.error("[SkinAnalysis] full analysis failed", err);
+      toast({ title: "Analysis failed", description: err?.message || "Your images were selected, but the analysis could not start. Please retry.", variant: "destructive" });
       setStep("upload");
     }
   };
