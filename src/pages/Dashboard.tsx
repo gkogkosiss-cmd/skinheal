@@ -151,9 +151,9 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Daily Healing Plan */}
+        {/* Daily Healing Checklist */}
         <div className="mb-6">
-          <DailyHealingPlan plan={analysis?.daily_plan} />
+          <DailyHealingChecklist />
         </div>
 
         {/* Progress Snapshot */}
