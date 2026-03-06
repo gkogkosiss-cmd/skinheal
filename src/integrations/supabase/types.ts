@@ -91,6 +91,7 @@ export type Database = {
       analysis_records: {
         Row: {
           answers: Json
+          body_area: string | null
           created_at: string
           daily_plan: Json
           gut_health_plan: Json
@@ -109,6 +110,7 @@ export type Database = {
         }
         Insert: {
           answers?: Json
+          body_area?: string | null
           created_at?: string
           daily_plan?: Json
           gut_health_plan?: Json
@@ -127,6 +129,7 @@ export type Database = {
         }
         Update: {
           answers?: Json
+          body_area?: string | null
           created_at?: string
           daily_plan?: Json
           gut_health_plan?: Json
@@ -219,6 +222,7 @@ export type Database = {
       progress_photos: {
         Row: {
           analysis_id: string | null
+          body_area: string | null
           created_at: string
           date_uploaded: string
           id: string
@@ -229,6 +233,7 @@ export type Database = {
         }
         Insert: {
           analysis_id?: string | null
+          body_area?: string | null
           created_at?: string
           date_uploaded?: string
           id?: string
@@ -239,6 +244,7 @@ export type Database = {
         }
         Update: {
           analysis_id?: string | null
+          body_area?: string | null
           created_at?: string
           date_uploaded?: string
           id?: string
