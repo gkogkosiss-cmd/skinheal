@@ -5,6 +5,7 @@ import { Sun, Moon, Calendar, AlertTriangle, Clock, Shield, Sparkles, ArrowRight
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { DailyHealingChecklist } from "@/components/dashboard/DailyHealingChecklist";
 import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
+import { PremiumGate } from "@/components/premium/PremiumGate";
 
 const defaultMorning = [
   { step: 1, action: "Rinse face with lukewarm water", note: "Preserve natural oils — skip cleanser in the morning" },
