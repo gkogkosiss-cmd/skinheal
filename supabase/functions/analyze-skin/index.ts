@@ -168,6 +168,8 @@ IMPORTANT GUIDELINES FOR YOUR RESPONSE:
 - If multiple photos are provided, note consistency or differences across views.
 - Make the healing protocol highly detailed and practical.
 - The meal template should be realistic and easy to follow.
+- IMPORTANT: Generate a complete sevenDayMealPlan array with 7 objects, each with day, breakfast, lunch, dinner, snack. Make meals anti-inflammatory, gut-supportive, and practical for everyday life. Each day should be different and varied.
+- Also generate mealPlanPrinciples: 5 key nutrition principles specific to the user's skin condition.
 - The 7-day gut plan should be progressive and gentle.
 - Daily checklist should be 5-8 items max.
 - Keep routines minimal - focus on behavior and consistency over products.
