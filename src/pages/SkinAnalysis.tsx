@@ -120,6 +120,7 @@ const SkinAnalysis = () => {
       if (data.error) throw new Error(data.error);
       setDynamicQuestions(data.dynamicQuestions || []);
       setVisualFeatures(data.visualFeatures || []);
+      if (data.bodyArea) setBodyArea(data.bodyArea);
       setStep("questions");
     } catch (err: any) {
       toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
