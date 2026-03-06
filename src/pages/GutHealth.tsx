@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Heart, Microscope, ShieldCheck, Pill, Utensils, ArrowRight, AlertCircle, AlertTriangle, Calendar } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { PremiumGate } from "@/components/premium/PremiumGate";
 
 const gutSkinConnections = [
   { title: "Microbiome Balance", desc: "Your gut hosts trillions of bacteria. When the balance shifts, inflammation often increases throughout the body — including the skin." },
