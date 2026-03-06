@@ -202,6 +202,13 @@ const HealingProtocol = () => {
             </p>
           </div>
 
+          {/* Feedback */}
+          {hasAnalysis && (
+            <div className="card-elevated">
+              <FeedbackWidget context="healing-protocol" />
+            </div>
+          )}
+
           {/* Disclaimer */}
           <div className="flex items-start gap-2 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
