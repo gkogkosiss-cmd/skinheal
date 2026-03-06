@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Heart, Microscope, ShieldCheck, Pill, Utensils, ArrowRight, AlertCircle, AlertTriangle, Calendar } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { PremiumGate } from "@/components/premium/PremiumGate";
 
 const gutSkinConnections = [
   { title: "Microbiome Balance", desc: "Your gut hosts trillions of bacteria. When the balance shifts, inflammation often increases throughout the body — including the skin." },
@@ -38,6 +39,7 @@ const GutHealth = () => {
 
   return (
     <Layout>
+      <PremiumGate featureName="Gut Health">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <p className="text-sm text-primary font-medium mb-1">Gut Health</p>
         <h1 className="font-serif text-3xl md:text-4xl mb-2">The Gut-Skin Connection</h1>
@@ -211,6 +213,7 @@ const GutHealth = () => {
           </div>
         </div>
       </motion.div>
+      </PremiumGate>
     </Layout>
   );
 };

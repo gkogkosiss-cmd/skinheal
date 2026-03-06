@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Moon, Sun, Droplets, Dumbbell, Brain, Heart, ArrowRight, AlertCircle, Circle, CheckSquare } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { PremiumGate } from "@/components/premium/PremiumGate";
 
 const Lifestyle = () => {
   const { currentAnalysis: analysis } = useCurrentAnalysis();
@@ -61,6 +62,7 @@ const Lifestyle = () => {
 
   return (
     <Layout>
+      <PremiumGate featureName="Lifestyle Guidance">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <p className="text-sm text-primary font-medium mb-1">Lifestyle</p>
         <h1 className="font-serif text-3xl md:text-4xl mb-2">Lifestyle Factors</h1>
@@ -147,6 +149,7 @@ const Lifestyle = () => {
           <p>This is educational information, not medical advice. If symptoms are severe, spreading, painful, infected, or persistent, consult a dermatologist.</p>
         </div>
       </motion.div>
+      </PremiumGate>
     </Layout>
   );
 };

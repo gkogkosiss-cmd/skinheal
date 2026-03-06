@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { PremiumGate } from "@/components/premium/PremiumGate";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -193,6 +194,7 @@ If the user previously asked about something in this conversation, reference it 
 
   return (
     <Layout>
+      <PremiumGate featureName="AI Skin Coach">
       <div className="flex flex-col h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)]">
         {/* Header */}
         <div className="mb-4 flex items-start justify-between">
@@ -317,6 +319,7 @@ If the user previously asked about something in this conversation, reference it 
           <p>Educational guidance only — not medical advice. If symptoms worsen, consult a dermatologist.</p>
         </div>
       </div>
+      </PremiumGate>
     </Layout>
   );
 };

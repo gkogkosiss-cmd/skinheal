@@ -179,6 +179,10 @@ const Auth = () => {
         <p className="text-xs text-muted-foreground text-center mt-6 leading-relaxed">
           This platform provides educational skin wellness guidance and is not medical advice.
         </p>
+        <div className="flex justify-center gap-4 mt-3">
+          <a href="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a>
+          <a href="/terms" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a>
+        </div>
       </motion.div>
     </div>
   );
