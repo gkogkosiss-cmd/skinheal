@@ -237,6 +237,7 @@ const mapRecordToAnalysis = (record: any): Analysis => {
     created_at: record.created_at,
     image_url: record.photo_url ?? null,
     photo_url: record.photo_url ?? null,
+    photo_urls: Array.isArray(record.photo_urls) ? record.photo_urls : (record.photo_url ? [record.photo_url] : []),
     visual_features: safeStringArray(record.image_observations),
     image_observations: safeStringArray(record.image_observations),
     diagnostic_answers: (record.answers ?? {}) as Record<string, string>,
