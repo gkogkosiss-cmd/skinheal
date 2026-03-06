@@ -8,6 +8,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import SkinScoreDemo from "@/components/landing/SkinScoreDemo";
+import skinhealLogo from "@/assets/skinheal_logo.png";
 
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
