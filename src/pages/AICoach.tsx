@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { PremiumGate } from "@/components/premium/PremiumGate";
 import {
   AlertDialog,
   AlertDialogAction,
