@@ -30,14 +30,14 @@ const TermsOfService = () => {
           <section>
             <h2 className="font-serif text-xl mb-3">1. Service Description</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              The Skin Guy AI provides educational skin wellness insights using artificial intelligence. Our service analyzes skin photos and generates personalized guidance including healing protocols, nutrition recommendations, gut health suggestions, and lifestyle adjustments. All content is designed to educate and inform — it is not intended to diagnose, treat, cure, or prevent any disease.
+              SkinHeal provides educational skin wellness insights using artificial intelligence. Our service analyzes skin photos and generates personalized guidance including healing protocols, nutrition recommendations, gut health suggestions, and lifestyle adjustments. All content is designed to educate and inform — it is not intended to diagnose, treat, cure, or prevent any disease.
             </p>
           </section>
 
           <section>
             <h2 className="font-serif text-xl mb-3">2. Not Medical Advice</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              The Skin Guy AI does not provide medical advice, medical diagnosis, or treatment recommendations. The guidance provided is educational and informational in nature. You should always consult with a qualified dermatologist or healthcare provider for serious skin conditions, symptoms that are severe, spreading, painful, infected, or persistent, or any condition that concerns you.
+              SkinHeal does not provide medical advice, medical diagnosis, or treatment recommendations. The guidance provided is educational and informational in nature. You should always consult with a qualified dermatologist or healthcare provider for serious skin conditions, symptoms that are severe, spreading, painful, infected, or persistent, or any condition that concerns you.
             </p>
           </section>
 

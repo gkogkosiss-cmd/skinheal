@@ -116,7 +116,7 @@ serve(async (req) => {
       ? `\n\nUser's self-reported progress answers:\n${Object.entries(progressAnswers).map(([q, a]) => `- ${q}: ${a}`).join("\n")}`
       : "";
 
-    const systemPrompt = `You are a conservative skin progress evaluator for "The Skin Guy AI". You compare new progress photos against a previous reference photo and baseline context to assess CHANGES ONLY.
+    const systemPrompt = `You are a conservative skin progress evaluator for "SkinHeal AI". You compare new progress photos against a previous reference photo and baseline context to assess CHANGES ONLY.
 
 BODY AREA CONTEXT:
 - The photos are of the user's ${detectedArea} area. If you can detect the body area from the images, confirm or correct it in the "bodyArea" field.

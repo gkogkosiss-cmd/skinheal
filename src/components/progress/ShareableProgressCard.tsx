@@ -58,14 +58,14 @@ export const ShareableProgressCard = ({
       link.click();
     } catch {
       // Fallback: copy text
-      const text = `My Skin Progress\nWeek ${weekStart} → Week ${weekEnd}\nScore: ${oldScore.overall} → ${newScore.overall}\nAnalyzed with The Skin Guy AI`;
+      const text = `My Skin Progress\nWeek ${weekStart} → Week ${weekEnd}\nScore: ${oldScore.overall} → ${newScore.overall}\nAnalyzed with SkinHeal AI`;
       await navigator.clipboard?.writeText(text);
     }
     setDownloading(false);
   };
 
   const handleShare = async () => {
-    const text = `My Skin Progress 🌿\n\nWeek ${weekStart} → Week ${weekEnd}\nSkin Health Score: ${oldScore.overall} → ${newScore.overall}\n\n${factorDiffs.map(f => `${f.label} ${f.change > 0 ? "↑" : "↓"} ${Math.abs(f.change)}%`).join("\n")}\n\nAnalyzed with The Skin Guy AI`;
+    const text = `My Skin Progress 🌿\n\nWeek ${weekStart} → Week ${weekEnd}\nSkin Health Score: ${oldScore.overall} → ${newScore.overall}\n\n${factorDiffs.map(f => `${f.label} ${f.change > 0 ? "↑" : "↓"} ${Math.abs(f.change)}%`).join("\n")}\n\nAnalyzed with SkinHeal AI`;
     
     if (navigator.share) {
       try {
@@ -119,7 +119,7 @@ export const ShareableProgressCard = ({
           </div>
 
           <p style={{ fontSize: "11px", opacity: 0.5, marginTop: "20px", textAlign: "center" }}>
-            Analyzed with The Skin Guy AI
+            Analyzed with SkinHeal AI
           </p>
         </div>
 

@@ -41,7 +41,7 @@ const trustPoints = [
 ];
 
 const faqs = [
-  { q: "Is this a medical diagnosis?", a: "No. The Skin Guy AI provides educational skin wellness insights, not medical diagnoses. Always consult a dermatologist for medical concerns." },
+  { q: "Is this a medical diagnosis?", a: "No. SkinHeal provides educational skin wellness insights, not medical diagnoses. Always consult a dermatologist for medical concerns." },
   { q: "Is my photo secure?", a: "Yes. Your photos are encrypted, analyzed privately, and never shared. We take your privacy seriously." },
   { q: "How accurate is the analysis?", a: "Our AI identifies common skin conditions with probability scores. It's designed to be helpful and transparent, not to replace professional advice." },
   { q: "What body areas can I analyze?", a: "You can upload photos of your face, back, chest, arms, legs, scalp, hands, and more. The AI adapts its analysis to each body area." },
@@ -69,7 +69,7 @@ const Index = () => {
           <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
             <Leaf className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="font-serif text-xl text-foreground">The Skin Guy AI</span>
+          <span className="font-serif text-xl text-foreground">SkinHeal</span>
         </div>
         <button
           onClick={handleAnalyze}
@@ -361,13 +361,13 @@ const Index = () => {
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
               <Leaf className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-serif text-foreground">The Skin Guy AI</span>
+            <span className="font-serif text-foreground">SkinHeal</span>
           </div>
           <div className="flex items-center gap-6 text-xs text-muted-foreground">
             <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
           </div>
-          <p className="text-xs text-muted-foreground">© 2026 The Skin Guy AI</p>
+          <p className="text-xs text-muted-foreground">© 2026 SkinHeal</p>
         </div>
       </footer>
     </div>

@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are an evidence-based skin wellness educator for "The Skin Guy AI". You analyze skin photos and user responses to provide educational wellness insights.
+const SYSTEM_PROMPT = `You are an evidence-based skin wellness educator for "SkinHeal AI". You analyze skin photos and user responses to provide educational wellness insights.
 
 CRITICAL RULES:
 - NEVER diagnose. Use "possible", "likely", "may suggest", "consistent with" — never "you have" or "this is definitely".
