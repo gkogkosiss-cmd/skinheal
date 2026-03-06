@@ -1,14 +1,15 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Upload, Camera, ChevronRight, AlertCircle, Sparkles, Loader2, ArrowLeft, Sun, Moon, Calendar, Utensils, Ban, Heart, Activity, X, ImagePlus } from "lucide-react";
+import { Upload, Camera, ChevronRight, AlertCircle, Sparkles, Loader2, X, ImagePlus, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { allAnalysesQueryKey, latestAnalysisQueryKey, setLatestAnalysisId } from "@/hooks/useAnalysis";
 import { normalizeAnalysisRecordPayload } from "@/lib/analysisRecord";
+import { MAX_IMAGE_COUNT, prepareImageForAnalysis, validateImageFile, getFileFingerprint } from "@/lib/imageUpload";
 
 type Step = "upload" | "analyzing-photo" | "questions" | "health-questions" | "loading" | "results";
 
