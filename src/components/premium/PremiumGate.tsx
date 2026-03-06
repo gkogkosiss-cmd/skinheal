@@ -10,8 +10,11 @@ interface PremiumGateProps {
 export const PremiumGate = ({ children, featureName }: PremiumGateProps) => {
   const { isPremium, isLoading, startCheckout, isCheckingOut } = useSubscription();
 
+  // Developer mode bypass — unlocks all premium sections in dev environment
+  const isDevMode = import.meta.env.DEV;
+
   if (isLoading) return <>{children}</>;
-  if (isPremium) return <>{children}</>;
+  if (isPremium || isDevMode) return <>{children}</>;
 
   return (
     <div className="relative">
