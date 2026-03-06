@@ -75,7 +75,24 @@ const Dashboard = () => {
         {/* Skin Score + Weekly Check (side by side on desktop) */}
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           {hasAnalysis && skinScore && skinScore.overall > 0 ? (
-            <SkinScoreCard score={skinScore} />
+            <div>
+              <SkinScoreCard score={skinScore} />
+              {scoreDelta !== null && (
+                <div className="mt-3 p-3 rounded-xl bg-muted/50 flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">Previous: {previousScore}/100</span>
+                  <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-xs font-medium">Current: {currentScore}/100</span>
+                  <span className={`text-xs font-semibold ml-auto ${scoreDelta > 0 ? "text-primary" : scoreDelta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                    {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
+                  </span>
+                </div>
+              )}
+              {scoreDelta !== null && (
+                <p className="text-xs text-muted-foreground mt-2 px-1">
+                  {scoreDelta > 0 ? "Your skin appears to be improving based on your latest analysis." : scoreDelta < 0 ? "Your skin may need more attention based on recent changes." : "Little visible change since your last analysis."}
+                </p>
+              )}
+            </div>
           ) : (
             <div className="card-elevated flex flex-col items-center justify-center py-10 text-center">
               <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mb-4">
