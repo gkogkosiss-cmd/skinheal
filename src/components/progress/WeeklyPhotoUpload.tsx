@@ -188,7 +188,7 @@ export const WeeklyPhotoUpload = () => {
 
               <button
                 onClick={proceedToQuestions}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
               >
                 Continue
                 <ChevronRight className="w-4 h-4" />

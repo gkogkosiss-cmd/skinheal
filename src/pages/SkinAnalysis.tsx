@@ -328,10 +328,10 @@ const SkinAnalysis = () => {
 
                 {/* Action buttons when images selected */}
                 {images.length > 0 && (
-                  <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={startAnalysis}
-                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
                     >
                       <Sparkles className="w-4 h-4" />
                       Analyze {images.length} Photo{images.length > 1 ? "s" : ""}
@@ -340,16 +340,16 @@ const SkinAnalysis = () => {
                       <button
                         onClick={() => cameraInputRef.current?.click()}
                         disabled={images.length >= MAX_IMAGES}
-                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-40"
+                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
                       >
-                        <Camera className="w-4 h-4" />
+                        <Camera className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={images.length >= MAX_IMAGES}
-                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-40"
+                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
                       >
-                        <ImagePlus className="w-4 h-4" />
+                        <ImagePlus className="w-5 h-5" />
                       </button>
                     </div>
                   </div>

@@ -89,7 +89,7 @@
   }
 
   .card-elevated {
-    @apply rounded-2xl border border-border bg-card p-6;
+    @apply rounded-2xl border border-border bg-card p-4 sm:p-6;
     box-shadow: var(--shadow-card);
   }
 
@@ -102,8 +102,16 @@
     transform: translateY(-2px);
   }
 
+  /* Improve tap targets on mobile */
+  @media (pointer: coarse) {
+    .card-elevated-hover:active {
+      box-shadow: var(--shadow-elevated);
+      transform: translateY(-1px);
+    }
+  }
+
   .section-padding {
-    @apply px-6 py-12 md:px-8 md:py-16 lg:px-12 lg:py-20;
+    @apply px-4 py-10 md:px-8 md:py-16 lg:px-12 lg:py-20;
   }
 
   .gradient-sage {

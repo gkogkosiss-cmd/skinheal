@@ -252,9 +252,9 @@ If the user previously asked about something in this conversation, reference it 
                   ? `I have your skin analysis on file. Ask me anything about your ${(analysis.conditions as any[])?.[0]?.condition || "condition"}, diet, or healing journey.`
                   : "Ask me about skin conditions, nutrition, gut health, or your healing journey."}
               </p>
-              <div className="flex flex-wrap justify-center gap-2 max-w-lg">
+              <div className="flex flex-wrap justify-center gap-2 max-w-lg px-2">
                 {suggestedQuestions.map((q) => (
-                  <button key={q} onClick={() => send(q)} className="px-4 py-2 rounded-full bg-card border border-border text-xs font-medium hover:bg-accent transition-colors">
+                  <button key={q} onClick={() => send(q)} className="px-3 sm:px-4 py-2.5 rounded-full bg-card border border-border text-xs font-medium active:bg-accent transition-colors">
                     {q}
                   </button>
                 ))}
