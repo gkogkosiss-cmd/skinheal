@@ -1,14 +1,21 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
-const TermsOfService = () => (
+const TermsOfService = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const backTo = user ? "/profile" : "/";
+  const backLabel = user ? "Back to Profile" : "Back to Home";
+
+  return (
   <div className="min-h-screen bg-background">
     <div className="max-w-3xl mx-auto px-5 py-12">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <Link to="/profile" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8">
-          <ArrowLeft className="w-4 h-4" /> Back to Profile
-        </Link>
+        <button onClick={() => navigate(backTo)} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8">
+          <ArrowLeft className="w-4 h-4" /> {backLabel}
+        </button>
 
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
@@ -86,6 +93,7 @@ const TermsOfService = () => (
       </motion.div>
     </div>
   </div>
-);
+  );
+};
 
 export default TermsOfService;

@@ -3,10 +3,11 @@ import { motion } from "framer-motion";
 import {
   ScanFace, HeartPulse, Apple, MessageCircle, ArrowRight, Leaf, Shield,
   Upload, Sparkles, ClipboardCheck, TrendingUp, Lock, Brain, Eye,
-  ChevronRight, CheckCircle2, BarChart3
+  ChevronRight, CheckCircle2
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import SkinScoreDemo from "@/components/landing/SkinScoreDemo";
 
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -266,7 +267,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* PROGRESS TRACKING */}
+      {/* PROGRESS TRACKING — Interactive Demo */}
       <section className="section-padding bg-card/50">
         <div className="max-w-4xl mx-auto">
           <h2 className="font-serif text-3xl md:text-4xl text-center mb-3">Track Your Progress</h2>
@@ -278,35 +279,8 @@ const Index = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="card-elevated max-w-lg mx-auto"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <BarChart3 className="w-6 h-6 text-primary" />
-              <h3 className="font-serif text-xl">Skin Health Score</h3>
-            </div>
-            {/* Mini chart visualization */}
-            <div className="flex items-end gap-2 h-32 mb-4">
-              {[42, 45, 48, 52, 55, 60, 63, 67, 70, 73, 76, 78].map((score, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-t-md bg-primary/20 relative overflow-hidden"
-                    style={{ height: `${score}%` }}
-                  >
-                    <div
-                      className="absolute bottom-0 left-0 right-0 bg-primary rounded-t-md"
-                      style={{ height: `${Math.min(100, score + 10)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Week 1</span>
-              <span>Week 12</span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-4 text-center">
-              Example: Consistent care leading to gradual, measurable improvement.
-            </p>
+            <SkinScoreDemo />
           </motion.div>
         </div>
       </section>
