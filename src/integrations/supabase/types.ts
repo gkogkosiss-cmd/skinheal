@@ -88,6 +88,41 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_images: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          id: string
+          image_type: string
+          image_url: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          id?: string
+          image_type?: string
+          image_url: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          id?: string
+          image_type?: string
+          image_url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_images_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analysis_records: {
         Row: {
           answers: Json
@@ -262,6 +297,92 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      skin_health_scores: {
+        Row: {
+          analysis_id: string | null
+          barrier_score: number | null
+          breakout_score: number | null
+          created_at: string
+          id: string
+          inflammation_score: number | null
+          overall_score: number
+          recorded_at: string
+          redness_score: number | null
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          barrier_score?: number | null
+          breakout_score?: number | null
+          created_at?: string
+          id?: string
+          inflammation_score?: number | null
+          overall_score: number
+          recorded_at?: string
+          redness_score?: number | null
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          barrier_score?: number | null
+          breakout_score?: number | null
+          created_at?: string
+          id?: string
+          inflammation_score?: number | null
+          overall_score?: number
+          recorded_at?: string
+          redness_score?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skin_health_scores_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_feedback: {
         Row: {
