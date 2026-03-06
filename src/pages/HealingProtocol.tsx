@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Sun, Moon, Calendar, AlertTriangle, Clock, Shield, Sparkles, ArrowRight, Circle, AlertCircle, Ban } from "lucide-react";
+import { Sun, Moon, Calendar, AlertTriangle, Clock, Shield, Sparkles, ArrowRight, AlertCircle, Ban } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { DailyHealingChecklist } from "@/components/dashboard/DailyHealingChecklist";
+import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 
 const defaultMorning = [
   { step: 1, action: "Rinse face with lukewarm water", note: "Preserve natural oils — skip cleanser in the morning" },
