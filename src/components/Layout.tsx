@@ -15,6 +15,7 @@ const navItems = [
   { path: "/lifestyle", label: "Lifestyle", icon: Activity },
   { path: "/progress", label: "Progress", icon: TrendingUp },
   { path: "/coach", label: "AI Coach", icon: MessageCircle },
+  { path: "/profile", label: "Profile", icon: UserCircle },
 ];
 
 const Layout = ({ children }: { children: React.ReactNode }) => {

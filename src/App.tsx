@@ -39,6 +39,7 @@ const App = () => (
               <Route path="/lifestyle" element={<Lifestyle />} />
               <Route path="/progress" element={<Progress />} />
               <Route path="/coach" element={<AICoach />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </CurrentAnalysisProvider>
