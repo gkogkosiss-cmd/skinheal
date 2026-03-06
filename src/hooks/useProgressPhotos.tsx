@@ -51,29 +51,69 @@ export const useProgressPhotos = () => {
     enabled: !!user,
   });
 
-  const uploadProgressPhoto = useCallback(async (file: File, progressAnswers?: Record<string, string>) => {
+  const deleteProgressPhoto = useCallback(async (photoId: string) => {
+    if (!user?.id) throw new Error("Must be logged in");
+
+    // Get photo path first
+    const { data: photo } = await supabase
+      .from("progress_photos" as any)
+      .select("photo_url")
+      .eq("id", photoId)
+      .eq("user_id", user.id)
+      .single();
+
+    const photoUrl = (photo as any)?.photo_url;
+
+    // Delete from storage
+    if (photoUrl) {
+      await supabase.storage.from("skin-photos").remove([photoUrl]);
+    }
+
+    // Delete record
+    const { error } = await supabase
+      .from("progress_photos" as any)
+      .delete()
+      .eq("id", photoId)
+      .eq("user_id", user.id);
+
+    if (error) throw error;
+
+    await queryClient.invalidateQueries({ queryKey: progressPhotosQueryKey(user.id) });
+  }, [user, queryClient]);
+
+  const uploadProgressPhoto = useCallback(async (files: File | File[], progressAnswers?: Record<string, string>) => {
     if (!user) throw new Error("Must be logged in");
     setUploading(true);
 
     try {
-      // Upload photo to storage
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${user.id}/progress/${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("skin-photos")
-        .upload(path, file);
-      if (uploadError) throw uploadError;
+      const fileArray = Array.isArray(files) ? files : [files];
 
-      // Convert to base64 for AI comparison
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(",")[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      // Upload all photos to storage
+      const uploadedPaths: string[] = [];
+      for (const file of fileArray) {
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${user.id}/progress/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("skin-photos")
+          .upload(path, file);
+        if (uploadError) throw uploadError;
+        uploadedPaths.push(path);
+      }
+
+      // Convert all files to base64 for AI comparison
+      const base64Images: string[] = [];
+      for (const file of fileArray) {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(",")[1]);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        base64Images.push(base64);
+      }
 
       // Get previous score — from latest progress photo or from current analysis
       const photos = query.data || [];
@@ -93,7 +133,7 @@ Skin score: ${previousScore}/100
 Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root_causes.map((r: any) => r.title).join(", ") : "None"}`;
       }
 
-      // Call comparison edge function with previous score + answers
+      // Call comparison edge function — send all images
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -105,7 +145,7 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
           apikey: supabaseKey,
         },
         body: JSON.stringify({
-          newImageBase64: base64,
+          newImageBase64: base64Images.length === 1 ? base64Images[0] : base64Images,
           baselineContext,
           previousScore,
           progressAnswers: progressAnswers || {},
@@ -113,8 +153,8 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
       });
 
       let progressSummary: any = {
-        changes: [] as ProgressChange[],
-        summary: "Progress photo saved.",
+        changes: [],
+        summary: "Progress photo saved. Your skin appears similar to your previous check.",
         scoreAdjustment: 0,
         encouragement: "Keep going with your healing plan!",
         confidence: "medium",
@@ -137,13 +177,15 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
       adj = Math.max(-6, Math.min(6, adj));
       const scoreEstimate = Math.max(0, Math.min(100, previousScore + adj));
 
-      // Save to DB
+      // Save to DB (use first photo path as main, store all paths in summary)
+      progressSummary.photoUrls = uploadedPaths;
+
       const { error: insertError } = await supabase
         .from("progress_photos" as any)
         .insert({
           user_id: user.id,
           analysis_id: currentAnalysis?.id || null,
-          photo_url: path,
+          photo_url: uploadedPaths[0],
           progress_summary: progressSummary,
           score_estimate: scoreEstimate,
         } as any);
@@ -163,6 +205,7 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
     isLoading: query.isLoading,
     uploading,
     uploadProgressPhoto,
+    deleteProgressPhoto,
     refetch: query.refetch,
   };
 };
