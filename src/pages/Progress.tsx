@@ -11,6 +11,8 @@ import { allAnalysesQueryKey, latestAnalysisQueryKey } from "@/hooks/useAnalysis
 import { useToast } from "@/hooks/use-toast";
 import { SkinScoreCard } from "@/components/dashboard/SkinScoreCard";
 import { ShareableProgressCard } from "@/components/progress/ShareableProgressCard";
+import { ScoreHistoryChart } from "@/components/progress/ScoreHistoryChart";
+import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 import {
   AlertDialog,
   AlertDialogAction,
