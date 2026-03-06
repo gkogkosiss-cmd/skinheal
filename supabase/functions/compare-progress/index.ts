@@ -10,21 +10,38 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { newImageBase64, baselineContext } = await req.json();
+    const { newImageBase64, baselineContext, previousScore, progressAnswers } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     if (!newImageBase64) throw new Error("New progress photo is required");
 
-    const systemPrompt = `You are a skin progress evaluator for "The Skin Guy AI". You compare a new progress photo against a baseline analysis context to assess changes.
+    const prevScore = typeof previousScore === "number" ? previousScore : 50;
 
-CRITICAL RULES:
+    const answersBlock = progressAnswers && typeof progressAnswers === "object"
+      ? `\n\nUser's self-reported progress answers:\n${Object.entries(progressAnswers).map(([q, a]) => `- ${q}: ${a}`).join("\n")}`
+      : "";
+
+    const systemPrompt = `You are a conservative skin progress evaluator for "The Skin Guy AI". You compare a new progress photo against a baseline analysis context to assess CHANGES ONLY.
+
+CRITICAL STABILITY RULES:
+- The user's PREVIOUS Skin Health Score was ${prevScore}/100. This is your anchor.
+- If the photo looks very similar to what was described in the baseline, the score MUST stay within 0-1 points of ${prevScore}.
+- Small visible improvements: adjust by +1 to +3 points maximum.
+- Moderate clear improvements: adjust by +3 to +5 points maximum.
+- Small visible worsening: adjust by -1 to -3 points maximum.
+- Moderate clear worsening: adjust by -3 to -5 points maximum.
+- NEVER adjust by more than 6 points in either direction.
+- When uncertain, default to 0 change. Stability > precision.
+- Do NOT re-diagnose. Only evaluate CHANGE from baseline.
+
+LANGUAGE RULES:
 - NEVER diagnose. Use cautious language: "appears", "seems", "may show".
 - Be encouraging but honest.
 - Never use the asterisk symbol (*).
 - Focus on visible changes only.
 
-Given a new skin photo and the baseline analysis context, evaluate changes in:
+Given a new skin photo, the baseline context, and the user's self-reported answers, evaluate CHANGES in:
 1. Redness
 2. Inflammation
 3. Breakout activity
@@ -42,12 +59,15 @@ Respond with a JSON object:
     {"area": "Skin Texture", "status": "improved" | "similar" | "worsened", "note": "Brief observation"},
     {"area": "Overall", "status": "improved" | "similar" | "worsened", "note": "Brief observation"}
   ],
-  "summary": "2-3 sentence overall progress summary using cautious language.",
-  "scoreAdjustment": number between -10 and +10 (positive = improvement, 0 = no change),
-  "encouragement": "One motivating sentence about their progress."
+  "summary": "2-3 sentence overall progress summary using cautious language. Reference that previous score was ${prevScore}.",
+  "scoreAdjustment": number between -6 and +6 (positive = improvement, 0 = no change),
+  "encouragement": "One motivating sentence about their progress.",
+  "confidence": "high" | "medium" | "low"
 }
 
-Be realistic. Small visible improvements deserve +2 to +5. Clear improvement +5 to +10. Worsening -2 to -10. No visible change = 0.`;
+If the photo is blurry, poorly lit, or hard to evaluate, set confidence to "low", scoreAdjustment to 0, and mention photo quality in the summary.
+
+REMEMBER: Most weekly checks should show scoreAdjustment of 0 to 2. Large swings are rare and should only happen with clear visual evidence AND supporting user answers.`;
 
     const messages = [
       { role: "system", content: systemPrompt },
@@ -56,10 +76,10 @@ Be realistic. Small visible improvements deserve +2 to +5. Clear improvement +5 
         content: [
           {
             type: "text",
-            text: `Compare this new progress photo against the baseline analysis context below. Evaluate visible changes.
+            text: `Compare this new progress photo against the baseline analysis context below. The user's previous score was ${prevScore}/100. Evaluate visible CHANGES only.
 
 Baseline context:
-${baselineContext || "No baseline analysis available. Evaluate the photo on its own and note general skin observations."}`,
+${baselineContext || "No baseline analysis available. Evaluate the photo on its own and note general skin observations. Keep scoreAdjustment at 0."}${answersBlock}`,
           },
           {
             type: "image_url",
@@ -90,6 +110,11 @@ ${baselineContext || "No baseline analysis available. Evaluate the photo on its 
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Usage limit reached. Please add credits." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       throw new Error("Progress comparison failed");
     }
 
@@ -105,8 +130,14 @@ ${baselineContext || "No baseline analysis available. Evaluate the photo on its 
         summary: "Unable to parse comparison results.",
         scoreAdjustment: 0,
         encouragement: "Keep following your healing plan consistently.",
+        confidence: "low",
       };
     }
+
+    // ENFORCE hard cap on score adjustment regardless of what the AI returns
+    let adj = typeof parsed.scoreAdjustment === "number" ? parsed.scoreAdjustment : 0;
+    adj = Math.max(-6, Math.min(6, adj));
+    parsed.scoreAdjustment = adj;
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -21,6 +21,8 @@ export interface ProgressPhoto {
     summary?: string;
     scoreAdjustment?: number;
     encouragement?: string;
+    confidence?: string;
+    progressAnswers?: Record<string, string>;
   };
   score_estimate: number | null;
   created_at: string;
@@ -49,7 +51,7 @@ export const useProgressPhotos = () => {
     enabled: !!user,
   });
 
-  const uploadProgressPhoto = useCallback(async (file: File) => {
+  const uploadProgressPhoto = useCallback(async (file: File, progressAnswers?: Record<string, string>) => {
     if (!user) throw new Error("Must be logged in");
     setUploading(true);
 
@@ -73,6 +75,12 @@ export const useProgressPhotos = () => {
         reader.readAsDataURL(file);
       });
 
+      // Get previous score — from latest progress photo or from current analysis
+      const photos = query.data || [];
+      const latestProgressScore = photos.length > 0 ? photos[0].score_estimate : null;
+      const baselineScore = currentAnalysis?.skin_score?.overall || 50;
+      const previousScore = latestProgressScore ?? baselineScore;
+
       // Build baseline context from current analysis
       let baselineContext = "";
       if (currentAnalysis) {
@@ -81,11 +89,11 @@ export const useProgressPhotos = () => {
         baselineContext = `
 Conditions: ${conditions.map((c: any) => `${c.condition} (${c.probability}%)`).join(", ") || "None"}
 Visual features observed: ${features.join(", ") || "None"}
-Skin score: ${currentAnalysis.skin_score?.overall || "N/A"}/100
+Skin score: ${previousScore}/100
 Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root_causes.map((r: any) => r.title).join(", ") : "None"}`;
       }
 
-      // Call comparison edge function
+      // Call comparison edge function with previous score + answers
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -96,14 +104,20 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
           Authorization: `Bearer ${supabaseKey}`,
           apikey: supabaseKey,
         },
-        body: JSON.stringify({ newImageBase64: base64, baselineContext }),
+        body: JSON.stringify({
+          newImageBase64: base64,
+          baselineContext,
+          previousScore,
+          progressAnswers: progressAnswers || {},
+        }),
       });
 
-      let progressSummary = {
+      let progressSummary: any = {
         changes: [] as ProgressChange[],
         summary: "Progress photo saved.",
         scoreAdjustment: 0,
         encouragement: "Keep going with your healing plan!",
+        confidence: "medium",
       };
 
       if (response.ok) {
@@ -113,9 +127,15 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
         }
       }
 
-      // Calculate new score estimate
-      const baseScore = currentAnalysis?.skin_score?.overall || 50;
-      const scoreEstimate = Math.max(0, Math.min(100, baseScore + (progressSummary.scoreAdjustment || 0)));
+      // Store answers in the summary for history
+      if (progressAnswers) {
+        progressSummary.progressAnswers = progressAnswers;
+      }
+
+      // Calculate new score with hard cap enforcement
+      let adj = typeof progressSummary.scoreAdjustment === "number" ? progressSummary.scoreAdjustment : 0;
+      adj = Math.max(-6, Math.min(6, adj));
+      const scoreEstimate = Math.max(0, Math.min(100, previousScore + adj));
 
       // Save to DB
       const { error: insertError } = await supabase
@@ -136,7 +156,7 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
     } finally {
       setUploading(false);
     }
-  }, [user, currentAnalysis, queryClient]);
+  }, [user, currentAnalysis, queryClient, query.data]);
 
   return {
     photos: query.data || [],

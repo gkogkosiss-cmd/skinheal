@@ -1,21 +1,42 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import type { Analysis } from "@/hooks/useAnalysis";
+import { useProgressPhotos } from "@/hooks/useProgressPhotos";
 
 interface ScoreHistoryChartProps {
   analyses: Analysis[];
 }
 
 export const ScoreHistoryChart = ({ analyses }: ScoreHistoryChartProps) => {
-  const data = [...analyses]
+  const { photos } = useProgressPhotos();
+
+  // Merge analyses and progress photos into a unified timeline
+  const analysisPoints = analyses
     .filter((a) => a.skin_score?.overall > 0)
-    .reverse()
-    .map((a, i) => ({
-      name: `Week ${i}`,
+    .map((a) => ({
+      date: new Date(a.created_at),
       score: a.skin_score.overall,
-      date: new Date(a.created_at).toLocaleDateString(),
+      type: "Analysis" as const,
     }));
 
-  if (data.length < 2) return null;
+  const progressPoints = photos
+    .filter((p) => p.score_estimate && p.score_estimate > 0)
+    .map((p) => ({
+      date: new Date(p.date_uploaded),
+      score: p.score_estimate!,
+      type: "Progress Check" as const,
+    }));
+
+  const allPoints = [...analysisPoints, ...progressPoints]
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  if (allPoints.length < 2) return null;
+
+  const data = allPoints.map((p, i) => ({
+    name: i === 0 ? "Start" : `Week ${i}`,
+    score: p.score,
+    date: p.date.toLocaleDateString(),
+    type: p.type,
+  }));
 
   return (
     <div className="card-elevated">
@@ -43,9 +64,12 @@ export const ScoreHistoryChart = ({ analyses }: ScoreHistoryChartProps) => {
                 borderRadius: "12px",
                 fontSize: "13px",
               }}
-              formatter={(value: number) => [`${value}/100`, "Score"]}
-              labelFormatter={(label: string, payload: any[]) =>
-                payload?.[0]?.payload?.date || label
+              formatter={(value: number, _name: string, props: any) => [
+                `${value}/100`,
+                props.payload?.type || "Score",
+              ]}
+              labelFormatter={(_label: string, payload: any[]) =>
+                payload?.[0]?.payload?.date || _label
               }
             />
             <Line
@@ -60,9 +84,9 @@ export const ScoreHistoryChart = ({ analyses }: ScoreHistoryChartProps) => {
         </ResponsiveContainer>
       </div>
       <p className="text-xs text-muted-foreground mt-3 text-center">
-        {data[data.length - 1].score > data[0].score
+        {data.length > 1 && data[data.length - 1].score > data[0].score
           ? "Your skin health appears to be trending upward. Keep going!"
-          : data[data.length - 1].score === data[0].score
+          : data.length > 1 && data[data.length - 1].score === data[0].score
             ? "Your score has been stable. Consistency is key."
             : "Your score has varied. Focus on the habits that work best for you."}
       </p>
