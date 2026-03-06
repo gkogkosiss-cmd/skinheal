@@ -51,9 +51,10 @@ export const useProgressPhotos = () => {
     enabled: !!user,
   });
 
-  const uploadProgressPhoto = useCallback(async (files: File | File[], progressAnswers?: Record<string, string>) => {
+  const uploadProgressPhoto = useCallback(async (files: File | File[], progressAnswers?: Record<string, string>, bodyArea?: string) => {
     if (!user) throw new Error("Must be logged in");
     setUploading(true);
+    const detectedBodyArea = bodyArea || "face";
 
     try {
       const fileArray = Array.isArray(files) ? files : [files];
