@@ -186,6 +186,7 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
           photo_url: uploadedPaths[0],
           progress_summary: progressSummary,
           score_estimate: scoreEstimate,
+          body_area: detectedBodyArea,
         } as any);
 
       if (insertError) throw insertError;
