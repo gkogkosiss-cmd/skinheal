@@ -1,14 +1,15 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Upload, Camera, ChevronRight, AlertCircle, Sparkles, Loader2, ArrowLeft, Sun, Moon, Calendar, Utensils, Ban, Heart, Activity, X, ImagePlus } from "lucide-react";
+import { Upload, Camera, ChevronRight, AlertCircle, Sparkles, Loader2, X, ImagePlus, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { allAnalysesQueryKey, latestAnalysisQueryKey, setLatestAnalysisId } from "@/hooks/useAnalysis";
 import { normalizeAnalysisRecordPayload } from "@/lib/analysisRecord";
+import { MAX_IMAGE_COUNT, prepareImageForAnalysis, validateImageFile, getFileFingerprint } from "@/lib/imageUpload";
 
 type Step = "upload" | "analyzing-photo" | "questions" | "health-questions" | "loading" | "results";
 
@@ -52,7 +53,16 @@ interface AnalysisResult {
   healingProtocol: HealingProtocol;
 }
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = MAX_IMAGE_COUNT;
+
+type SelectedImage = {
+  id: string;
+  file: File;
+  preview: string;
+  base64: string;
+  mimeType: string;
+  fingerprint: string;
+};
 
 const healthQuestions = [
   { id: "sugar", question: "Do you frequently consume sugary foods or drinks?", options: ["Yes", "No", "Sometimes"] },
@@ -64,7 +74,7 @@ const healthQuestions = [
 
 const SkinAnalysis = () => {
   const [step, setStep] = useState<Step>("upload");
-  const [images, setImages] = useState<Array<{ file: File; preview: string; base64: string }>>([]);
+  const [images, setImages] = useState<SelectedImage[]>([]);
   const [dynamicQuestions, setDynamicQuestions] = useState<DynamicQuestion[]>([]);
   const [visualFeatures, setVisualFeatures] = useState<string[]>([]);
   const [bodyArea, setBodyArea] = useState<string>("face");
@@ -72,64 +82,216 @@ const SkinAnalysis = () => {
   const [currentQ, setCurrentQ] = useState(0);
   const [healthQ, setHealthQ] = useState(0);
   const [results, setResults] = useState<AnalysisResult | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replaceIndex, setReplaceIndex] = useState<number | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const previewUrlsRef = useRef<string[]>([]);
 
-  const addImages = (files: FileList | File[]) => {
-    const remaining = MAX_IMAGES - images.length;
-    const filesToAdd = Array.from(files).slice(0, remaining);
+  useEffect(() => {
+    previewUrlsRef.current = images.map((img) => img.preview);
+  }, [images]);
 
-    filesToAdd.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        const base64 = dataUrl.split(",")[1];
-        setImages((prev) => {
-          if (prev.length >= MAX_IMAGES) return prev;
-          return [...prev, { file, preview: dataUrl, base64 }];
-        });
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    return () => {
+      previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  const removeImage = useCallback((index: number) => {
+    setImages((prev) => {
+      const target = prev[index];
+      if (target) URL.revokeObjectURL(target.preview);
+      return prev.filter((_, i) => i !== index);
     });
-  };
+    setSelectionError(null);
+  }, []);
 
-  const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
+  const processIncomingFiles = useCallback(
+    async (incomingFiles: File[], mode: "add" | "replace" = "add", targetIndex?: number) => {
+      if (incomingFiles.length === 0) return;
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) addImages(files);
-    e.target.value = "";
-  };
+      setIsSelecting(true);
+      setSelectionError(null);
+
+      try {
+        if (mode === "replace" && typeof targetIndex === "number") {
+          const file = incomingFiles[0];
+          const validationError = validateImageFile(file);
+          if (validationError) {
+            setSelectionError(validationError);
+            toast({ title: "Invalid image", description: validationError, variant: "destructive" });
+            return;
+          }
+
+          const prepared = await prepareImageForAnalysis(file);
+          const rawFingerprint = getFileFingerprint(file);
+
+          setImages((prev) => {
+            if (!prev[targetIndex]) {
+              URL.revokeObjectURL(prepared.previewUrl);
+              return prev;
+            }
+
+            URL.revokeObjectURL(prev[targetIndex].preview);
+            const next = [...prev];
+            next[targetIndex] = {
+              id: prev[targetIndex].id,
+              file: prepared.file,
+              preview: prepared.previewUrl,
+              base64: prepared.base64,
+              mimeType: prepared.mimeType,
+              fingerprint: rawFingerprint,
+            };
+            return next;
+          });
+
+          toast({ title: "Photo replaced", description: "Your image was updated successfully." });
+          return;
+        }
+
+        let remaining = MAX_IMAGES - images.length;
+        if (remaining <= 0) {
+          toast({ title: "Photo limit reached", description: `You can upload up to ${MAX_IMAGES} images.` });
+          return;
+        }
+
+        const existingFingerprints = new Set(images.map((img) => img.fingerprint));
+        const preparedImages: SelectedImage[] = [];
+        const errors: string[] = [];
+        let duplicateCount = 0;
+
+        for (const file of incomingFiles) {
+          if (remaining <= 0) break;
+
+          const validationError = validateImageFile(file);
+          if (validationError) {
+            errors.push(validationError);
+            continue;
+          }
+
+          const rawFingerprint = getFileFingerprint(file);
+          if (existingFingerprints.has(rawFingerprint)) {
+            duplicateCount += 1;
+            continue;
+          }
+
+          try {
+            const prepared = await prepareImageForAnalysis(file);
+            preparedImages.push({
+              id: crypto.randomUUID(),
+              file: prepared.file,
+              preview: prepared.previewUrl,
+              base64: prepared.base64,
+              mimeType: prepared.mimeType,
+              fingerprint: rawFingerprint,
+            });
+            existingFingerprints.add(rawFingerprint);
+            remaining -= 1;
+          } catch (error) {
+            errors.push(error instanceof Error ? error.message : "Could not process one of the selected images.");
+          }
+        }
+
+        if (preparedImages.length > 0) {
+          setImages((prev) => [...prev, ...preparedImages].slice(0, MAX_IMAGES));
+          console.info("[SkinAnalysis] images selected", {
+            added: preparedImages.length,
+            total: images.length + preparedImages.length,
+          });
+        }
+
+        if (duplicateCount > 0) {
+          toast({ title: "Duplicate skipped", description: `${duplicateCount} duplicate image${duplicateCount > 1 ? "s were" : " was"} ignored.` });
+        }
+
+        if (errors.length > 0) {
+          const message = errors[0];
+          setSelectionError(message);
+          toast({ title: "Some images were not added", description: message, variant: "destructive" });
+        }
+      } finally {
+        setIsSelecting(false);
+      }
+    },
+    [images, toast]
+  );
+
+  const handleFileSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files ?? []);
+      e.target.value = "";
+      await processIncomingFiles(files, "add");
+    },
+    [processIncomingFiles]
+  );
+
+  const handleReplaceSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files ?? []);
+      e.target.value = "";
+
+      if (replaceIndex === null) return;
+      await processIncomingFiles(files, "replace", replaceIndex);
+      setReplaceIndex(null);
+    },
+    [processIncomingFiles, replaceIndex]
+  );
+
+  const openReplacePicker = useCallback((index: number) => {
+    setReplaceIndex(index);
+    replaceInputRef.current?.click();
+  }, []);
 
   const startAnalysis = async () => {
-    if (images.length === 0) return;
+    if (images.length === 0 || isSelecting) return;
     setStep("analyzing-photo");
 
     try {
-      const imagesBase64 = images.map((img) => img.base64);
+      const imagesBase64 = images.map((img) => ({ base64: img.base64, mimeType: img.mimeType }));
+      console.info("[SkinAnalysis] starting image scan", { imageCount: imagesBase64.length });
+
       const { data, error } = await supabase.functions.invoke("analyze-skin", {
         body: { imagesBase64 },
       });
+
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
-      setDynamicQuestions(data.dynamicQuestions || []);
-      setVisualFeatures(data.visualFeatures || []);
-      if (data.bodyArea) setBodyArea(data.bodyArea);
+      if (data?.error) throw new Error(data.error);
+
+      const nextQuestions = Array.isArray(data?.dynamicQuestions) ? data.dynamicQuestions : [];
+      setDynamicQuestions(nextQuestions);
+      setVisualFeatures(Array.isArray(data?.visualFeatures) ? data.visualFeatures : []);
+
+      if (data?.bodyArea) setBodyArea(data.bodyArea);
+      setCurrentQ(0);
+
+      if (nextQuestions.length === 0) {
+        console.warn("[SkinAnalysis] dynamic question generation returned no questions; continuing to health questions");
+        setStep("health-questions");
+        return;
+      }
+
       setStep("questions");
     } catch (err: any) {
-      toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
+      console.error("[SkinAnalysis] image scan failed", err);
+      toast({ title: "Analysis failed", description: err.message || "Could not start analysis. Please retry.", variant: "destructive" });
       setStep("upload");
     }
   };
 
   const handleDynamicAnswer = (answer: string) => {
     const q = dynamicQuestions[currentQ];
+    if (!q) {
+      setStep("health-questions");
+      return;
+    }
+
     setAnswers((prev) => ({ ...prev, [q.id]: answer }));
     if (currentQ < dynamicQuestions.length - 1) {
       setCurrentQ(currentQ + 1);
@@ -141,6 +303,11 @@ const SkinAnalysis = () => {
 
   const handleHealthAnswer = (answer: string) => {
     const q = healthQuestions[healthQ];
+    if (!q) {
+      runFullAnalysis();
+      return;
+    }
+
     setAnswers((prev) => ({ ...prev, [q.id]: answer }));
     if (healthQ < healthQuestions.length - 1) {
       setHealthQ(healthQ + 1);
@@ -151,90 +318,119 @@ const SkinAnalysis = () => {
 
   const saveAnalysis = async (analysisData: AnalysisResult) => {
     if (!user) throw new Error("Please log in before running an analysis.");
+    if (images.length === 0) throw new Error("Please add at least one photo before analysis.");
 
-    // Upload all images
     const photoUrls: string[] = [];
-    for (const img of images) {
-      const ext = img.file.name.split(".").pop() || "jpg";
-      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("skin-photos")
-        .upload(path, img.file);
-      if (uploadError) {
-        console.error("Photo upload failed:", uploadError);
-        continue;
+
+    try {
+      console.info("[SkinAnalysis] uploading photos", { imageCount: images.length });
+
+      for (const [index, img] of images.entries()) {
+        const path = `${user.id}/${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("skin-photos")
+          .upload(path, img.file, { contentType: img.file.type || "image/jpeg" });
+
+        if (uploadError) {
+          throw new Error("We couldn’t upload one of your images. Please try again.");
+        }
+
+        photoUrls.push(path);
       }
-      photoUrls.push(path);
+
+      if (photoUrls.length === 0) {
+        throw new Error("No image was uploaded. Please select images and retry.");
+      }
+
+      const normalized = normalizeAnalysisRecordPayload({
+        analysis: analysisData,
+        answers,
+        visualFeatures,
+      });
+
+      const insertResponse = await supabase
+        .from("analysis_records" as any)
+        .insert({
+          user_id: user.id,
+          photo_url: photoUrls[0] || null,
+          photo_urls: photoUrls,
+          image_observations: normalized.image_observations,
+          answers: normalized.answers,
+          results: normalized.results,
+          root_causes: normalized.root_causes,
+          healing_protocol: normalized.healing_protocol,
+          nutrition_plan: normalized.nutrition_plan,
+          gut_health_plan: normalized.gut_health_plan,
+          lifestyle_plan: normalized.lifestyle_plan,
+          daily_plan: normalized.daily_plan,
+          safety_flags: normalized.safety_flags,
+          skin_score: normalized.skin_score,
+          body_area: bodyArea,
+        } as any)
+        .select("id")
+        .single();
+
+      const inserted = insertResponse.data as unknown as { id: string } | null;
+      const insertError = insertResponse.error;
+
+      if (insertError || !inserted?.id) {
+        throw new Error("Failed to save your analysis. Please retry.");
+      }
+
+      const { error: stateError } = await setLatestAnalysisId(user.id, inserted.id);
+      if (stateError) {
+        throw new Error("Saved analysis, but failed to set it as current. Please retry.");
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: latestAnalysisQueryKey(user.id) }),
+        queryClient.invalidateQueries({ queryKey: allAnalysesQueryKey(user.id) }),
+      ]);
+
+      console.info("[SkinAnalysis] analysis saved", { analysisId: inserted.id, uploadedImages: photoUrls.length });
+    } catch (error) {
+      if (photoUrls.length > 0) {
+        await supabase.storage.from("skin-photos").remove(photoUrls);
+      }
+
+      console.error("[SkinAnalysis] save analysis failed", error);
+      throw error;
     }
-
-    const normalized = normalizeAnalysisRecordPayload({
-      analysis: analysisData,
-      answers,
-      visualFeatures,
-    });
-
-    const insertResponse = await supabase
-      .from("analysis_records" as any)
-      .insert({
-        user_id: user.id,
-        photo_url: photoUrls[0] || null,
-        photo_urls: photoUrls,
-        image_observations: normalized.image_observations,
-        answers: normalized.answers,
-        results: normalized.results,
-        root_causes: normalized.root_causes,
-        healing_protocol: normalized.healing_protocol,
-        nutrition_plan: normalized.nutrition_plan,
-        gut_health_plan: normalized.gut_health_plan,
-        lifestyle_plan: normalized.lifestyle_plan,
-        daily_plan: normalized.daily_plan,
-        safety_flags: normalized.safety_flags,
-        skin_score: normalized.skin_score,
-        body_area: bodyArea,
-      } as any)
-      .select("id")
-      .single();
-
-    const inserted = insertResponse.data as unknown as { id: string } | null;
-    const insertError = insertResponse.error;
-
-    if (insertError || !inserted?.id) {
-      throw new Error("Failed to save your analysis. Please retry.");
-    }
-
-    const { error: stateError } = await setLatestAnalysisId(user.id, inserted.id);
-    if (stateError) {
-      throw new Error("Saved analysis, but failed to set it as current. Please retry.");
-    }
-
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: latestAnalysisQueryKey(user.id) }),
-      queryClient.invalidateQueries({ queryKey: allAnalysesQueryKey(user.id) }),
-    ]);
   };
 
   const runFullAnalysis = async () => {
+    if (images.length === 0 || isSelecting) {
+      toast({ title: "Add photos first", description: "Please add at least one clear photo before analysis." });
+      setStep("upload");
+      return;
+    }
+
     setStep("loading");
 
     try {
-      const imagesBase64 = images.map((img) => img.base64);
+      const imagesBase64 = images.map((img) => ({ base64: img.base64, mimeType: img.mimeType }));
+      console.info("[SkinAnalysis] full analysis started", { imageCount: imagesBase64.length, answerCount: Object.keys(answers).length });
+
       const { data, error } = await supabase.functions.invoke("analyze-skin", {
         body: { imagesBase64, answers },
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
 
       const generated = data as AnalysisResult;
-      if (data.bodyArea) setBodyArea(data.bodyArea);
+      if (data?.bodyArea) setBodyArea(data.bodyArea);
+
       await saveAnalysis(generated);
 
       setResults(generated);
       setStep("results");
       toast({ title: "Saved", description: "Analysis saved and synced across all sections." });
+      console.info("[SkinAnalysis] full analysis completed");
       navigate("/dashboard");
     } catch (err: any) {
-      toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
+      console.error("[SkinAnalysis] full analysis failed", err);
+      toast({ title: "Analysis failed", description: err?.message || "Your images were selected, but the analysis could not start. Please retry.", variant: "destructive" });
       setStep("upload");
     }
   };
@@ -254,12 +450,26 @@ const SkinAnalysis = () => {
         {/* Hidden file inputs - no capture on gallery picker so iOS/Android show full picker */}
         <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
+        <input ref={replaceInputRef} type="file" accept="image/*" className="hidden" onChange={handleReplaceSelect} />
 
         <AnimatePresence mode="wait">
           {/* STEP 1: Upload */}
           {step === "upload" && (
             <motion.div key="upload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
               <div className="card-elevated">
+                {isSelecting && (
+                  <div className="mb-4 p-3 rounded-xl bg-secondary text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Preparing your images...
+                  </div>
+                )}
+
+                {selectionError && (
+                  <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive">
+                    {selectionError}
+                  </div>
+                )}
+
                 {/* Image previews */}
                 {images.length > 0 && (
                   <div className="mb-6">
@@ -269,23 +479,36 @@ const SkinAnalysis = () => {
                         <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${(images.length / MAX_IMAGES) * 100}%` }} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
+
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
                       {images.map((img, i) => (
-                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
-                          <img src={img.preview} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
-                          <button
-                            onClick={() => removeImage(i)}
-                            className="absolute top-1 right-1 w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center"
-                          >
-                            <X className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
-                          </button>
+                        <div key={img.id} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                          <img src={img.preview} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                          <div className="absolute top-1 right-1 flex gap-1">
+                            <button
+                              onClick={() => openReplacePicker(i)}
+                              className="w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center"
+                              aria-label={`Replace photo ${i + 1}`}
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => removeImage(i)}
+                              className="w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center"
+                              aria-label={`Remove photo ${i + 1}`}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                           <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-background/80 text-[10px] font-medium">{i + 1}</span>
                         </div>
                       ))}
+
                       {images.length < MAX_IMAGES && (
                         <button
                           onClick={() => fileInputRef.current?.click()}
-                          className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 hover:border-primary/30 transition-colors"
+                          disabled={isSelecting}
+                          className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 hover:border-primary/30 transition-colors disabled:opacity-40"
                         >
                           <ImagePlus className="w-5 h-5 text-muted-foreground" />
                           <span className="text-[10px] text-muted-foreground">Add</span>
@@ -304,20 +527,22 @@ const SkinAnalysis = () => {
                     <div className="text-center">
                       <p className="font-serif text-xl mb-1">Upload clear photos of your skin</p>
                       <p className="text-sm text-muted-foreground max-w-sm">
-                        Upload up to 5 clear photos of the affected area from different angles or lighting for a more complete analysis.
+                        Upload up to 5 clear photos for a better analysis.
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
                       <button
                         onClick={() => cameraInputRef.current?.click()}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
+                        disabled={isSelecting}
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px] disabled:opacity-40"
                       >
                         <Camera className="w-5 h-5" />
                         Take Photo
                       </button>
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px]"
+                        disabled={isSelecting}
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px] disabled:opacity-40"
                       >
                         <Upload className="w-5 h-5" />
                         Upload Photos
@@ -328,10 +553,11 @@ const SkinAnalysis = () => {
 
                 {/* Action buttons when images selected */}
                 {images.length > 0 && (
-                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={startAnalysis}
-                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
+                      disabled={isSelecting || images.length === 0}
+                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px] disabled:opacity-40"
                     >
                       <Sparkles className="w-4 h-4" />
                       Analyze {images.length} Photo{images.length > 1 ? "s" : ""}
@@ -339,15 +565,17 @@ const SkinAnalysis = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => cameraInputRef.current?.click()}
-                        disabled={images.length >= MAX_IMAGES}
+                        disabled={images.length >= MAX_IMAGES || isSelecting}
                         className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
+                        aria-label="Take another photo"
                       >
                         <Camera className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={images.length >= MAX_IMAGES}
+                        disabled={images.length >= MAX_IMAGES || isSelecting}
                         className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
+                        aria-label="Add photos from gallery"
                       >
                         <ImagePlus className="w-5 h-5" />
                       </button>

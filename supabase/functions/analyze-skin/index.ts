@@ -135,26 +135,54 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageBase64, imagesBase64, answers } = await req.json();
+    const requestBody = await req.json();
+    const { imageBase64, imagesBase64, answers } = requestBody ?? {};
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const images: string[] = [];
+    const images: Array<{ base64: string; mimeType: string }> = [];
+
+    const normalizeImage = (input: unknown) => {
+      if (typeof input === "string" && input.length > 0) {
+        images.push({ base64: input, mimeType: "image/jpeg" });
+        return;
+      }
+
+      if (
+        input &&
+        typeof input === "object" &&
+        typeof (input as { base64?: unknown }).base64 === "string"
+      ) {
+        const candidate = input as { base64: string; mimeType?: string };
+        images.push({
+          base64: candidate.base64,
+          mimeType: typeof candidate.mimeType === "string" && candidate.mimeType.startsWith("image/")
+            ? candidate.mimeType
+            : "image/jpeg",
+        });
+      }
+    };
+
     if (Array.isArray(imagesBase64) && imagesBase64.length > 0) {
-      images.push(...imagesBase64);
+      imagesBase64.forEach(normalizeImage);
     } else if (imageBase64) {
-      images.push(imageBase64);
+      normalizeImage(imageBase64);
     }
 
     if (images.length === 0) {
       throw new Error("At least one image is required");
     }
 
+    console.info("[analyze-skin] request received", {
+      imageCount: images.length,
+      hasAnswers: !!answers,
+    });
+
     const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
 
-    const imageContentParts = images.map((img: string) => ({
+    const imageContentParts = images.map((img) => ({
       type: "image_url",
-      image_url: { url: `data:image/jpeg;base64,${img}` },
+      image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
     }));
 
     // Step 1: Image only - generate dynamic questions + detect body area
@@ -246,7 +274,12 @@ Return the FULL JSON response with ALL fields including bodyArea, skinScore and 
     let parsed;
     try {
       parsed = JSON.parse(content);
+      console.info("[analyze-skin] analysis completed", {
+        hasConditions: Array.isArray(parsed?.conditions),
+        hasQuestions: Array.isArray(parsed?.dynamicQuestions),
+      });
     } catch {
+      console.error("[analyze-skin] failed to parse AI response", { raw: content });
       parsed = { error: "Failed to parse AI response", raw: content };
     }
 
