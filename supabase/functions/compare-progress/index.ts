@@ -20,6 +20,7 @@ const DEFAULT_RESULT = {
   encouragement: "Consistency is key — keep going with your routine!",
   confidence: "medium",
   photoQualityIssue: false,
+  bodyArea: "face",
 };
 
 function extractJSON(text: string): any | null {
@@ -41,18 +42,16 @@ function validateAndRepair(parsed: any): any {
   if (parsed.encouragement && typeof parsed.encouragement === "string") result.encouragement = parsed.encouragement;
   if (typeof parsed.confidence === "string" && ["high", "medium", "low"].includes(parsed.confidence)) result.confidence = parsed.confidence;
   if (typeof parsed.photoQualityIssue === "boolean") result.photoQualityIssue = parsed.photoQualityIssue;
+  if (typeof parsed.bodyArea === "string") result.bodyArea = parsed.bodyArea;
 
-  // Score adjustment — enforce hard cap
   if (typeof parsed.scoreAdjustment === "number") {
     result.scoreAdjustment = Math.max(-6, Math.min(6, Math.round(parsed.scoreAdjustment)));
   }
 
-  // Extra stability: if confidence is low, clamp harder
   if (result.confidence === "low") {
     result.scoreAdjustment = Math.max(-1, Math.min(1, result.scoreAdjustment));
   }
 
-  // Changes array
   if (Array.isArray(parsed.changes) && parsed.changes.length > 0) {
     const validStatuses = ["improved", "similar", "worsened"];
     result.changes = parsed.changes
@@ -104,19 +103,25 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { newImageBase64, previousImageBase64, baselineContext, previousScore, progressAnswers } = await req.json();
+    const { newImageBase64, previousImageBase64, baselineContext, previousScore, progressAnswers, bodyArea } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
     if (!newImageBase64) throw new Error("New progress photo is required");
 
     const prevScore = typeof previousScore === "number" ? previousScore : 50;
     const hasPreviousImage = !!previousImageBase64;
+    const detectedArea = bodyArea || "unknown";
 
     const answersBlock = progressAnswers && typeof progressAnswers === "object"
       ? `\n\nUser's self-reported progress answers:\n${Object.entries(progressAnswers).map(([q, a]) => `- ${q}: ${a}`).join("\n")}`
       : "";
 
     const systemPrompt = `You are a conservative skin progress evaluator for "The Skin Guy AI". You compare new progress photos against a previous reference photo and baseline context to assess CHANGES ONLY.
+
+BODY AREA CONTEXT:
+- The photos are of the user's ${detectedArea} area. If you can detect the body area from the images, confirm or correct it in the "bodyArea" field.
+- Evaluate changes relevant to this specific body area.
+- Use area-appropriate terminology and observations.
 
 CRITICAL STABILITY RULES — FOLLOW EXACTLY:
 - The user's PREVIOUS Skin Health Score was ${prevScore}/100. This is your anchor.
@@ -125,7 +130,7 @@ CRITICAL STABILITY RULES — FOLLOW EXACTLY:
 VISUAL SIMILARITY FIRST:
 - Before evaluating changes, assess how visually similar the new photos are to the previous photo.
 - If the photos look very similar (same lighting, same skin appearance, no obvious differences):
-  scoreAdjustment MUST be 0 or at most ±1. This is the MOST COMMON outcome for weekly checks.
+  scoreAdjustment MUST be 0 or at most +/-1. This is the MOST COMMON outcome for weekly checks.
 - If photos appear identical or nearly identical, scoreAdjustment MUST be 0.
 
 SCORE CHANGE GUIDELINES (strictly enforced):
@@ -141,12 +146,16 @@ PHOTO QUALITY CHECK:
 - If photos are blurry, poorly lit, too dark, or taken from very different angles:
   Set photoQualityIssue to true, confidence to "low", scoreAdjustment to 0.
   Mention the quality issue in the summary.
+- If comparing different body areas (e.g., previous was face, new is back):
+  Set photoQualityIssue to true, confidence to "low", scoreAdjustment to 0.
+  Note: "These photos appear to show different body areas and cannot be accurately compared."
 
 LANGUAGE RULES:
 - NEVER diagnose. Use cautious language: "appears", "seems", "may show".
 - Be encouraging but honest. Never exaggerate improvement or worsening.
 - Never use the asterisk symbol (*).
 - Focus on visible changes only. Do NOT re-diagnose conditions.
+- Reference the specific body area in your summary.
 
 Evaluate CHANGES in these areas:
 1. Redness
@@ -163,6 +172,7 @@ For each area use status:
 
 Respond with ONLY valid JSON:
 {
+  "bodyArea": "detected body area",
   "changes": [
     {"area": "Redness", "status": "improved"|"similar"|"worsened", "note": "Brief observation"},
     {"area": "Inflammation", "status": "...", "note": "..."},
@@ -171,7 +181,7 @@ Respond with ONLY valid JSON:
     {"area": "Skin Texture", "status": "...", "note": "..."},
     {"area": "Overall", "status": "...", "note": "..."}
   ],
-  "summary": "2-3 sentence progress summary using cautious language. Mention specific areas if changed.",
+  "summary": "2-3 sentence progress summary using cautious language. Reference the body area and specific areas if changed.",
   "scoreAdjustment": number between -6 and +6 (most commonly 0),
   "encouragement": "One motivating sentence.",
   "confidence": "high"|"medium"|"low",
@@ -180,10 +190,8 @@ Respond with ONLY valid JSON:
 
 REMEMBER: The MAJORITY of weekly checks should result in scoreAdjustment of 0. Real skin change is slow. Only assign non-zero when you can clearly see a difference.`;
 
-    // Build image content
     const imageContent: any[] = [];
 
-    // Add PREVIOUS photo first if available (for visual comparison)
     if (previousImageBase64) {
       imageContent.push({
         type: "image_url",
@@ -191,7 +199,6 @@ REMEMBER: The MAJORITY of weekly checks should result in scoreAdjustment of 0. R
       });
     }
 
-    // Add new photos
     const images = Array.isArray(newImageBase64) ? newImageBase64 : [newImageBase64];
     for (const img of images) {
       if (typeof img === "string" && img.length > 0) {
@@ -203,8 +210,8 @@ REMEMBER: The MAJORITY of weekly checks should result in scoreAdjustment of 0. R
     }
 
     const comparisonInstruction = hasPreviousImage
-      ? `I'm providing ${1 + images.length} image(s). The FIRST image is the PREVIOUS photo from the last check. The remaining ${images.length} image(s) are the NEW progress photo(s) taken now. Compare the new photos against the previous photo visually. Look at all new photos together to form an average assessment — do not evaluate any single photo in isolation.`
-      : `I'm providing ${images.length} new progress photo(s). No previous photo is available for visual comparison, so evaluate based on the baseline text context only. Be extra conservative — keep scoreAdjustment at 0 unless the text context clearly indicates a difference.`;
+      ? `I'm providing ${1 + images.length} image(s) of the user's ${detectedArea}. The FIRST image is the PREVIOUS photo from the last check. The remaining ${images.length} image(s) are the NEW progress photo(s) taken now. Compare the new photos against the previous photo visually. Look at all new photos together to form an average assessment — do not evaluate any single photo in isolation.`
+      : `I'm providing ${images.length} new progress photo(s) of the user's ${detectedArea}. No previous photo is available for visual comparison, so evaluate based on the baseline text context only. Be extra conservative — keep scoreAdjustment at 0 unless the text context clearly indicates a difference.`;
 
     const messages = [
       { role: "system", content: systemPrompt },
