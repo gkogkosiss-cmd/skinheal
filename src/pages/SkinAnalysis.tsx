@@ -92,12 +92,17 @@ const SkinAnalysis = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const previewUrlsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    previewUrlsRef.current = images.map((img) => img.preview);
+  }, [images]);
 
   useEffect(() => {
     return () => {
-      images.forEach((img) => URL.revokeObjectURL(img.preview));
+      previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [images]);
+  }, []);
 
   const removeImage = useCallback((index: number) => {
     setImages((prev) => {
