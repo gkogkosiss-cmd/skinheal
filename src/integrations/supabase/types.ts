@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_coach_messages: {
+        Row: {
+          analysis_id: string | null
+          created_at: string
+          id: string
+          message_text: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          created_at?: string
+          id?: string
+          message_text: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          created_at?: string
+          id?: string
+          message_text?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_coach_messages_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analyses: {
         Row: {
           biological_explanation: string | null
