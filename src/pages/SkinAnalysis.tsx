@@ -310,16 +310,16 @@ const SkinAnalysis = () => {
                     <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
                       <button
                         onClick={() => cameraInputRef.current?.click()}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
                       >
-                        <Camera className="w-4 h-4" />
+                        <Camera className="w-5 h-5" />
                         Take Photo
                       </button>
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px]"
                       >
-                        <Upload className="w-4 h-4" />
+                        <Upload className="w-5 h-5" />
                         Upload Photos
                       </button>
                     </div>
