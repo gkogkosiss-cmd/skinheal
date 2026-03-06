@@ -269,7 +269,7 @@ If the user previously asked about something in this conversation, reference it 
                       <Bot className="w-4 h-4 text-accent-foreground" />
                     </div>
                   )}
-                  <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                  <div className={`max-w-[80%] min-w-0 rounded-2xl px-4 sm:px-5 py-3 sm:py-3.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
                     msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border"
                   }`}>
                     {msg.content}
