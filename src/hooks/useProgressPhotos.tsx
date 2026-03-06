@@ -82,7 +82,7 @@ export const useProgressPhotos = () => {
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-        base64Images.push(base64);
+      base64Images.push(base64);
       }
 
       // Get previous score — from latest progress photo or from current analysis
@@ -90,6 +90,26 @@ export const useProgressPhotos = () => {
       const latestProgressScore = photos.length > 0 ? photos[0].score_estimate : null;
       const baselineScore = currentAnalysis?.skin_score?.overall || 50;
       const previousScore = latestProgressScore ?? baselineScore;
+
+      // Fetch previous photo for visual comparison
+      let previousImageBase64: string | null = null;
+      const previousPhotoUrl = photos.length > 0 ? photos[0].photo_url : currentAnalysis?.photo_url;
+      if (previousPhotoUrl) {
+        try {
+          const { data: prevData } = await supabase.storage
+            .from("skin-photos")
+            .download(previousPhotoUrl);
+          if (prevData) {
+            const arrayBuf = await prevData.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuf);
+            let binary = "";
+            for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+            previousImageBase64 = btoa(binary);
+          }
+        } catch (e) {
+          console.warn("Could not fetch previous photo for comparison:", e);
+        }
+      }
 
       // Build baseline context from current analysis
       let baselineContext = "";
@@ -103,7 +123,7 @@ Skin score: ${previousScore}/100
 Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root_causes.map((r: any) => r.title).join(", ") : "None"}`;
       }
 
-      // Call comparison edge function — send all images
+      // Call comparison edge function — send all images + previous image
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -116,6 +136,7 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
         },
         body: JSON.stringify({
           newImageBase64: base64Images.length === 1 ? base64Images[0] : base64Images,
+          previousImageBase64,
           baselineContext,
           previousScore,
           progressAnswers: progressAnswers || {},
