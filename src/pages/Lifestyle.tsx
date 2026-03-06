@@ -62,6 +62,7 @@ const Lifestyle = () => {
 
   return (
     <Layout>
+      <PremiumGate featureName="Lifestyle Guidance">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <p className="text-sm text-primary font-medium mb-1">Lifestyle</p>
         <h1 className="font-serif text-3xl md:text-4xl mb-2">Lifestyle Factors</h1>
