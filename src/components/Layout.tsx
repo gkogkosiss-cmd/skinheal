@@ -30,7 +30,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
             <Leaf className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="font-serif text-xl text-foreground">The Skin Guy</span>
+          <span className="font-serif text-xl text-foreground">SkinHeal</span>
         </Link>
 
         <nav className="flex flex-col gap-1 flex-1">
