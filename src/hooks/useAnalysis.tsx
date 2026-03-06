@@ -35,6 +35,14 @@ export interface GutDayPlan {
   focus: string;
 }
 
+export interface MealPlanDay {
+  day: string;
+  breakfast: string;
+  lunch: string;
+  dinner: string;
+  snack: string;
+}
+
 export interface HealingProtocolData {
   whatIsHappening?: string;
   morningRoutine: string[];
@@ -47,6 +55,8 @@ export interface HealingProtocolData {
   foodsToEat: FoodItem[];
   foodsToAvoid: FoodItem[];
   mealTemplate?: MealTemplate;
+  sevenDayMealPlan?: MealPlanDay[];
+  mealPlanPrinciples?: string[];
   commonTriggerFoods?: TriggerFood[];
   hydrationGuidance?: string;
   gutExplanation?: string;
@@ -68,6 +78,8 @@ export interface NutritionPlan {
   foods_to_focus: Array<{ food: string; why: string }>;
   foods_to_limit: Array<{ food: string; why: string }>;
   one_day_template: MealTemplate;
+  seven_day_meal_plan: MealPlanDay[];
+  meal_plan_principles: string[];
   hydration: { target: string; tips: string[] };
   optional_triggers_to_test: Array<{ trigger: string; how_to_test_safely: string }>;
 }
@@ -264,6 +276,8 @@ const mapRecordToAnalysis = (record: any): Analysis => {
         dinner: nutritionRaw?.one_day_template?.dinner || "",
         snack: nutritionRaw?.one_day_template?.snack || "",
       },
+      sevenDayMealPlan: Array.isArray(nutritionRaw.seven_day_meal_plan) ? nutritionRaw.seven_day_meal_plan : [],
+      mealPlanPrinciples: safeStringArray(nutritionRaw.meal_plan_principles),
       commonTriggerFoods: Array.isArray(nutritionRaw.optional_triggers_to_test)
         ? nutritionRaw.optional_triggers_to_test.map((item: any) => ({
             food: item?.trigger || "",
@@ -294,6 +308,8 @@ const mapRecordToAnalysis = (record: any): Analysis => {
         dinner: nutritionRaw?.one_day_template?.dinner || "",
         snack: nutritionRaw?.one_day_template?.snack || "",
       },
+      seven_day_meal_plan: Array.isArray(nutritionRaw.seven_day_meal_plan) ? nutritionRaw.seven_day_meal_plan : [],
+      meal_plan_principles: safeStringArray(nutritionRaw.meal_plan_principles),
       hydration: {
         target: nutritionRaw?.hydration?.target || "",
         tips: safeStringArray(nutritionRaw?.hydration?.tips),
@@ -415,6 +431,60 @@ export const useAllAnalyses = () => {
     },
     enabled: !!user,
   });
+};
+
+export const deleteAnalysisRecord = async (analysisId: string, userId: string) => {
+  // Get the record to find photo paths
+  const { data: record } = await supabase
+    .from("analysis_records" as any)
+    .select("photo_url, photo_urls")
+    .eq("id", analysisId)
+    .eq("user_id", userId)
+    .single();
+
+  const rec = record as any;
+
+  // Delete photos from storage
+  const paths: string[] = [];
+  if (rec?.photo_url) paths.push(rec.photo_url);
+  if (Array.isArray(rec?.photo_urls)) paths.push(...rec.photo_urls);
+  const uniquePaths = [...new Set(paths)].filter(Boolean);
+  if (uniquePaths.length > 0) {
+    await supabase.storage.from("skin-photos").remove(uniquePaths);
+  }
+
+  // Delete the record
+  const { error } = await supabase
+    .from("analysis_records" as any)
+    .delete()
+    .eq("id", analysisId)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+
+  // Check if this was the current analysis
+  const { data: stateData } = await supabase
+    .from("user_state" as any)
+    .select("latest_analysis_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const state = stateData as any;
+  if (state?.latest_analysis_id === analysisId) {
+    // Set newest remaining as current
+    const { data: newest } = await supabase
+      .from("analysis_records" as any)
+      .select("id")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const newId = (newest as any)?.id || null;
+    await supabase
+      .from("user_state" as any)
+      .upsert({ user_id: userId, latest_analysis_id: newId }, { onConflict: "user_id" });
+  }
 };
 
 export const getSignedImageUrl = async (path: string) => {

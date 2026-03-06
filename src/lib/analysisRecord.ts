@@ -63,6 +63,8 @@ type AIHealingProtocol = {
     dinner?: string;
     snack?: string;
   };
+  sevenDayMealPlan?: Array<{ day: string; breakfast: string; lunch: string; dinner: string; snack: string }>;
+  mealPlanPrinciples?: string[];
   commonTriggerFoods?: TriggerFood[];
   hydrationGuidance?: string;
   gutExplanation?: string;
@@ -193,6 +195,8 @@ export const normalizeAnalysisRecordPayload = ({
         dinner: protocol.mealTemplate?.dinner || "",
         snack: protocol.mealTemplate?.snack || "",
       },
+      seven_day_meal_plan: Array.isArray(protocol.sevenDayMealPlan) ? protocol.sevenDayMealPlan : [],
+      meal_plan_principles: safeArray(protocol.mealPlanPrinciples),
       hydration: {
         target: protocol.hydrationGuidance || "",
         tips: [],
