@@ -90,30 +90,48 @@ const AICoach = () => {
         "What's the best probiotic for skin?",
       ];
 
-  const buildSystemContext = () => {
-    if (!analysis) return "";
+  const safeArray = (val: any): any[] => {
+    if (Array.isArray(val)) return val;
+    if (val && typeof val === "object") return Object.values(val);
+    return [];
+  };
 
-    const topCondition = (analysis.conditions as any[])?.[0];
-    const nutrition = analysis.nutrition_plan;
-    const gut = analysis.gut_health_plan;
-    const lifestyle = analysis.lifestyle_plan;
-    const daily = analysis.daily_plan;
-    const score = analysis.skin_score as any;
+  const buildSystemContext = () => {
+    if (!analysis) return "\n\nNo saved skin analysis found. Provide general skin wellness guidance and suggest the user run an analysis for personalized help.";
+
+    const conditions = safeArray(analysis.conditions);
+    const topCondition = conditions[0];
+    const rootCauses = safeArray(analysis.root_causes);
+    const nutrition = (analysis.nutrition_plan || {}) as any;
+    const gut = (analysis.gut_health_plan || {}) as any;
+    const lifestyle = (analysis.lifestyle_plan || {}) as any;
+    const daily = (analysis.daily_plan || {}) as any;
+    const score = (analysis.skin_score || {}) as any;
+    const mealPlan = safeArray(nutrition?.seven_day_meal_plan);
+
+    const mealPlanText = mealPlan.length > 0
+      ? mealPlan.map((d: any) =>
+          `${d.day || "Day ?"}: Breakfast: ${d.breakfast || "N/A"} | Lunch: ${d.lunch || "N/A"} | Dinner: ${d.dinner || "N/A"} | Snack: ${d.snack || "N/A"}`
+        ).join("\n")
+      : "No meal plan available.";
 
     return `\n\nUser's current saved analysis context:
-- Top condition: ${topCondition?.condition} (${topCondition?.probability}% likelihood)
-- Possible conditions: ${(analysis.conditions as any[]).map((c: any) => `${c.condition} ${c.probability}%`).join(", ")}
-- Root causes: ${(analysis.root_causes as any[]).map((r: any) => r.title || r).join(", ")}
+- Top condition: ${topCondition?.condition || "Unknown"} (${topCondition?.probability || "?"}% likelihood)
+- Possible conditions: ${conditions.map((c: any) => `${c.condition || c} ${c.probability || "?"}%`).join(", ") || "None detected"}
+- Root causes: ${rootCauses.map((r: any) => r.title || r.description || String(r)).join(", ") || "None identified"}
 - Skin Health Score: ${score?.overall || "N/A"}/100
-- Score factors: ${(score?.factors || []).map((f: any) => `${f.label}: ${f.score}/100`).join(", ")}
-- Food priorities: ${(nutrition?.priorities || []).join("; ")}
-- Foods to focus: ${(nutrition?.foods_to_focus || []).map((f: any) => f.food || f).join(", ")}
-- Foods to limit: ${(nutrition?.foods_to_limit || []).map((f: any) => f.food || f).join(", ")}
-- Gut plan: ${(gut?.seven_day_plan || []).slice(0, 3).map((d: any) => `${d.day}: ${(d.actions || []).join(" ")}`).join(" | ")}
-- Lifestyle plan: ${[...(lifestyle?.sleep || []), ...(lifestyle?.stress || []), ...(lifestyle?.exercise || [])].slice(0, 6).join("; ")}
-- Daily plan: ${[...(daily?.morning || []), ...(daily?.evening || [])].slice(0, 6).join("; ")}
+- Score factors: ${safeArray(score?.factors).map((f: any) => `${f.label}: ${f.score}/100`).join(", ") || "N/A"}
+- Food priorities: ${safeArray(nutrition?.priorities).join("; ") || "N/A"}
+- Foods to focus: ${safeArray(nutrition?.foods_to_focus).map((f: any) => f.food || f).join(", ") || "N/A"}
+- Foods to limit: ${safeArray(nutrition?.foods_to_limit).map((f: any) => f.food || f).join(", ") || "N/A"}
+- 7-Day Meal Plan:
+${mealPlanText}
+- Gut plan: ${safeArray(gut?.seven_day_plan).slice(0, 3).map((d: any) => `${d.day || "?"}: ${safeArray(d.actions).join(", ")}`).join(" | ") || "N/A"}
+- Lifestyle: ${[...safeArray(lifestyle?.sleep), ...safeArray(lifestyle?.stress), ...safeArray(lifestyle?.exercise)].slice(0, 6).join("; ") || "N/A"}
+- Daily plan: ${[...safeArray(daily?.morning), ...safeArray(daily?.evening)].slice(0, 6).join("; ") || "N/A"}
 
-Always answer using this saved context. Reference the user's specific conditions, foods, and plan when relevant.
+Always answer using this saved context. When the user asks about a specific day's meal, look up the exact meal from the 7-Day Meal Plan above and quote it directly.
+Reference the user's specific conditions, foods, and plan when relevant.
 If the user previously asked about something in this conversation, reference it naturally to show continuity.`;
   };
 
