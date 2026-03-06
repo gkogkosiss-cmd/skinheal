@@ -53,7 +53,16 @@ interface AnalysisResult {
   healingProtocol: HealingProtocol;
 }
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = MAX_IMAGE_COUNT;
+
+type SelectedImage = {
+  id: string;
+  file: File;
+  preview: string;
+  base64: string;
+  mimeType: string;
+  fingerprint: string;
+};
 
 const healthQuestions = [
   { id: "sugar", question: "Do you frequently consume sugary foods or drinks?", options: ["Yes", "No", "Sometimes"] },
@@ -65,7 +74,7 @@ const healthQuestions = [
 
 const SkinAnalysis = () => {
   const [step, setStep] = useState<Step>("upload");
-  const [images, setImages] = useState<Array<{ file: File; preview: string; base64: string }>>([]);
+  const [images, setImages] = useState<SelectedImage[]>([]);
   const [dynamicQuestions, setDynamicQuestions] = useState<DynamicQuestion[]>([]);
   const [visualFeatures, setVisualFeatures] = useState<string[]>([]);
   const [bodyArea, setBodyArea] = useState<string>("face");
@@ -73,40 +82,167 @@ const SkinAnalysis = () => {
   const [currentQ, setCurrentQ] = useState(0);
   const [healthQ, setHealthQ] = useState(0);
   const [results, setResults] = useState<AnalysisResult | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replaceIndex, setReplaceIndex] = useState<number | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const addImages = (files: FileList | File[]) => {
-    const remaining = MAX_IMAGES - images.length;
-    const filesToAdd = Array.from(files).slice(0, remaining);
+  useEffect(() => {
+    return () => {
+      images.forEach((img) => URL.revokeObjectURL(img.preview));
+    };
+  }, [images]);
 
-    filesToAdd.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        const base64 = dataUrl.split(",")[1];
-        setImages((prev) => {
-          if (prev.length >= MAX_IMAGES) return prev;
-          return [...prev, { file, preview: dataUrl, base64 }];
-        });
-      };
-      reader.readAsDataURL(file);
+  const removeImage = useCallback((index: number) => {
+    setImages((prev) => {
+      const target = prev[index];
+      if (target) URL.revokeObjectURL(target.preview);
+      return prev.filter((_, i) => i !== index);
     });
-  };
+    setSelectionError(null);
+  }, []);
 
-  const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
+  const processIncomingFiles = useCallback(
+    async (incomingFiles: File[], mode: "add" | "replace" = "add", targetIndex?: number) => {
+      if (incomingFiles.length === 0) return;
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) addImages(files);
-    e.target.value = "";
-  };
+      setIsSelecting(true);
+      setSelectionError(null);
+
+      try {
+        if (mode === "replace" && typeof targetIndex === "number") {
+          const file = incomingFiles[0];
+          const validationError = validateImageFile(file);
+          if (validationError) {
+            setSelectionError(validationError);
+            toast({ title: "Invalid image", description: validationError, variant: "destructive" });
+            return;
+          }
+
+          const prepared = await prepareImageForAnalysis(file);
+          const rawFingerprint = getFileFingerprint(file);
+
+          setImages((prev) => {
+            if (!prev[targetIndex]) {
+              URL.revokeObjectURL(prepared.previewUrl);
+              return prev;
+            }
+
+            URL.revokeObjectURL(prev[targetIndex].preview);
+            const next = [...prev];
+            next[targetIndex] = {
+              id: prev[targetIndex].id,
+              file: prepared.file,
+              preview: prepared.previewUrl,
+              base64: prepared.base64,
+              mimeType: prepared.mimeType,
+              fingerprint: rawFingerprint,
+            };
+            return next;
+          });
+
+          toast({ title: "Photo replaced", description: "Your image was updated successfully." });
+          return;
+        }
+
+        let remaining = MAX_IMAGES - images.length;
+        if (remaining <= 0) {
+          toast({ title: "Photo limit reached", description: `You can upload up to ${MAX_IMAGES} images.` });
+          return;
+        }
+
+        const existingFingerprints = new Set(images.map((img) => img.fingerprint));
+        const preparedImages: SelectedImage[] = [];
+        const errors: string[] = [];
+        let duplicateCount = 0;
+
+        for (const file of incomingFiles) {
+          if (remaining <= 0) break;
+
+          const validationError = validateImageFile(file);
+          if (validationError) {
+            errors.push(validationError);
+            continue;
+          }
+
+          const rawFingerprint = getFileFingerprint(file);
+          if (existingFingerprints.has(rawFingerprint)) {
+            duplicateCount += 1;
+            continue;
+          }
+
+          try {
+            const prepared = await prepareImageForAnalysis(file);
+            preparedImages.push({
+              id: crypto.randomUUID(),
+              file: prepared.file,
+              preview: prepared.previewUrl,
+              base64: prepared.base64,
+              mimeType: prepared.mimeType,
+              fingerprint: rawFingerprint,
+            });
+            existingFingerprints.add(rawFingerprint);
+            remaining -= 1;
+          } catch (error) {
+            errors.push(error instanceof Error ? error.message : "Could not process one of the selected images.");
+          }
+        }
+
+        if (preparedImages.length > 0) {
+          setImages((prev) => [...prev, ...preparedImages].slice(0, MAX_IMAGES));
+          console.info("[SkinAnalysis] images selected", {
+            added: preparedImages.length,
+            total: images.length + preparedImages.length,
+          });
+        }
+
+        if (duplicateCount > 0) {
+          toast({ title: "Duplicate skipped", description: `${duplicateCount} duplicate image${duplicateCount > 1 ? "s were" : " was"} ignored.` });
+        }
+
+        if (errors.length > 0) {
+          const message = errors[0];
+          setSelectionError(message);
+          toast({ title: "Some images were not added", description: message, variant: "destructive" });
+        }
+      } finally {
+        setIsSelecting(false);
+      }
+    },
+    [images, toast]
+  );
+
+  const handleFileSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files ?? []);
+      e.target.value = "";
+      await processIncomingFiles(files, "add");
+    },
+    [processIncomingFiles]
+  );
+
+  const handleReplaceSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files ?? []);
+      e.target.value = "";
+
+      if (replaceIndex === null) return;
+      await processIncomingFiles(files, "replace", replaceIndex);
+      setReplaceIndex(null);
+    },
+    [processIncomingFiles, replaceIndex]
+  );
+
+  const openReplacePicker = useCallback((index: number) => {
+    setReplaceIndex(index);
+    replaceInputRef.current?.click();
+  }, []);
 
   const startAnalysis = async () => {
     if (images.length === 0) return;
