@@ -86,15 +86,19 @@ export const useProgressPhotos = () => {
       base64Images.push(base64);
       }
 
-      // Get previous score — from latest progress photo or from current analysis
+      // Get previous score — from latest progress photo OF SAME BODY AREA or from current analysis
       const photos = query.data || [];
-      const latestProgressScore = photos.length > 0 ? photos[0].score_estimate : null;
+      const sameAreaPhotos = photos.filter(p => {
+        const pArea = (p.progress_summary as any)?.bodyArea || (p as any).body_area || "face";
+        return pArea === detectedBodyArea;
+      });
+      const latestProgressScore = sameAreaPhotos.length > 0 ? sameAreaPhotos[0].score_estimate : null;
       const baselineScore = currentAnalysis?.skin_score?.overall || 50;
       const previousScore = latestProgressScore ?? baselineScore;
 
-      // Fetch previous photo for visual comparison
+      // Fetch previous photo OF SAME BODY AREA for visual comparison
       let previousImageBase64: string | null = null;
-      const previousPhotoUrl = photos.length > 0 ? photos[0].photo_url : currentAnalysis?.photo_url;
+      const previousPhotoUrl = sameAreaPhotos.length > 0 ? sameAreaPhotos[0].photo_url : currentAnalysis?.photo_url;
       if (previousPhotoUrl) {
         try {
           const { data: prevData } = await supabase.storage
