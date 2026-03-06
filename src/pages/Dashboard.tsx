@@ -7,6 +7,7 @@ import {
   AlertTriangle, Target
 } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { useAllAnalyses } from "@/hooks/useAnalysis";
 import { SkinScoreCard } from "@/components/dashboard/SkinScoreCard";
 import { WeeklyCheckReminder } from "@/components/dashboard/WeeklyCheckReminder";
 import { DailyHealingPlan } from "@/components/dashboard/DailyHealingPlan";
@@ -20,11 +21,22 @@ const quickActions = [
 
 const Dashboard = () => {
   const { currentAnalysis: analysis, isLoading } = useCurrentAnalysis();
+  const { data: allAnalyses } = useAllAnalyses();
   const hasAnalysis = !!analysis;
 
   const topCondition = analysis?.conditions?.[0];
   const protocol = analysis?.healing_protocol;
   const skinScore = analysis?.skin_score;
+
+  // Find previous analysis for score comparison
+  const previousAnalysis = allAnalyses && allAnalyses.length >= 2
+    ? allAnalyses.find((a) => a.id !== analysis?.id)
+    : null;
+  const previousScore = previousAnalysis?.skin_score?.overall;
+  const currentScore = skinScore?.overall;
+  const scoreDelta = currentScore && currentScore > 0 && previousScore && previousScore > 0
+    ? currentScore - previousScore
+    : null;
 
   return (
     <Layout>
