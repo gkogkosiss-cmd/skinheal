@@ -28,9 +28,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card/50 p-6 gap-2 fixed h-full">
         <Link to="/" className="flex items-center gap-2.5 mb-8 px-2">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-            <Leaf className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src={skinhealLogo} alt="SkinHeal" className="w-9 h-9 rounded-xl" />
           <span className="font-serif text-xl text-foreground">SkinHeal</span>
         </Link>
 
