@@ -8,7 +8,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
-const ease = [0.22, 1, 0.36, 1] as const;
+const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 const steps = [
   { icon: Upload, title: "Upload Your Photo", desc: "Take a clear photo of your skin concern — face, back, arms, or any area." },
