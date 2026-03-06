@@ -183,6 +183,47 @@ export type Database = {
           },
         ]
       }
+      progress_photos: {
+        Row: {
+          analysis_id: string | null
+          created_at: string
+          date_uploaded: string
+          id: string
+          photo_url: string
+          progress_summary: Json
+          score_estimate: number | null
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          created_at?: string
+          date_uploaded?: string
+          id?: string
+          photo_url: string
+          progress_summary?: Json
+          score_estimate?: number | null
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          created_at?: string
+          date_uploaded?: string
+          id?: string
+          photo_url?: string
+          progress_summary?: Json
+          score_estimate?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "progress_photos_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_feedback: {
         Row: {
           analysis_id: string | null
