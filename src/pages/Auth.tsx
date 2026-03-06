@@ -34,10 +34,8 @@ const Auth = () => {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin + redirectTo },
         });
         if (error) throw error;
-        toast({ title: "Check your email", description: "We've sent you a confirmation link." });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
