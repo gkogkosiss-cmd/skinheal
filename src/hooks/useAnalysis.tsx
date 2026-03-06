@@ -78,6 +78,8 @@ export interface NutritionPlan {
   foods_to_focus: Array<{ food: string; why: string }>;
   foods_to_limit: Array<{ food: string; why: string }>;
   one_day_template: MealTemplate;
+  seven_day_meal_plan: MealPlanDay[];
+  meal_plan_principles: string[];
   hydration: { target: string; tips: string[] };
   optional_triggers_to_test: Array<{ trigger: string; how_to_test_safely: string }>;
 }
