@@ -106,7 +106,7 @@ const Profile = () => {
 
   return (
     <Layout>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
+      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6 min-w-0">
         {/* Header */}
         <motion.div variants={fadeUp}>
           <h1 className="text-3xl font-serif text-foreground">Profile</h1>
