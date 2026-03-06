@@ -1,0 +1,1 @@
+ALTER TABLE public.analysis_records ADD COLUMN IF NOT EXISTS skin_score jsonb NOT NULL DEFAULT '{}'::jsonb;
