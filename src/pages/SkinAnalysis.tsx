@@ -225,6 +225,7 @@ const SkinAnalysis = () => {
       if (data.error) throw new Error(data.error);
 
       const generated = data as AnalysisResult;
+      if (data.bodyArea) setBodyArea(data.bodyArea);
       await saveAnalysis(generated);
 
       setResults(generated);
