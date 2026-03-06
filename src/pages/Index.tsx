@@ -361,13 +361,13 @@ const Index = () => {
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
               <Leaf className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-serif text-foreground">The Skin Guy AI</span>
+            <span className="font-serif text-foreground">SkinHeal</span>
           </div>
           <div className="flex items-center gap-6 text-xs text-muted-foreground">
             <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
           </div>
-          <p className="text-xs text-muted-foreground">© 2026 The Skin Guy AI</p>
+          <p className="text-xs text-muted-foreground">© 2026 SkinHeal</p>
         </div>
       </footer>
     </div>

@@ -58,7 +58,7 @@ const PrivacyPolicy = () => {
           <section>
             <h2 className="font-serif text-xl mb-3">5. AI-Generated Guidance</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              All guidance provided by The Skin Guy AI is generated using artificial intelligence and is intended for educational and informational purposes only. It does not constitute medical advice, diagnosis, or treatment. The AI system provides wellness insights based on visual analysis and general dermatological knowledge.
+              All guidance provided by SkinHeal is generated using artificial intelligence and is intended for educational and informational purposes only. It does not constitute medical advice, diagnosis, or treatment. The AI system provides wellness insights based on visual analysis and general dermatological knowledge.
             </p>
           </section>
 

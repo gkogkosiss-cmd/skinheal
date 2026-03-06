@@ -119,7 +119,7 @@ export const ShareableProgressCard = ({
           </div>
 
           <p style={{ fontSize: "11px", opacity: 0.5, marginTop: "20px", textAlign: "center" }}>
-            Analyzed with The Skin Guy AI
+            Analyzed with SkinHeal AI
           </p>
         </div>
 
