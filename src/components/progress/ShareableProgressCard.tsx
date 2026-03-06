@@ -58,7 +58,7 @@ export const ShareableProgressCard = ({
       link.click();
     } catch {
       // Fallback: copy text
-      const text = `My Skin Progress\nWeek ${weekStart} → Week ${weekEnd}\nScore: ${oldScore.overall} → ${newScore.overall}\nAnalyzed with The Skin Guy AI`;
+      const text = `My Skin Progress\nWeek ${weekStart} → Week ${weekEnd}\nScore: ${oldScore.overall} → ${newScore.overall}\nAnalyzed with SkinHeal AI`;
       await navigator.clipboard?.writeText(text);
     }
     setDownloading(false);
