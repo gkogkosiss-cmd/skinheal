@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Sun, Moon, Calendar, AlertTriangle, Clock, Shield, Sparkles, ArrowRight, Circle, AlertCircle, Ban } from "lucide-react";
+import { Sun, Moon, Calendar, AlertTriangle, Clock, Shield, Sparkles, ArrowRight, AlertCircle, Ban } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
+import { DailyHealingChecklist } from "@/components/dashboard/DailyHealingChecklist";
+import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 
 const defaultMorning = [
   { step: 1, action: "Rinse face with lukewarm water", note: "Preserve natural oils — skip cleanser in the morning" },
@@ -39,13 +41,6 @@ const HealingProtocol = () => {
     ? protocol.triggersToAvoid
     : ["Harsh scrubs or exfoliants", "Fragranced products near affected areas", "Touching or picking at the skin", "Very hot water on the face"];
 
-  const dailyChecklist = protocol?.dailyChecklist?.length
-    ? protocol.dailyChecklist
-    : [
-        ...morningSteps.map((s: any) => s.action),
-        ...eveningSteps.map((s: any) => s.action),
-        ...(weeklyTreatments.length > 0 ? [weeklyTreatments[0]] : []),
-      ];
 
   return (
     <Layout>
@@ -90,18 +85,8 @@ const HealingProtocol = () => {
             </div>
           )}
 
-          {/* Daily Checklist */}
-          <div className="card-elevated">
-            <h3 className="font-serif text-xl mb-4">Daily Healing Checklist</h3>
-            <div className="space-y-3">
-              {dailyChecklist.map((item: string, i: number) => (
-                <label key={i} className="flex items-center gap-3 cursor-pointer group">
-                  <Circle className="w-5 h-5 text-border group-hover:text-primary/50 transition-colors shrink-0" />
-                  <span className="text-sm text-foreground">{item}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          {/* Interactive Daily Checklist */}
+          <DailyHealingChecklist />
 
           {/* Morning Routine */}
           <div className="card-elevated">
@@ -209,6 +194,13 @@ const HealingProtocol = () => {
               <span className="font-medium text-foreground">Red flags to watch for:</span> fever, pus or discharge, severe swelling, rapidly spreading rash, eye involvement, or intense pain. These warrant prompt medical attention.
             </p>
           </div>
+
+          {/* Feedback */}
+          {hasAnalysis && (
+            <div className="card-elevated">
+              <FeedbackWidget context="healing-protocol" />
+            </div>
+          )}
 
           {/* Disclaimer */}
           <div className="flex items-start gap-2 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">

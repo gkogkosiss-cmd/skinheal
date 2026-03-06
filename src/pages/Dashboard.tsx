@@ -10,7 +10,8 @@ import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAllAnalyses } from "@/hooks/useAnalysis";
 import { SkinScoreCard } from "@/components/dashboard/SkinScoreCard";
 import { WeeklyCheckReminder } from "@/components/dashboard/WeeklyCheckReminder";
-import { DailyHealingPlan } from "@/components/dashboard/DailyHealingPlan";
+import { DailyHealingChecklist } from "@/components/dashboard/DailyHealingChecklist";
+import { DailyProgressIndicator } from "@/components/dashboard/DailyProgressIndicator";
 
 const quickActions = [
   { path: "/analysis", label: "Skin Analysis", icon: ScanFace, color: "bg-accent" },
@@ -71,6 +72,13 @@ const Dashboard = () => {
             </Link>
           </div>
         </div>
+
+        {/* Daily Progress Indicator */}
+        {hasAnalysis && (
+          <div className="mb-6">
+            <DailyProgressIndicator />
+          </div>
+        )}
 
         {/* Skin Score + Weekly Check (side by side on desktop) */}
         <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -143,9 +151,9 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Daily Healing Plan */}
+        {/* Daily Healing Checklist */}
         <div className="mb-6">
-          <DailyHealingPlan plan={analysis?.daily_plan} />
+          <DailyHealingChecklist />
         </div>
 
         {/* Progress Snapshot */}

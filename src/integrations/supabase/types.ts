@@ -145,6 +145,82 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_tasks: {
+        Row: {
+          analysis_id: string | null
+          completed: boolean
+          created_at: string
+          date: string
+          id: string
+          task_name: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          completed?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          task_name: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          completed?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          task_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_tasks_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_feedback: {
+        Row: {
+          analysis_id: string | null
+          context: string
+          created_at: string
+          feedback_text: string | null
+          helpful: boolean | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          context?: string
+          created_at?: string
+          feedback_text?: string | null
+          helpful?: boolean | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          context?: string
+          created_at?: string
+          feedback_text?: string | null
+          helpful?: boolean | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_feedback_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_state: {
         Row: {
           latest_analysis_id: string | null

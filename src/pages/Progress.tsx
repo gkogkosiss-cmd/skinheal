@@ -11,6 +11,8 @@ import { allAnalysesQueryKey, latestAnalysisQueryKey } from "@/hooks/useAnalysis
 import { useToast } from "@/hooks/use-toast";
 import { SkinScoreCard } from "@/components/dashboard/SkinScoreCard";
 import { ShareableProgressCard } from "@/components/progress/ShareableProgressCard";
+import { ScoreHistoryChart } from "@/components/progress/ScoreHistoryChart";
+import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -119,6 +121,11 @@ const Progress = () => {
           {/* Score Overview */}
           {latestAnalysis?.skin_score?.overall > 0 && (
             <SkinScoreCard score={latestAnalysis.skin_score} />
+          )}
+
+          {/* Score History Graph */}
+          {analyses && analyses.length >= 2 && (
+            <ScoreHistoryChart analyses={analyses} />
           )}
 
           {/* Share Progress */}
@@ -351,6 +358,13 @@ const Progress = () => {
               <p className="text-xs text-muted-foreground">
                 For best results, upload a new photo every week in similar lighting and angle. This helps track changes accurately over time.
               </p>
+            </div>
+          )}
+
+          {/* Feedback */}
+          {hasAnalyses && (
+            <div className="card-elevated">
+              <FeedbackWidget context="progress" />
             </div>
           )}
 
