@@ -63,6 +63,8 @@ type AIHealingProtocol = {
     dinner?: string;
     snack?: string;
   };
+  sevenDayMealPlan?: Array<{ day: string; breakfast: string; lunch: string; dinner: string; snack: string }>;
+  mealPlanPrinciples?: string[];
   commonTriggerFoods?: TriggerFood[];
   hydrationGuidance?: string;
   gutExplanation?: string;
