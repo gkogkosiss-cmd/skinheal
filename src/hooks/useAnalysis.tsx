@@ -35,6 +35,14 @@ export interface GutDayPlan {
   focus: string;
 }
 
+export interface MealPlanDay {
+  day: string;
+  breakfast: string;
+  lunch: string;
+  dinner: string;
+  snack: string;
+}
+
 export interface HealingProtocolData {
   whatIsHappening?: string;
   morningRoutine: string[];
@@ -47,6 +55,8 @@ export interface HealingProtocolData {
   foodsToEat: FoodItem[];
   foodsToAvoid: FoodItem[];
   mealTemplate?: MealTemplate;
+  sevenDayMealPlan?: MealPlanDay[];
+  mealPlanPrinciples?: string[];
   commonTriggerFoods?: TriggerFood[];
   hydrationGuidance?: string;
   gutExplanation?: string;
