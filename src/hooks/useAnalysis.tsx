@@ -417,6 +417,60 @@ export const useAllAnalyses = () => {
   });
 };
 
+export const deleteAnalysisRecord = async (analysisId: string, userId: string) => {
+  // Get the record to find photo paths
+  const { data: record } = await supabase
+    .from("analysis_records" as any)
+    .select("photo_url, photo_urls")
+    .eq("id", analysisId)
+    .eq("user_id", userId)
+    .single();
+
+  const rec = record as any;
+
+  // Delete photos from storage
+  const paths: string[] = [];
+  if (rec?.photo_url) paths.push(rec.photo_url);
+  if (Array.isArray(rec?.photo_urls)) paths.push(...rec.photo_urls);
+  const uniquePaths = [...new Set(paths)].filter(Boolean);
+  if (uniquePaths.length > 0) {
+    await supabase.storage.from("skin-photos").remove(uniquePaths);
+  }
+
+  // Delete the record
+  const { error } = await supabase
+    .from("analysis_records" as any)
+    .delete()
+    .eq("id", analysisId)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+
+  // Check if this was the current analysis
+  const { data: stateData } = await supabase
+    .from("user_state" as any)
+    .select("latest_analysis_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const state = stateData as any;
+  if (state?.latest_analysis_id === analysisId) {
+    // Set newest remaining as current
+    const { data: newest } = await supabase
+      .from("analysis_records" as any)
+      .select("id")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const newId = (newest as any)?.id || null;
+    await supabase
+      .from("user_state" as any)
+      .upsert({ user_id: userId, latest_analysis_id: newId }, { onConflict: "user_id" });
+  }
+};
+
 export const getSignedImageUrl = async (path: string) => {
   const { data } = await supabase.storage
     .from("skin-photos")
