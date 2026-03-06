@@ -308,6 +308,8 @@ const mapRecordToAnalysis = (record: any): Analysis => {
         dinner: nutritionRaw?.one_day_template?.dinner || "",
         snack: nutritionRaw?.one_day_template?.snack || "",
       },
+      seven_day_meal_plan: Array.isArray(nutritionRaw.seven_day_meal_plan) ? nutritionRaw.seven_day_meal_plan : [],
+      meal_plan_principles: safeStringArray(nutritionRaw.meal_plan_principles),
       hydration: {
         target: nutritionRaw?.hydration?.target || "",
         tips: safeStringArray(nutritionRaw?.hydration?.tips),
