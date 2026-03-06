@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ScanFace, HeartPulse, Apple, MessageCircle, ArrowRight, Leaf, Shield,
+  ScanFace, HeartPulse, Apple, MessageCircle, ArrowRight, Shield,
   Upload, Sparkles, ClipboardCheck, TrendingUp, Lock, Brain, Eye,
   ChevronRight, CheckCircle2
 } from "lucide-react";
