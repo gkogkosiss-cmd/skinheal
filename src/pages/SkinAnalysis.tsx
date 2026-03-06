@@ -67,6 +67,7 @@ const SkinAnalysis = () => {
   const [images, setImages] = useState<Array<{ file: File; preview: string; base64: string }>>([]);
   const [dynamicQuestions, setDynamicQuestions] = useState<DynamicQuestion[]>([]);
   const [visualFeatures, setVisualFeatures] = useState<string[]>([]);
+  const [bodyArea, setBodyArea] = useState<string>("face");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [currentQ, setCurrentQ] = useState(0);
   const [healthQ, setHealthQ] = useState(0);
