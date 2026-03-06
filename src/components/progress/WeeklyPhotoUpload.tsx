@@ -169,9 +169,9 @@ export const WeeklyPhotoUpload = () => {
                     <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                     <button
                       onClick={() => removeFile(i)}
-                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-background/80 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                      className="absolute top-1 right-1 w-7 h-7 rounded-full bg-background/80 flex items-center justify-center active:bg-destructive active:text-destructive-foreground transition-colors"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
