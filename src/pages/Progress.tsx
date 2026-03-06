@@ -125,8 +125,8 @@ const Progress = () => {
             <SkinScoreCard score={latestAnalysis.skin_score} />
           )}
 
-          {/* Score History Graph */}
-          {analyses && analyses.length >= 2 && (
+          {/* Score History Graph — shows with analyses + progress photos */}
+          {analyses && analyses.length >= 1 && (
             <ScoreHistoryChart analyses={analyses} />
           )}
 
