@@ -115,6 +115,7 @@ export interface Analysis {
   created_at: string;
   image_url: string | null;
   photo_url: string | null;
+  photo_urls: string[];
   visual_features: string[];
   image_observations: string[];
   diagnostic_answers: Record<string, string>;
