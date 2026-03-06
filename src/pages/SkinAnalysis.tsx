@@ -245,22 +245,37 @@ const SkinAnalysis = () => {
   }, []);
 
   const startAnalysis = async () => {
-    if (images.length === 0) return;
+    if (images.length === 0 || isSelecting) return;
     setStep("analyzing-photo");
 
     try {
-      const imagesBase64 = images.map((img) => img.base64);
+      const imagesBase64 = images.map((img) => ({ base64: img.base64, mimeType: img.mimeType }));
+      console.info("[SkinAnalysis] starting image scan", { imageCount: imagesBase64.length });
+
       const { data, error } = await supabase.functions.invoke("analyze-skin", {
         body: { imagesBase64 },
       });
+
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
-      setDynamicQuestions(data.dynamicQuestions || []);
-      setVisualFeatures(data.visualFeatures || []);
-      if (data.bodyArea) setBodyArea(data.bodyArea);
+      if (data?.error) throw new Error(data.error);
+
+      const nextQuestions = Array.isArray(data?.dynamicQuestions) ? data.dynamicQuestions : [];
+      setDynamicQuestions(nextQuestions);
+      setVisualFeatures(Array.isArray(data?.visualFeatures) ? data.visualFeatures : []);
+
+      if (data?.bodyArea) setBodyArea(data.bodyArea);
+      setCurrentQ(0);
+
+      if (nextQuestions.length === 0) {
+        console.warn("[SkinAnalysis] dynamic question generation returned no questions; continuing to health questions");
+        setStep("health-questions");
+        return;
+      }
+
       setStep("questions");
     } catch (err: any) {
-      toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
+      console.error("[SkinAnalysis] image scan failed", err);
+      toast({ title: "Analysis failed", description: err.message || "Could not start analysis. Please retry.", variant: "destructive" });
       setStep("upload");
     }
   };
