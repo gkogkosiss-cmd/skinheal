@@ -195,7 +195,7 @@ If the user previously asked about something in this conversation, reference it 
   return (
     <Layout>
       <PremiumGate featureName="AI Skin Coach">
-      <div className="flex flex-col h-[calc(100vh-10rem)] sm:h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)]">
+      <div className="flex flex-col h-[calc(100dvh-10rem)] sm:h-[calc(100dvh-8rem)] lg:h-[calc(100dvh-6rem)] min-w-0">
         {/* Header */}
         <div className="mb-3 sm:mb-4 flex items-start justify-between">
           <div>
