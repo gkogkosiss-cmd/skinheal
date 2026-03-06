@@ -15,6 +15,7 @@ import Lifestyle from "./pages/Lifestyle";
 import Progress from "./pages/Progress";
 import AICoach from "./pages/AICoach";
 import Auth from "./pages/Auth";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
