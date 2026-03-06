@@ -423,3 +423,12 @@ export const getSignedImageUrl = async (path: string) => {
     .createSignedUrl(path, 3600);
   return data?.signedUrl || null;
 };
+
+export const getSignedImageUrls = async (paths: string[]) => {
+  const results: Record<string, string> = {};
+  for (const path of paths) {
+    const url = await getSignedImageUrl(path);
+    if (url) results[path] = url;
+  }
+  return results;
+};
