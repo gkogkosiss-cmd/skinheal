@@ -65,7 +65,7 @@ export const ShareableProgressCard = ({
   };
 
   const handleShare = async () => {
-    const text = `My Skin Progress 🌿\n\nWeek ${weekStart} → Week ${weekEnd}\nSkin Health Score: ${oldScore.overall} → ${newScore.overall}\n\n${factorDiffs.map(f => `${f.label} ${f.change > 0 ? "↑" : "↓"} ${Math.abs(f.change)}%`).join("\n")}\n\nAnalyzed with The Skin Guy AI`;
+    const text = `My Skin Progress 🌿\n\nWeek ${weekStart} → Week ${weekEnd}\nSkin Health Score: ${oldScore.overall} → ${newScore.overall}\n\n${factorDiffs.map(f => `${f.label} ${f.change > 0 ? "↑" : "↓"} ${Math.abs(f.change)}%`).join("\n")}\n\nAnalyzed with SkinHeal AI`;
     
     if (navigator.share) {
       try {
