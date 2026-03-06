@@ -2,13 +2,14 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Upload, Camera, ChevronRight, AlertCircle, Sparkles, Loader2, ArrowLeft, Sun, Moon, Calendar, Utensils, Ban, Heart, Activity } from "lucide-react";
+import { Upload, Camera, ChevronRight, AlertCircle, Sparkles, Loader2, ArrowLeft, Sun, Moon, Calendar, Utensils, Ban, Heart, Activity, X, ImagePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { allAnalysesQueryKey, latestAnalysisQueryKey, setLatestAnalysisId } from "@/hooks/useAnalysis";
 import { normalizeAnalysisRecordPayload } from "@/lib/analysisRecord";
+
 type Step = "upload" | "analyzing-photo" | "questions" | "health-questions" | "loading" | "results";
 
 interface DynamicQuestion {
@@ -51,6 +52,8 @@ interface AnalysisResult {
   healingProtocol: HealingProtocol;
 }
 
+const MAX_IMAGES = 5;
+
 const healthQuestions = [
   { id: "sugar", question: "Do you frequently consume sugary foods or drinks?", options: ["Yes", "No", "Sometimes"] },
   { id: "digestion", question: "Do you experience digestive issues (bloating, gas, irregular bowels)?", options: ["Yes", "No", "Sometimes"] },
@@ -61,9 +64,7 @@ const healthQuestions = [
 
 const SkinAnalysis = () => {
   const [step, setStep] = useState<Step>("upload");
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [images, setImages] = useState<Array<{ file: File; preview: string; base64: string }>>([]);
   const [dynamicQuestions, setDynamicQuestions] = useState<DynamicQuestion[]>([]);
   const [visualFeatures, setVisualFeatures] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -77,36 +78,52 @@ const SkinAnalysis = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const processImage = (file: File) => {
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string;
-      setImagePreview(dataUrl);
-      const base64 = dataUrl.split(",")[1];
-      setImageBase64(base64);
-      setStep("analyzing-photo");
+  const addImages = (files: FileList | File[]) => {
+    const remaining = MAX_IMAGES - images.length;
+    const filesToAdd = Array.from(files).slice(0, remaining);
 
-      try {
-        const { data, error } = await supabase.functions.invoke("analyze-skin", {
-          body: { imageBase64: base64 },
+    filesToAdd.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        const base64 = dataUrl.split(",")[1];
+        setImages((prev) => {
+          if (prev.length >= MAX_IMAGES) return prev;
+          return [...prev, { file, preview: dataUrl, base64 }];
         });
-        if (error) throw error;
-        if (data.error) throw new Error(data.error);
-        setDynamicQuestions(data.dynamicQuestions || []);
-        setVisualFeatures(data.visualFeatures || []);
-        setStep("questions");
-      } catch (err: any) {
-        toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
-        setStep("upload");
-      }
-    };
-    reader.readAsDataURL(file);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processImage(file);
+    const files = e.target.files;
+    if (files && files.length > 0) addImages(files);
+    e.target.value = "";
+  };
+
+  const startAnalysis = async () => {
+    if (images.length === 0) return;
+    setStep("analyzing-photo");
+
+    try {
+      const imagesBase64 = images.map((img) => img.base64);
+      const { data, error } = await supabase.functions.invoke("analyze-skin", {
+        body: { imagesBase64 },
+      });
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      setDynamicQuestions(data.dynamicQuestions || []);
+      setVisualFeatures(data.visualFeatures || []);
+      setStep("questions");
+    } catch (err: any) {
+      toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
+      setStep("upload");
+    }
   };
 
   const handleDynamicAnswer = (answer: string) => {
@@ -133,20 +150,19 @@ const SkinAnalysis = () => {
   const saveAnalysis = async (analysisData: AnalysisResult) => {
     if (!user) throw new Error("Please log in before running an analysis.");
 
-    let imageUrl: string | null = null;
-
-    if (imageFile) {
-      const ext = imageFile.name.split(".").pop() || "jpg";
-      const path = `${user.id}/${Date.now()}.${ext}`;
+    // Upload all images
+    const photoUrls: string[] = [];
+    for (const img of images) {
+      const ext = img.file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("skin-photos")
-        .upload(path, imageFile);
-
+        .upload(path, img.file);
       if (uploadError) {
-        throw new Error("Photo upload failed. Please try again.");
+        console.error("Photo upload failed:", uploadError);
+        continue;
       }
-
-      imageUrl = path;
+      photoUrls.push(path);
     }
 
     const normalized = normalizeAnalysisRecordPayload({
@@ -159,7 +175,8 @@ const SkinAnalysis = () => {
       .from("analysis_records" as any)
       .insert({
         user_id: user.id,
-        photo_url: imageUrl,
+        photo_url: photoUrls[0] || null,
+        photo_urls: photoUrls,
         image_observations: normalized.image_observations,
         answers: normalized.answers,
         results: normalized.results,
@@ -197,8 +214,9 @@ const SkinAnalysis = () => {
     setStep("loading");
 
     try {
+      const imagesBase64 = images.map((img) => img.base64);
       const { data, error } = await supabase.functions.invoke("analyze-skin", {
-        body: { imageBase64, answers },
+        body: { imagesBase64, answers },
       });
 
       if (error) throw error;
@@ -226,11 +244,11 @@ const SkinAnalysis = () => {
     <Layout>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <p className="text-sm text-primary font-medium mb-1">AI Skin Analysis</p>
-        <h1 className="font-serif text-3xl md:text-4xl mb-2">Identify your condition</h1>
-        <p className="text-muted-foreground mb-8">Upload a clear photo and answer a few questions for an AI-powered analysis.</p>
+        <h1 className="font-serif text-3xl md:text-4xl mb-2">Analyze your skin</h1>
+        <p className="text-muted-foreground mb-8">Upload up to 5 clear photos from different angles for the most thorough analysis.</p>
 
         {/* Hidden file inputs */}
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+        <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
 
         <AnimatePresence mode="wait">
@@ -238,35 +256,121 @@ const SkinAnalysis = () => {
           {step === "upload" && (
             <motion.div key="upload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
               <div className="card-elevated">
-                <div className="flex flex-col items-center py-12 gap-6">
-                  <div className="w-20 h-20 rounded-2xl bg-accent flex items-center justify-center">
-                    <Upload className="w-8 h-8 text-primary" />
+                {/* Image previews */}
+                {images.length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-medium">{images.length} / {MAX_IMAGES} photos selected</p>
+                      <div className="w-24 bg-muted rounded-full h-1.5">
+                        <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${(images.length / MAX_IMAGES) * 100}%` }} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                      {images.map((img, i) => (
+                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
+                          <img src={img.preview} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => removeImage(i)}
+                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-background/80 text-[10px] font-medium">{i + 1}</span>
+                        </div>
+                      ))}
+                      {images.length < MAX_IMAGES && (
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 hover:border-primary/30 transition-colors"
+                        >
+                          <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">Add</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="font-serif text-xl mb-1">Upload a clear photo of your skin</p>
-                    <p className="text-sm text-muted-foreground max-w-sm">Take a clear photo of the affected area in natural lighting for the most accurate analysis.</p>
+                )}
+
+                {/* Upload area */}
+                {images.length === 0 && (
+                  <div className="flex flex-col items-center py-12 gap-6">
+                    <div className="w-20 h-20 rounded-2xl bg-accent flex items-center justify-center">
+                      <Upload className="w-8 h-8 text-primary" />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-serif text-xl mb-1">Upload clear photos of your skin</p>
+                      <p className="text-sm text-muted-foreground max-w-sm">
+                        Upload up to 5 clear photos of the affected area from different angles or lighting for a more complete analysis.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+                      <button
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                      >
+                        <Camera className="w-4 h-4" />
+                        Take Photo
+                      </button>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Upload Photos
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+                )}
+
+                {/* Action buttons when images selected */}
+                {images.length > 0 && (
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
-                      onClick={() => cameraInputRef.current?.click()}
+                      onClick={startAnalysis}
                       className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
                     >
-                      <Camera className="w-4 h-4" />
-                      Take Photo
+                      <Sparkles className="w-4 h-4" />
+                      Analyze {images.length} Photo{images.length > 1 ? "s" : ""}
                     </button>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Upload Photo
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => cameraInputRef.current?.click()}
+                        disabled={images.length >= MAX_IMAGES}
+                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-40"
+                      >
+                        <Camera className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={images.length >= MAX_IMAGES}
+                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-40"
+                      >
+                        <ImagePlus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tips */}
+              <div className="mt-4 p-4 rounded-xl bg-secondary text-xs text-muted-foreground space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-foreground mb-1">Tips for better results</p>
+                    <ul className="space-y-1">
+                      <li>- Use natural lighting, avoid flash</li>
+                      <li>- Capture close-up and wider views</li>
+                      <li>- Show the affected area from different angles</li>
+                      <li>- Keep the camera steady and focused</li>
+                    </ul>
                   </div>
                 </div>
               </div>
-              <div className="flex items-start gap-2 mt-4 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
+
+              <div className="flex items-start gap-2 mt-3 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <p>Your photos are stored securely in your account. This is educational guidance, not a medical diagnosis.</p>
+                <p>This platform provides educational skin wellness insights and is not medical advice. If symptoms are severe, worsening, painful, infected, spreading, or persistent, consult a dermatologist.</p>
               </div>
             </motion.div>
           )}
@@ -275,14 +379,21 @@ const SkinAnalysis = () => {
           {step === "analyzing-photo" && (
             <motion.div key="analyzing-photo" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="card-elevated">
               <div className="flex flex-col items-center py-16 gap-6">
-                {imagePreview && (
-                  <div className="w-32 h-32 rounded-2xl overflow-hidden border border-border">
-                    <img src={imagePreview} alt="Uploaded skin" className="w-full h-full object-cover" />
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  {images.slice(0, 3).map((img, i) => (
+                    <div key={i} className="w-20 h-20 rounded-xl overflow-hidden border border-border">
+                      <img src={img.preview} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                  {images.length > 3 && (
+                    <div className="w-20 h-20 rounded-xl border border-border flex items-center justify-center bg-muted">
+                      <span className="text-sm font-medium text-muted-foreground">+{images.length - 3}</span>
+                    </div>
+                  )}
+                </div>
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                  <p className="font-serif text-xl">Scanning your photo…</p>
+                  <p className="font-serif text-xl">Scanning your {images.length > 1 ? `${images.length} photos` : "photo"}…</p>
                   <p className="text-sm text-muted-foreground">Detecting visual features and preparing questions</p>
                 </div>
               </div>
@@ -385,215 +496,23 @@ const SkinAnalysis = () => {
                 </div>
                 <div className="text-center">
                   <p className="font-serif text-2xl mb-2">Analyzing your skin…</p>
-                  <p className="text-sm text-muted-foreground max-w-sm">Identifying patterns, inflammation markers, and potential root causes.</p>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Reviewing {images.length > 1 ? `all ${images.length} photos` : "your photo"}, identifying patterns, inflammation markers, and potential root causes.
+                  </p>
                 </div>
               </div>
             </motion.div>
           )}
 
-          {/* STEP 6: Results */}
+          {/* STEP 6: Results — user is redirected to dashboard so this rarely shows */}
           {step === "results" && results && (
             <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-              {/* Conditions */}
               <div className="card-elevated gradient-sage">
                 <div className="flex items-center gap-2 mb-4">
                   <Sparkles className="w-5 h-5 text-primary" />
-                  <h2 className="font-serif text-2xl">Analysis Results</h2>
+                  <h2 className="font-serif text-2xl">Analysis Complete</h2>
                 </div>
-                <p className="text-sm text-muted-foreground mb-6">Based on your photo and responses, here is our AI assessment:</p>
-                <div className="space-y-4">
-                  {results.conditions.map((c, i) => (
-                    <motion.div
-                      key={c.condition}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.15 }}
-                      className="rounded-xl border border-border bg-background p-5"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-serif text-lg">{c.condition}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${c.probability > 50 ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
-                          {c.probability}% likelihood
-                        </span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2 mb-3">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${c.probability}%` }}
-                          transition={{ delay: 0.3 + i * 0.15, duration: 0.8 }}
-                          className="bg-primary h-2 rounded-full"
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{c.explanation}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Biological explanation */}
-              <div className="card-elevated">
-                <h3 className="font-serif text-xl mb-4">What's happening in your skin</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{results.biologicalExplanation}</p>
-              </div>
-
-              {/* Root causes */}
-              {results.rootCauses && results.rootCauses.length > 0 && (
-                <div className="card-elevated">
-                  <h3 className="font-serif text-xl mb-4">Root Causes</h3>
-                  <div className="space-y-3">
-                    {results.rootCauses.map((rc, i) => (
-                      <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.1 }} className="p-4 rounded-xl bg-accent/50">
-                        <p className="font-medium text-sm mb-1">{rc.title}</p>
-                        <p className="text-sm text-muted-foreground">{rc.description}</p>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Healing Protocol */}
-              {results.healingProtocol && (
-                <>
-                  <div className="card-elevated">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Sun className="w-5 h-5 text-primary" />
-                      <h3 className="font-serif text-xl">Morning Routine</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {results.healingProtocol.morningRoutine.map((s, i) => (
-                        <div key={i} className="flex items-start gap-3 text-sm">
-                          <span className="w-6 h-6 rounded-full bg-accent flex items-center justify-center text-xs font-semibold text-accent-foreground shrink-0">{i + 1}</span>
-                          <p className="text-muted-foreground pt-0.5">{s}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="card-elevated">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Moon className="w-5 h-5 text-primary" />
-                      <h3 className="font-serif text-xl">Evening Routine</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {results.healingProtocol.eveningRoutine.map((s, i) => (
-                        <div key={i} className="flex items-start gap-3 text-sm">
-                          <span className="w-6 h-6 rounded-full bg-accent flex items-center justify-center text-xs font-semibold text-accent-foreground shrink-0">{i + 1}</span>
-                          <p className="text-muted-foreground pt-0.5">{s}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="card-elevated">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Calendar className="w-5 h-5 text-primary" />
-                      <h3 className="font-serif text-xl">Weekly Treatments</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {results.healingProtocol.weeklyTreatments.map((s, i) => (
-                        <p key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className="text-primary mt-0.5">•</span> {s}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="card-elevated">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Utensils className="w-5 h-5 text-primary" />
-                        <h3 className="font-serif text-lg">Foods That Help</h3>
-                      </div>
-                      <div className="space-y-3">
-                        {results.healingProtocol.foodsToEat.map((f, i) => (
-                          <div key={i}>
-                            <p className="text-sm font-medium">{f.food}</p>
-                            <p className="text-xs text-muted-foreground">{f.reason}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="card-elevated">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Ban className="w-5 h-5 text-destructive" />
-                        <h3 className="font-serif text-lg">Foods to Avoid</h3>
-                      </div>
-                      <div className="space-y-3">
-                        {results.healingProtocol.foodsToAvoid.map((f, i) => (
-                          <div key={i}>
-                            <p className="text-sm font-medium">{f.food}</p>
-                            <p className="text-xs text-muted-foreground">{f.reason}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="card-elevated">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Heart className="w-5 h-5 text-primary" />
-                      <h3 className="font-serif text-xl">Gut Health Support</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {results.healingProtocol.gutHealth.map((s, i) => (
-                        <p key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className="text-primary mt-0.5">•</span> {s}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="card-elevated">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Activity className="w-5 h-5 text-primary" />
-                      <h3 className="font-serif text-xl">Lifestyle Recommendations</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {results.healingProtocol.lifestyle.map((s, i) => (
-                        <p key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className="text-primary mt-0.5">•</span> {s}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="card-elevated gradient-warm">
-                    <h3 className="font-serif text-xl mb-3">Expected Timeline</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{results.healingProtocol.timeline}</p>
-                  </div>
-                </>
-              )}
-
-              {/* Disclaimer */}
-              <div className="flex items-start gap-2 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                This platform provides educational skin wellness insights and is not medical advice. Consult a dermatologist for professional assessment.
-              </div>
-
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => navigate("/dashboard")}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-                >
-                  View Dashboard
-                </button>
-                <button
-                  onClick={() => {
-                    setStep("upload");
-                    setAnswers({});
-                    setCurrentQ(0);
-                    setHealthQ(0);
-                    setResults(null);
-                    setImageBase64(null);
-                    setImagePreview(null);
-                    setImageFile(null);
-                  }}
-                  className="flex items-center gap-2 text-sm text-primary font-medium hover:underline"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Start a new analysis
-                </button>
+                <p className="text-sm text-muted-foreground">Your analysis has been saved. Redirecting to your dashboard…</p>
               </div>
             </motion.div>
           )}

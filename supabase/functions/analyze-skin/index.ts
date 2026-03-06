@@ -6,29 +6,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  try {
-    const { imageBase64, answers } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
-    const messages: any[] = [
-      {
-        role: "system",
-        content: `You are an evidence-based skin wellness educator for "The Skin Guy AI". You analyze skin photos and user responses to provide educational wellness insights.
+const SYSTEM_PROMPT = `You are an evidence-based skin wellness educator for "The Skin Guy AI". You analyze skin photos and user responses to provide educational wellness insights.
 
 CRITICAL RULES:
-- NEVER diagnose. Use "possible", "likely", "may suggest" — never "you have" or "this is definitely".
+- NEVER diagnose. Use "possible", "likely", "may suggest", "consistent with" — never "you have" or "this is definitely".
 - Present probabilities as ranges of likelihood, not certainties.
 - All guidance must be cautious, evidence-informed, and practical.
 - Keep language simple, clear, and human. Avoid medical jargon.
 - Focus on actionable daily habits over product recommendations.
 - Only suggest skincare products when truly necessary (cleanser, moisturizer, specific treatment if relevant). Keep it minimal.
 - Never use the asterisk symbol (*) in any text output.
+- When multiple images are provided, use ALL of them together to improve confidence, detect patterns across angles, and check consistency.
 
-When given a skin photo and questionnaire answers, respond with a JSON object using this exact structure:
+When given skin photo(s) and questionnaire answers, respond with a JSON object using this exact structure:
 {
   "visualFeatures": ["redness", "flaking", ...],
   "dynamicQuestions": [
@@ -47,20 +37,20 @@ When given a skin photo and questionnaire answers, respond with a JSON object us
   "skinScore": {
     "overall": 62,
     "factors": {
-      "inflammation": {"score": 72, "explanation": "Brief explanation of how inflammation markers appear in the image and answers."},
-      "gut_health": {"score": 58, "explanation": "Brief explanation based on dietary and digestive answers."},
-      "diet_quality": {"score": 65, "explanation": "Brief explanation based on food habits reported."},
-      "lifestyle": {"score": 70, "explanation": "Brief explanation based on sleep, stress, exercise patterns."},
-      "skin_barrier": {"score": 60, "explanation": "Brief explanation of barrier health based on visual cues."}
+      "inflammation": {"score": 72, "explanation": "Your images show visible redness and irritation that may reflect ongoing skin inflammation."},
+      "gut_health": {"score": 58, "explanation": "Based on your dietary and digestive answers, gut health may be contributing to skin issues."},
+      "diet_quality": {"score": 65, "explanation": "Your reported eating patterns suggest room for more anti-inflammatory foods."},
+      "lifestyle": {"score": 70, "explanation": "Sleep and stress patterns you reported may be affecting skin recovery."},
+      "skin_barrier": {"score": 60, "explanation": "Visible signs suggest the skin barrier may be compromised in the affected area."}
     }
   },
   "healingProtocol": {
-    "whatIsHappening": "A 2-3 sentence plain-language summary of what seems to be going on.",
+    "whatIsHappening": "A 2-3 sentence plain-language summary of what seems to be going on based on photos and answers.",
     "morningRoutine": ["Step 1: Rinse with lukewarm water", "Step 2: Apply gentle moisturizer", ...],
     "eveningRoutine": ["Step 1: Gentle cleanser", "Step 2: Apply treatment if needed", ...],
     "weeklyTreatments": ["Specific weekly care steps relevant to the condition"],
     "triggersToAvoid": ["Specific irritants or behaviors to avoid"],
-    "safetyGuidance": "Clear guidance on when to see a dermatologist. Include red flags.",
+    "safetyGuidance": "Clear guidance on when to see a dermatologist. Include red flags like spreading rash, severe pain, swelling, pus or infection, eye involvement, or worsening despite care.",
     "timeline": "Realistic timeline with ranges.",
     "foodPriorities": ["Rule 1: Focus on anti-inflammatory whole foods", ...],
     "foodsToEat": [{"food": "Wild Salmon", "reason": "Rich in omega-3s which often help reduce skin inflammation"}],
@@ -73,7 +63,7 @@ When given a skin photo and questionnaire answers, respond with a JSON object us
     },
     "commonTriggerFoods": [{"food": "Dairy", "approach": "Try reducing for 2-3 weeks and observe."}],
     "hydrationGuidance": "Aim for 2-3 liters of water daily.",
-    "gutExplanation": "A simple 2-3 sentence explanation of gut-skin connection for this case.",
+    "gutExplanation": "A simple 2-3 sentence explanation of how gut health may be connected to what is showing on the skin.",
     "sevenDayGutPlan": [
       {"day": "Days 1-2", "focus": "Add one serving of fermented food. Increase water to 2L."},
       {"day": "Days 3-4", "focus": "Add high-fiber vegetable to each meal."},
@@ -95,61 +85,91 @@ When given a skin photo and questionnaire answers, respond with a JSON object us
 
 SKIN SCORE RULES:
 - The overall score ranges from 0-100 where 100 is optimal skin health.
-- Calculate based on: visual severity from the photo, user answers about diet/stress/sleep/hydration.
+- Calculate based on: visual severity from ALL photos provided, user answers about diet/stress/sleep/hydration.
 - Each factor score should be 0-100.
 - Be realistic but not discouraging. Most people with visible issues score 40-70.
-- Provide clear, specific explanations for each factor.
+- Provide clear, specific explanations for each factor referencing what you actually see.
 
-Provide 2-4 possible conditions ranked by probability. Use cautious language throughout.`
-      },
-    ];
+MULTI-IMAGE ANALYSIS RULES:
+- When multiple images are provided, analyze ALL of them collectively.
+- Look for patterns visible across images - different angles reveal different information.
+- Use multiple views to increase or decrease confidence in observations.
+- Note if images show different areas or the same area from different angles.
+- If any image is blurry or unclear, note it but still use whatever information is visible.
+
+Provide 2-4 possible conditions ranked by probability. Use cautious language throughout.`;
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const { imageBase64, imagesBase64, answers } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Support both single image (legacy) and multiple images
+    const images: string[] = [];
+    if (Array.isArray(imagesBase64) && imagesBase64.length > 0) {
+      images.push(...imagesBase64);
+    } else if (imageBase64) {
+      images.push(imageBase64);
+    }
+
+    if (images.length === 0) {
+      throw new Error("At least one image is required");
+    }
+
+    const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
+
+    // Build image content parts
+    const imageContentParts = images.map((img: string) => ({
+      type: "image_url",
+      image_url: { url: `data:image/jpeg;base64,${img}` },
+    }));
 
     // Step 1: Image only - generate dynamic questions
-    if (imageBase64 && !answers) {
+    if (!answers) {
       messages.push({
         role: "user",
         content: [
           {
             type: "text",
-            text: "Analyze this skin photo. Identify visual features and generate 4-5 highly relevant diagnostic questions based on what you see. Return ONLY the visualFeatures and dynamicQuestions fields as JSON."
+            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos" : "this skin photo"}. Identify visual features across all images and generate 4-5 highly relevant diagnostic questions based on what you see. Return ONLY the visualFeatures and dynamicQuestions fields as JSON.`,
           },
-          {
-            type: "image_url",
-            image_url: { url: `data:image/jpeg;base64,${imageBase64}` }
-          }
-        ]
+          ...imageContentParts,
+        ],
       });
     }
 
     // Step 2: Full analysis with answers
-    if (imageBase64 && answers) {
+    if (answers) {
       messages.push({
         role: "user",
         content: [
           {
             type: "text",
-            text: `Analyze this skin photo along with the user's questionnaire answers. Provide a complete, thorough analysis.
+            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos together" : "this skin photo"} along with the user's questionnaire answers. Provide a complete, thorough analysis.
 
 User's answers: ${JSON.stringify(answers)}
 
 IMPORTANT GUIDELINES FOR YOUR RESPONSE:
 - Use cautious, educational language. Say "may", "often", "commonly" instead of definitive claims.
+- Reference what you actually see in the photos - do not fabricate observations.
+- If multiple photos are provided, note consistency or differences across views.
 - Make the healing protocol highly detailed and practical.
 - The meal template should be realistic and easy to follow.
 - The 7-day gut plan should be progressive and gentle.
 - Daily checklist should be 5-8 items max.
-- Keep routines minimal — focus on behavior and consistency over products.
+- Keep routines minimal - focus on behavior and consistency over products.
 - Include specific safety guidance and red flags.
 - Never use the asterisk symbol in any text.
-- IMPORTANT: Include the skinScore field with overall score and all 5 factor scores with explanations.
+- IMPORTANT: Include the skinScore field with overall score and all 5 factor scores with specific explanations that reference the actual images and answers.
+- Skin score explanations MUST reference what you observe, not generic text.
 
-Return the FULL JSON response with ALL fields including skinScore and the expanded healingProtocol.`
+Return the FULL JSON response with ALL fields including skinScore and the expanded healingProtocol.`,
           },
-          {
-            type: "image_url",
-            image_url: { url: `data:image/jpeg;base64,${imageBase64}` }
-          }
-        ]
+          ...imageContentParts,
+        ],
       });
     }
 
