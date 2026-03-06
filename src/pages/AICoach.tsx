@@ -301,15 +301,15 @@ If the user previously asked about something in this conversation, reference it 
         </div>
 
         {/* Input */}
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send(input)}
-            placeholder="Ask about your skin, nutrition, or gut health..."
-            className="flex-1 px-5 py-3.5 rounded-2xl bg-card border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20"
+            placeholder="Ask about your skin, diet, or healing..."
+            className="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl bg-card border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 min-w-0"
           />
-          <button onClick={() => send(input)} disabled={!input.trim() || isTyping} className="px-4 py-3.5 rounded-2xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-40">
+          <button onClick={() => send(input)} disabled={!input.trim() || isTyping} className="px-4 py-3 sm:py-3.5 rounded-2xl bg-primary text-primary-foreground active:opacity-80 transition-opacity disabled:opacity-40 min-w-[48px] flex items-center justify-center">
             <Send className="w-4 h-4" />
           </button>
         </div>
