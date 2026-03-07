@@ -107,6 +107,14 @@ const SkinAnalysis = () => {
     };
   }, []);
 
+  useEffect(() => {
+    console.info("[SkinAnalysis] selectedImages updated", {
+      selectedCount: images.length,
+      analyzeEnabled: images.length >= 1 && !isSelecting,
+      sources: images.map((img) => img.source),
+    });
+  }, [images, isSelecting]);
+
   const removeImage = useCallback((index: number) => {
     setImages((prev) => {
       const target = prev[index];
