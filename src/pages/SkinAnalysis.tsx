@@ -224,19 +224,40 @@ const SkinAnalysis = () => {
     [toast]
   );
 
+  const openGalleryPicker = useCallback(() => {
+    setSelectionError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  }, []);
+
+  const openCameraPicker = useCallback(() => {
+    setSelectionError(null);
+
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobileDevice || !cameraInputRef.current) {
+      openGalleryPicker();
+      return;
+    }
+
+    cameraInputRef.current.value = "";
+    cameraInputRef.current.click();
+  }, [openGalleryPicker]);
+
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const source = e.currentTarget.dataset.source === "camera" ? "camera" : "gallery";
       const fileList = e.target.files;
-      // Reset immediately so the same input can be reused
       e.target.value = "";
 
       if (!fileList || fileList.length === 0) {
-        console.info("[SkinAnalysis] file input returned no files (user cancelled or error)");
+        console.info("[SkinAnalysis] picker closed with no file", { source });
         return;
       }
 
       const files = Array.from(fileList);
-      console.info("[SkinAnalysis] file input returned", { count: files.length, source: e.target === cameraInputRef.current ? "camera" : "gallery" });
+      console.info("[SkinAnalysis] file input returned", { count: files.length, source });
       await processIncomingFiles(files, "add");
     },
     [processIncomingFiles]
@@ -255,8 +276,12 @@ const SkinAnalysis = () => {
   );
 
   const openReplacePicker = useCallback((index: number) => {
+    setSelectionError(null);
     setReplaceIndex(index);
-    replaceInputRef.current?.click();
+    if (replaceInputRef.current) {
+      replaceInputRef.current.value = "";
+      replaceInputRef.current.click();
+    }
   }, []);
 
   const startAnalysis = async () => {
@@ -458,8 +483,8 @@ const SkinAnalysis = () => {
         <p className="text-muted-foreground mb-8">Upload up to 5 clear photos from different angles for the most thorough analysis.</p>
 
         {/* Hidden file inputs — gallery uses multiple, camera uses capture */}
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*" multiple className="hidden" onChange={handleFileSelect} />
-        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} key="camera-input" />
+        <input ref={fileInputRef} data-source="gallery" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*" multiple className="hidden" onChange={handleFileSelect} />
+        <input ref={cameraInputRef} data-source="camera" type="file" accept="image/jpeg,image/png,image/webp,image/*" capture="environment" className="hidden" onChange={handleFileSelect} key="camera-input" />
         <input ref={replaceInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*" className="hidden" onChange={handleReplaceSelect} />
 
         <AnimatePresence mode="wait">
@@ -516,7 +541,7 @@ const SkinAnalysis = () => {
 
                       {images.length < MAX_IMAGES && (
                         <button
-                          onClick={() => fileInputRef.current?.click()}
+                          onClick={openGalleryPicker}
                           disabled={isSelecting}
                           className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 hover:border-primary/30 transition-colors disabled:opacity-40"
                         >
@@ -542,7 +567,7 @@ const SkinAnalysis = () => {
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
                       <button
-                        onClick={() => cameraInputRef.current?.click()}
+                        onClick={openCameraPicker}
                         disabled={isSelecting}
                         className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px] disabled:opacity-40"
                       >
@@ -550,7 +575,7 @@ const SkinAnalysis = () => {
                         Take Photo
                       </button>
                       <button
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={openGalleryPicker}
                         disabled={isSelecting}
                         className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px] disabled:opacity-40"
                       >
@@ -574,7 +599,7 @@ const SkinAnalysis = () => {
                     </button>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => cameraInputRef.current?.click()}
+                        onClick={openCameraPicker}
                         disabled={images.length >= MAX_IMAGES || isSelecting}
                         className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
                         aria-label="Take another photo"
@@ -582,7 +607,7 @@ const SkinAnalysis = () => {
                         <Camera className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={openGalleryPicker}
                         disabled={images.length >= MAX_IMAGES || isSelecting}
                         className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
                         aria-label="Add photos from gallery"
