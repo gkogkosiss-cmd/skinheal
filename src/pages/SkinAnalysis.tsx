@@ -96,6 +96,8 @@ const SkinAnalysis = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const previewUrlsRef = useRef<string[]>([]);
+  const cameraSelectionInFlightRef = useRef(false);
+  const lastCameraSelectionRef = useRef<{ signature: string; timestamp: number } | null>(null);
 
   useEffect(() => {
     previewUrlsRef.current = images.map((img) => img.preview);
