@@ -137,6 +137,10 @@ const SkinAnalysis = () => {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   }, []);
 
+  const buildCameraSelectionSignature = useCallback((files: File[]) => {
+    return files.map((file) => `${file.name}-${file.size}-${file.lastModified}`).join("|");
+  }, []);
+
   const openInputPicker = useCallback((input: HTMLInputElement | null, source: ImageSource) => {
     if (!input) {
       console.error("[SkinAnalysis] input ref is null", { source });
