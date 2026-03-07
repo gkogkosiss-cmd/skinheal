@@ -818,10 +818,11 @@ const SkinAnalysis = () => {
                   <div>
                     <p className="font-medium text-foreground mb-1">Tips for better results</p>
                     <ul className="space-y-1">
-                      <li>- Use natural lighting, avoid flash</li>
-                      <li>- Capture close-up and wider views</li>
+                      <li>- Take photos in natural lighting, avoid flash</li>
+                      <li>- Include close-up and wider views</li>
                       <li>- Show the affected area from different angles</li>
-                      <li>- Keep the camera steady and focused</li>
+                      <li>- Make sure photos are sharp and in focus</li>
+                      <li>- Upload JPG, PNG, or WEBP images</li>
                     </ul>
                   </div>
                 </div>
