@@ -599,7 +599,7 @@ const SkinAnalysis = () => {
                     </button>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => cameraInputRef.current?.click()}
+                        onClick={openCameraPicker}
                         disabled={images.length >= MAX_IMAGES || isSelecting}
                         className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
                         aria-label="Take another photo"
