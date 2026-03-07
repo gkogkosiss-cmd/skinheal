@@ -411,7 +411,7 @@ const SkinAnalysis = () => {
   );
 
   const handleCameraSelect = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>) => {
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
       const input = event.currentTarget as HTMLInputElement;
       const fileList = input.files;
       const files = Array.from(fileList ?? []);
