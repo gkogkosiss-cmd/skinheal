@@ -26,6 +26,8 @@ const AICoach = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { currentAnalysis: analysis } = useCurrentAnalysis();
   const { user } = useAuth();
 
@@ -53,9 +55,46 @@ const AICoach = () => {
     loadHistory();
   }, [user?.id]);
 
+  // Scroll to bottom on new messages
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isTyping]);
+
+  // Mobile keyboard: use visualViewport to keep input visible
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv || !containerRef.current) return;
+
+    const onResize = () => {
+      if (!containerRef.current) return;
+      const offsetTop = vv.offsetTop;
+      const height = vv.height;
+      // Adjust container to fit within visual viewport
+      containerRef.current.style.height = `${height - 20}px`;
+      containerRef.current.style.transform = `translateY(${offsetTop}px)`;
+      // Scroll chat to bottom
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      });
+    };
+
+    const onScrollViewport = () => {
+      if (!containerRef.current) return;
+      containerRef.current.style.transform = `translateY(${vv.offsetTop}px)`;
+    };
+
+    vv.addEventListener("resize", onResize);
+    vv.addEventListener("scroll", onScrollViewport);
+
+    return () => {
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onScrollViewport);
+      if (containerRef.current) {
+        containerRef.current.style.height = "";
+        containerRef.current.style.transform = "";
+      }
+    };
+  }, []);
 
   const saveMessage = useCallback(async (role: "user" | "assistant", content: string) => {
     if (!user) return;
@@ -142,6 +181,9 @@ If the user previously asked about something in this conversation, reference it 
     setInput("");
     setIsTyping(true);
 
+    // Blur input on mobile to dismiss keyboard after sending
+    inputRef.current?.blur();
+
     await saveMessage("user", userMsg.content);
 
     try {
@@ -151,7 +193,6 @@ If the user previously asked about something in this conversation, reference it 
         content: m.content,
       }));
 
-      // Use fetch directly to avoid supabase client invoke parsing issues
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -193,12 +234,16 @@ If the user previously asked about something in this conversation, reference it 
   return (
     <Layout>
       <PremiumGate featureName="AI Skin Coach">
-      <div className="flex flex-col h-[calc(100dvh-10rem)] sm:h-[calc(100dvh-8rem)] lg:h-[calc(100dvh-6rem)] min-w-0">
+      <div
+        ref={containerRef}
+        className="flex flex-col min-w-0"
+        style={{ height: "calc(100dvh - 10rem)" }}
+      >
         {/* Header */}
-        <div className="mb-3 sm:mb-4 flex items-start justify-between">
-          <div>
+        <div className="mb-3 sm:mb-4 flex items-start justify-between shrink-0">
+          <div className="min-w-0">
             <p className="text-sm text-primary font-medium mb-1">AI Skin Coach</p>
-            <h1 className="font-serif text-3xl md:text-4xl mb-1">Ask anything</h1>
+            <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl mb-1">Ask anything</h1>
             <p className="text-muted-foreground text-sm">
               {analysis
                 ? "Personalized guidance based on your skin analysis."
@@ -208,7 +253,7 @@ If the user previously asked about something in this conversation, reference it 
           {messages.length > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <button className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" title="Clear chat history">
+                <button className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center" title="Clear chat history">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </AlertDialogTrigger>
@@ -231,7 +276,7 @@ If the user previously asked about something in this conversation, reference it 
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 mb-3 pr-1 min-h-0">
           {isLoadingHistory ? (
             <div className="flex items-center justify-center h-full">
               <div className="flex gap-1.5">
@@ -245,14 +290,14 @@ If the user previously asked about something in this conversation, reference it 
               <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center">
                 <Sparkles className="w-7 h-7 text-primary" />
               </div>
-              <p className="text-muted-foreground text-sm text-center max-w-sm">
+              <p className="text-muted-foreground text-sm text-center max-w-sm px-2">
                 {analysis
                   ? `I have your skin analysis on file. Ask me anything about your ${(analysis.conditions as any[])?.[0]?.condition || "condition"}, diet, or healing journey.`
                   : "Ask me about skin conditions, nutrition, gut health, or your healing journey."}
               </p>
               <div className="flex flex-wrap justify-center gap-2 max-w-lg px-2">
                 {suggestedQuestions.map((q) => (
-                  <button key={q} onClick={() => send(q)} className="px-3 sm:px-4 py-2.5 rounded-full bg-card border border-border text-xs font-medium active:bg-accent transition-colors">
+                  <button key={q} onClick={() => send(q)} className="px-3 sm:px-4 py-2.5 rounded-full bg-card border border-border text-xs font-medium active:bg-accent transition-colors break-words text-left">
                     {q}
                   </button>
                 ))}
@@ -261,20 +306,20 @@ If the user previously asked about something in this conversation, reference it 
           ) : (
             <>
               {messages.map((msg, i) => (
-                <motion.div key={msg.id || i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
+                <motion.div key={msg.id || i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex gap-2 sm:gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
                   {msg.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shrink-0 mt-1">
-                      <Bot className="w-4 h-4 text-accent-foreground" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-accent flex items-center justify-center shrink-0 mt-1">
+                      <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" />
                     </div>
                   )}
-                  <div className={`max-w-[80%] min-w-0 rounded-2xl px-4 sm:px-5 py-3 sm:py-3.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                  <div className={`max-w-[85%] sm:max-w-[80%] min-w-0 rounded-2xl px-3.5 sm:px-5 py-3 sm:py-3.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
                     msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border"
                   }`}>
                     {msg.content}
                   </div>
                   {msg.role === "user" && (
-                    <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0 mt-1">
-                      <User className="w-4 h-4 text-secondary-foreground" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0 mt-1">
+                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary-foreground" />
                     </div>
                   )}
                 </motion.div>
@@ -283,9 +328,9 @@ If the user previously asked about something in this conversation, reference it 
           )}
 
           {isTyping && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-              <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shrink-0">
-                <Bot className="w-4 h-4 text-accent-foreground" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2 sm:gap-3">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-accent flex items-center justify-center shrink-0">
+                <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" />
               </div>
               <div className="bg-card border border-border rounded-2xl px-5 py-3.5">
                 <div className="flex gap-1.5">
@@ -298,23 +343,26 @@ If the user previously asked about something in this conversation, reference it 
           )}
         </div>
 
-        {/* Input */}
-        <div className="flex gap-2 sm:gap-3">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send(input)}
-            placeholder="Ask about your skin, diet, or healing..."
-            className="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl bg-card border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 min-w-0"
-          />
-          <button onClick={() => send(input)} disabled={!input.trim() || isTyping} className="px-4 py-3 sm:py-3.5 rounded-2xl bg-primary text-primary-foreground active:opacity-80 transition-opacity disabled:opacity-40 min-w-[48px] flex items-center justify-center">
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
+        {/* Input — stays anchored */}
+        <div className="shrink-0 pb-safe">
+          <div className="flex gap-2 sm:gap-3">
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send(input)}
+              placeholder="Ask about your skin, diet, or healing..."
+              className="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl bg-card border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 min-w-0"
+            />
+            <button onClick={() => send(input)} disabled={!input.trim() || isTyping} className="px-4 py-3 sm:py-3.5 rounded-2xl bg-primary text-primary-foreground active:opacity-80 transition-opacity disabled:opacity-40 min-w-[48px] min-h-[48px] flex items-center justify-center shrink-0">
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
 
-        <div className="flex items-start gap-2 mt-3 text-[10px] text-muted-foreground">
-          <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
-          <p>Educational guidance only — not medical advice. If symptoms worsen, consult a dermatologist.</p>
+          <div className="flex items-start gap-2 mt-2 text-[10px] text-muted-foreground">
+            <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
+            <p>Educational guidance only — not medical advice.</p>
+          </div>
         </div>
       </div>
       </PremiumGate>
