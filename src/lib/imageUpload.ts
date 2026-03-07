@@ -19,20 +19,85 @@ export type PreparedImage = {
   fingerprint: string;
 };
 
-const readBlobAsDataUrl = (blob: Blob): Promise<string> =>
+const FILE_READ_TIMEOUT_MS = 15000;
+const IMAGE_DECODE_TIMEOUT_MS = 10000;
+const CANVAS_TO_BLOB_TIMEOUT_MS = 10000;
+
+const readBlobAsDataUrl = (blob: Blob, timeoutMs = FILE_READ_TIMEOUT_MS): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error("Failed to read selected image."));
+    const timeoutId = window.setTimeout(() => {
+      try {
+        reader.abort();
+      } catch {
+        // no-op
+      }
+      reject(new Error("Reading this image took too long. Please retry with a clearer photo."));
+    }, timeoutMs);
+
+    reader.onload = () => {
+      window.clearTimeout(timeoutId);
+      resolve(reader.result as string);
+    };
+
+    reader.onerror = () => {
+      window.clearTimeout(timeoutId);
+      reject(new Error("Failed to read selected image."));
+    };
+
+    reader.onabort = () => {
+      window.clearTimeout(timeoutId);
+      reject(new Error("Image read was interrupted. Please try again."));
+    };
+
     reader.readAsDataURL(blob);
   });
 
-const loadImage = (url: string): Promise<HTMLImageElement> =>
+const loadImage = (url: string, timeoutMs = IMAGE_DECODE_TIMEOUT_MS): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Could not decode this image file."));
+
+    const cleanup = () => {
+      img.onload = null;
+      img.onerror = null;
+      if (img.src) {
+        img.src = "";
+      }
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Could not decode this image fast enough."));
+    }, timeoutMs);
+
+    img.onload = () => {
+      window.clearTimeout(timeoutId);
+      resolve(img);
+    };
+
+    img.onerror = () => {
+      window.clearTimeout(timeoutId);
+      cleanup();
+      reject(new Error("Could not decode this image file."));
+    };
+
     img.src = url;
+  });
+
+const canvasToJpegBlob = (canvas: HTMLCanvasElement, timeoutMs = CANVAS_TO_BLOB_TIMEOUT_MS): Promise<Blob> =>
+  new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error("Image processing timed out."));
+    }, timeoutMs);
+
+    canvas.toBlob((blob) => {
+      window.clearTimeout(timeoutId);
+      if (!blob) {
+        reject(new Error("Failed to process image."));
+        return;
+      }
+      resolve(blob);
+    }, "image/jpeg", 0.85);
   });
 
 const convertImageToJpeg = async (file: File): Promise<Blob> => {
