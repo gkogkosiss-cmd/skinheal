@@ -173,11 +173,12 @@ serve(async (req) => {
 
     const images: Array<{ base64: string; mimeType: string }> = [];
 
-    const normalizeImage = (input: unknown) => {
+    const normalizeImage = (input: unknown, index: number) => {
       if (typeof input === "string") {
-        const trimmed = input.trim();
-        if (!trimmed) return;
-        images.push({ base64: trimmed, mimeType: "image/jpeg" });
+        const cleanedBase64 = normalizeBase64(input);
+        if (!cleanedBase64) return;
+
+        images.push({ base64: cleanedBase64, mimeType: "image/jpeg" });
         return;
       }
 
@@ -187,20 +188,23 @@ serve(async (req) => {
         typeof (input as { base64?: unknown }).base64 === "string"
       ) {
         const candidate = input as { base64: string; mimeType?: string };
-        const trimmedBase64 = candidate.base64.trim();
-        if (!trimmedBase64) return;
+        const cleanedBase64 = normalizeBase64(candidate.base64);
+        if (!cleanedBase64) return;
 
         images.push({
-          base64: trimmedBase64,
+          base64: cleanedBase64,
           mimeType: normalizeMimeType(candidate.mimeType),
         });
+        return;
       }
+
+      console.warn("[analyze-skin] ignored invalid image input", { index, inputType: typeof input });
     };
 
     if (Array.isArray(imagesBase64) && imagesBase64.length > 0) {
-      imagesBase64.forEach(normalizeImage);
+      imagesBase64.forEach((entry, index) => normalizeImage(entry, index));
     } else if (imageBase64) {
-      normalizeImage(imageBase64);
+      normalizeImage(imageBase64, 0);
     }
 
     if (images.length === 0) {
@@ -210,16 +214,18 @@ serve(async (req) => {
       });
     }
 
-    const unusableImage = images.find((img) => !img.base64 || img.base64.trim().length < 256);
-    if (unusableImage) {
+    const unusableImageIndex = images.findIndex((img) => !isValidBase64(img.base64));
+    if (unusableImageIndex >= 0) {
+      const unusableImage = images[unusableImageIndex];
       console.error("[analyze-skin] unusable image payload", {
         imageCount: images.length,
+        imageIndex: unusableImageIndex,
         mimeType: unusableImage.mimeType,
         base64Length: unusableImage.base64?.length ?? 0,
       });
       return new Response(
         JSON.stringify({
-          error: "The backend did not receive usable image data. Please retake or re-upload in JPG/PNG format.",
+          error: `The backend did not receive usable image data (image ${unusableImageIndex + 1}). Please retake or re-upload in JPG/PNG format.`,
         }),
         {
           status: 400,
