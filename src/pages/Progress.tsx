@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Camera, Calendar, ArrowRight, AlertCircle, Target, Eye, X, ArrowLeftRight, Share2, Trash2 } from "lucide-react";
+import { Camera, Calendar, ArrowRight, AlertCircle, Target, Eye, X, ArrowLeftRight, Trash2 } from "lucide-react";
 import { useAllAnalyses, getSignedImageUrl, deleteAnalysisRecord, type Analysis } from "@/hooks/useAnalysis";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,7 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { allAnalysesQueryKey, latestAnalysisQueryKey } from "@/hooks/useAnalysis";
 import { useToast } from "@/hooks/use-toast";
 import { SkinScoreCard } from "@/components/dashboard/SkinScoreCard";
-import { ShareableProgressCard } from "@/components/progress/ShareableProgressCard";
+
 import { ScoreHistoryChart } from "@/components/progress/ScoreHistoryChart";
 import { WeeklyPhotoUpload } from "@/components/progress/WeeklyPhotoUpload";
 import { ProgressTimeline } from "@/components/progress/ProgressTimeline";
@@ -36,7 +36,7 @@ const Progress = () => {
   const [selectedReport, setSelectedReport] = useState<Analysis | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
-  const [showShareCard, setShowShareCard] = useState(false);
+  
   const [deleteTarget, setDeleteTarget] = useState<Analysis | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const hasAnalyses = analyses && analyses.length > 0;
@@ -90,9 +90,6 @@ const Progress = () => {
   const protocol = latestAnalysis?.healing_protocol;
   const currentAnalysisId = latestAnalysis?.id;
 
-  const canShare = analyses && analyses.length >= 2 &&
-    analyses[0]?.skin_score?.overall > 0 &&
-    analyses[analyses.length - 1]?.skin_score?.overall > 0;
 
   return (
     <Layout>
@@ -130,16 +127,6 @@ const Progress = () => {
             <ScoreHistoryChart analyses={analyses} />
           )}
 
-          {/* Share Progress */}
-          {canShare && (
-            <button
-              onClick={() => setShowShareCard(true)}
-              className="w-full card-elevated gradient-sage flex items-center justify-center gap-3 py-4 cursor-pointer hover:opacity-90 transition-opacity min-w-0"
-            >
-              <Share2 className="w-5 h-5 text-primary" />
-              <span className="font-medium text-sm">Share Your Progress</span>
-            </button>
-          )}
 
           {/* This Week Focus */}
           {protocol?.thisWeekFocus && (
@@ -480,17 +467,6 @@ const Progress = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {showShareCard && analyses && analyses.length >= 2 && (
-        <ShareableProgressCard
-          oldScore={analyses[analyses.length - 1].skin_score}
-          newScore={analyses[0].skin_score}
-          oldDate={analyses[analyses.length - 1].created_at}
-          newDate={analyses[0].created_at}
-          weekStart={0}
-          weekEnd={analyses.length - 1}
-          onClose={() => setShowShareCard(false)}
-        />
-      )}
     </Layout>
   );
 };
