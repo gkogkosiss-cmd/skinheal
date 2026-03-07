@@ -5,7 +5,6 @@ import { Send, Bot, User, Sparkles, AlertCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import {
   AlertDialog,
@@ -72,7 +71,6 @@ const AICoach = () => {
     if (!user) return;
     await supabase.from("ai_coach_messages").delete().eq("user_id", user.id);
     setMessages([]);
-    toast.success("Chat history cleared");
   };
 
   const suggestedQuestions = analysis

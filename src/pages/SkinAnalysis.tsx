@@ -152,13 +152,13 @@ const SkinAnalysis = () => {
             return next;
           });
 
-          toast({ title: "Photo replaced", description: "Your image was updated successfully." });
+          // photo replaced silently
           return;
         }
 
         let remaining = MAX_IMAGES - images.length;
         if (remaining <= 0) {
-          toast({ title: "Photo limit reached", description: `You can upload up to ${MAX_IMAGES} images.` });
+          setSelectionError(`You can upload up to ${MAX_IMAGES} images.`);
           return;
         }
 
@@ -207,9 +207,7 @@ const SkinAnalysis = () => {
           });
         }
 
-        if (duplicateCount > 0) {
-          toast({ title: "Duplicate skipped", description: `${duplicateCount} duplicate image${duplicateCount > 1 ? "s were" : " was"} ignored.` });
-        }
+        // duplicates silently ignored
 
         if (errors.length > 0) {
           const message = errors[0];
@@ -425,7 +423,7 @@ const SkinAnalysis = () => {
 
       setResults(generated);
       setStep("results");
-      toast({ title: "Saved", description: "Analysis saved and synced across all sections." });
+      // analysis complete, navigating
       console.info("[SkinAnalysis] full analysis completed");
       navigate("/dashboard");
     } catch (err: any) {

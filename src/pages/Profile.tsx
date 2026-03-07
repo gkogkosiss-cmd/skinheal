@@ -20,7 +20,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+
 import { supabase } from "@/integrations/supabase/client";
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
@@ -33,7 +33,7 @@ const Profile = () => {
   const { profile, updateProfile, deleteAccount } = useProfile();
   const { currentAnalysis } = useCurrentAnalysis();
   const { isPremium, subscribed, subscriptionEnd, startCheckout, openCustomerPortal, isCheckingOut, refreshSubscription, isLoading: isSubLoading } = useSubscription();
-  const { toast } = useToast();
+  
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -45,7 +45,6 @@ const Profile = () => {
   // Handle checkout success redirect
   useEffect(() => {
     if (searchParams.get("checkout") === "success") {
-      toast({ title: "Welcome to Premium!", description: "Your subscription is now active." });
       refreshSubscription();
     }
   }, [searchParams]);
@@ -66,9 +65,8 @@ const Profile = () => {
     try {
       await updateProfile.mutateAsync({ name: editName, age_range: editAge || null, skin_concern: editConcern || null });
       setEditing(false);
-      toast({ title: "Profile updated" });
     } catch {
-      toast({ title: "Failed to save", variant: "destructive" });
+      // silent fail
     }
   };
 
@@ -81,9 +79,8 @@ const Profile = () => {
     try {
       await deleteAccount();
       navigate("/");
-      toast({ title: "Account data deleted" });
     } catch {
-      toast({ title: "Failed to delete account", variant: "destructive" });
+      // silent fail
     }
   };
 
@@ -98,7 +95,6 @@ const Profile = () => {
     });
     setSendingFeedback(false);
     setFeedbackText("");
-    toast({ title: "Feedback sent. Thank you!" });
   };
 
   const skinScore = currentAnalysis?.skin_score as any;

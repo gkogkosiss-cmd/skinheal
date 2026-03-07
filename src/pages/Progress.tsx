@@ -74,7 +74,7 @@ const Progress = () => {
         queryClient.invalidateQueries({ queryKey: latestAnalysisQueryKey(user.id) }),
       ]);
       if (selectedReport?.id === deleteTarget.id) setSelectedReport(null);
-      toast({ title: "Deleted", description: "Analysis removed successfully." });
+      // silently removed
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -429,7 +429,7 @@ const Progress = () => {
                       onClick={async () => {
                         try {
                           await setAsCurrentPlan(selectedReport.id);
-                          toast({ title: "Updated", description: "This analysis is now your active plan." });
+                          // silently updated
                           setSelectedReport(null);
                         } catch (e: any) {
                           toast({ title: "Error", description: e.message, variant: "destructive" });
