@@ -90,9 +90,6 @@ const Progress = () => {
   const protocol = latestAnalysis?.healing_protocol;
   const currentAnalysisId = latestAnalysis?.id;
 
-  const canShare = analyses && analyses.length >= 2 &&
-    analyses[0]?.skin_score?.overall > 0 &&
-    analyses[analyses.length - 1]?.skin_score?.overall > 0;
 
   return (
     <Layout>
