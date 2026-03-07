@@ -770,25 +770,18 @@ const SkinAnalysis = () => {
                       <p className="text-sm text-muted-foreground max-w-sm">
                         Upload up to 5 clear photos for a better analysis.
                       </p>
+                      <p className="text-xs text-muted-foreground max-w-sm mt-2">
+                        For best results, take your photos first in good lighting, then upload them here.
+                      </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
-                      <button
-                        onClick={openCameraPicker}
-                        disabled={isSelecting}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px] disabled:opacity-40"
-                      >
-                        <Camera className="w-5 h-5" />
-                        Take a photo
-                      </button>
-                      <button
-                        onClick={openGalleryPicker}
-                        disabled={isSelecting}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px] disabled:opacity-40"
-                      >
-                        <Upload className="w-5 h-5" />
-                        Upload Images
-                      </button>
-                    </div>
+                    <button
+                      onClick={openGalleryPicker}
+                      disabled={isSelecting}
+                      className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px] disabled:opacity-40 w-full max-w-xs"
+                    >
+                      <Upload className="w-5 h-5" />
+                      Upload Images
+                    </button>
                   </div>
                 )}
 
