@@ -55,6 +55,8 @@ interface AnalysisResult {
 
 const MAX_IMAGES = MAX_IMAGE_COUNT;
 
+type ImageSource = "camera" | "gallery";
+
 type SelectedImage = {
   id: string;
   file: File;
@@ -62,6 +64,7 @@ type SelectedImage = {
   base64: string;
   mimeType: string;
   fingerprint: string;
+  source: ImageSource;
 };
 
 const healthQuestions = [
