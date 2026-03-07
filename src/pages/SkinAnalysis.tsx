@@ -559,7 +559,7 @@ const SkinAnalysis = () => {
     setStep("analyzing-photo");
 
     try {
-      const imagesBase64 = buildAnalysisImagePayload(selectedImages);
+      const imagesBase64 = await buildAnalysisImagePayload(selectedImages);
       console.info("[SkinAnalysis] request started", {
         stage: "dynamic-questions",
         imageCount: imagesBase64.length,
