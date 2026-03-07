@@ -10,7 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { allAnalysesQueryKey, latestAnalysisQueryKey } from "@/hooks/useAnalysis";
 import { useToast } from "@/hooks/use-toast";
 import { SkinScoreCard } from "@/components/dashboard/SkinScoreCard";
-import { ShareableProgressCard } from "@/components/progress/ShareableProgressCard";
+
 import { ScoreHistoryChart } from "@/components/progress/ScoreHistoryChart";
 import { WeeklyPhotoUpload } from "@/components/progress/WeeklyPhotoUpload";
 import { ProgressTimeline } from "@/components/progress/ProgressTimeline";
