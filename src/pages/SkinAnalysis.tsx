@@ -299,6 +299,9 @@ const SkinAnalysis = () => {
 
       if (files.length === 0) {
         console.info("[SkinAnalysis] picker closed with no file", { source });
+        if (source === "camera") {
+          setSelectionError("Camera capture failed. Please retake the photo.");
+        }
         return;
       }
 
