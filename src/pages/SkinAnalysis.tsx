@@ -96,6 +96,8 @@ const SkinAnalysis = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const previewUrlsRef = useRef<string[]>([]);
+  const cameraSelectionInFlightRef = useRef(false);
+  const lastCameraSelectionRef = useRef<{ signature: string; timestamp: number } | null>(null);
 
   useEffect(() => {
     previewUrlsRef.current = images.map((img) => img.preview);
@@ -133,6 +135,10 @@ const SkinAnalysis = () => {
       return crypto.randomUUID();
     }
     return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }, []);
+
+  const buildCameraSelectionSignature = useCallback((files: File[]) => {
+    return files.map((file) => `${file.name}-${file.size}-${file.lastModified}`).join("|");
   }, []);
 
   const openInputPicker = useCallback((input: HTMLInputElement | null, source: ImageSource) => {
@@ -343,26 +349,45 @@ const SkinAnalysis = () => {
   );
 
   const handleCameraSelect = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const fileList = e.target.files;
+    async (event: React.ChangeEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>) => {
+      const input = event.currentTarget as HTMLInputElement;
+      const fileList = input.files;
       const files = Array.from(fileList ?? []);
+
       console.info("[SkinAnalysis] camera onChange fired", {
         hasFileList: !!fileList,
         fileListLength: fileList?.length ?? 0,
       });
 
-      // Always reset so repeated captures work reliably.
-      e.target.value = "";
-
       if (files.length === 0) {
         console.warn("[SkinAnalysis] camera returned no file");
         setSelectionError("No photo was returned from the camera. Please try again.");
+        input.value = "";
+        cameraSelectionInFlightRef.current = false;
         return;
       }
 
+      const signature = buildCameraSelectionSignature(files);
+      const now = Date.now();
+      const previousSelection = lastCameraSelectionRef.current;
+      if (previousSelection && previousSelection.signature === signature && now - previousSelection.timestamp < 2000) {
+        console.info("[SkinAnalysis] duplicate camera event ignored", { signature });
+        input.value = "";
+        return;
+      }
+      lastCameraSelectionRef.current = { signature, timestamp: now };
+
+      if (cameraSelectionInFlightRef.current) {
+        console.info("[SkinAnalysis] camera processing already in flight; ignoring duplicate event");
+        input.value = "";
+        return;
+      }
+
+      cameraSelectionInFlightRef.current = true;
+
       const validationError = validateImageFile(files[0]);
       if (validationError) {
-        console.warn("[SkinAnalysis] camera file validation failed", {
+        console.warn("[SkinAnalysis] camera file validation warning", {
           name: files[0].name,
           type: files[0].type,
           size: files[0].size,
@@ -378,15 +403,20 @@ const SkinAnalysis = () => {
 
       try {
         await processIncomingFiles(files, "camera", "add");
-        console.info("[SkinAnalysis] selectedImages update requested from camera capture", {
-          previousCount: imagesRef.current.length,
+        console.info("[SkinAnalysis] selectedImages updated from camera capture", {
+          totalImages: imagesRef.current.length,
+          analyzeEnabled: imagesRef.current.length >= 1,
         });
       } catch (error) {
         console.error("[SkinAnalysis] camera capture processing failed", error);
         setSelectionError("We couldn't process that photo. Please retake it.");
+      } finally {
+        input.value = "";
+        cameraSelectionInFlightRef.current = false;
+        console.info("[SkinAnalysis] camera input reset complete");
       }
     },
-    [processIncomingFiles]
+    [buildCameraSelectionSignature, processIncomingFiles]
   );
 
   const handleReplaceSelect = useCallback(
@@ -609,7 +639,7 @@ const SkinAnalysis = () => {
 
         {/* Hidden file inputs — gallery and camera are intentionally separate flows */}
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={handleGallerySelect} />
-        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleCameraSelect} />
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleCameraSelect} onInput={handleCameraSelect} />
         <input ref={replaceInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={handleReplaceSelect} />
 
         <AnimatePresence mode="wait">
