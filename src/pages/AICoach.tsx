@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
 import { Send, Bot, User, Sparkles, AlertCircle, Trash2 } from "lucide-react";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
