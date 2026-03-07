@@ -575,7 +575,7 @@ const SkinAnalysis = () => {
                         Take Photo
                       </button>
                       <button
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={openGalleryPicker}
                         disabled={isSelecting}
                         className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px] disabled:opacity-40"
                       >
