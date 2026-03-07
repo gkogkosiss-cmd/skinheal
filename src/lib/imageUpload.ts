@@ -9,8 +9,9 @@ const SUPPORTED_MIME_TYPES = new Set([
   "image/heif",
 ]);
 
-const SUPPORTED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
+const ANALYSIS_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+const SUPPORTED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
 export type PreparedImage = {
   file: File;
   base64: string;
