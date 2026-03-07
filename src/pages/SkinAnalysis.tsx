@@ -159,7 +159,7 @@ const SkinAnalysis = () => {
         input.click();
       }
     } catch (error) {
-      console.warn("[SkinAnalysis] showPicker failed, falling back to click", { source, error });
+      console.warn("[SkinAnalysis] showPicker failed, falling back to click", error);
       input.click();
     }
   }, []);
