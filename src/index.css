@@ -147,3 +147,14 @@
     height: 100dvh;
   }
 }
+
+/* Safe area padding for mobile input bars */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Prevent any page-level horizontal overflow */
+#root {
+  max-width: 100vw;
+  overflow-x: hidden;
+}

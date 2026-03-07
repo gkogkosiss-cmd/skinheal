@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Loader2, TrendingUp, TrendingDown, Minus, Sparkles, ChevronRight, Plus, X, ImagePlus } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Minus, Sparkles, ChevronRight, Plus, X, ImagePlus, Upload } from "lucide-react";
 import { useProgressPhotos, type ProgressChange } from "@/hooks/useProgressPhotos";
 import { toast } from "sonner";
 
@@ -37,7 +37,6 @@ export const WeeklyPhotoUpload = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [currentQ, setCurrentQ] = useState(0);
   const galleryRef = useRef<HTMLInputElement>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
 
   const addFiles = useCallback((files: FileList | null) => {
     if (!files) return;
@@ -62,7 +61,6 @@ export const WeeklyPhotoUpload = () => {
 
   const handleFilesSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     addFiles(e.target.files);
-    // Reset the input so the same file or new files can be selected again
     e.target.value = "";
   }, [addFiles]);
 
@@ -110,20 +108,12 @@ export const WeeklyPhotoUpload = () => {
 
   return (
     <div className="space-y-4">
-      {/* Hidden file inputs */}
+      {/* Hidden file input — gallery only */}
       <input
         ref={galleryRef}
         type="file"
         accept="image/*"
         multiple
-        className="hidden"
-        onChange={handleFilesSelected}
-      />
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={handleFilesSelected}
       />
@@ -134,28 +124,24 @@ export const WeeklyPhotoUpload = () => {
           {selectedFiles.length === 0 ? (
             <div className="flex flex-col items-center py-8 gap-5">
               <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center">
-                <Camera className="w-6 h-6 text-primary" />
+                <Upload className="w-6 h-6 text-primary" />
               </div>
-              <div className="text-center px-2">
+              <div className="text-center px-4">
                 <p className="font-medium text-sm mb-1">Upload weekly progress photos</p>
-                <p className="text-xs text-muted-foreground">Upload up to 5 photos for a more accurate progress check</p>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                  Upload up to 5 clear photos for a more accurate progress check.
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto mt-2">
+                  For best results, take your photos first in good lighting, then upload them here.
+                </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
-                <button
-                  onClick={() => cameraRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
-                >
-                  <Camera className="w-5 h-5" />
-                  Take Photo
-                </button>
-                <button
-                  onClick={() => galleryRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px]"
-                >
-                  <ImagePlus className="w-5 h-5" />
-                  Gallery
-                </button>
-              </div>
+              <button
+                onClick={() => galleryRef.current?.click()}
+                className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px]"
+              >
+                <ImagePlus className="w-5 h-5" />
+                Upload Images
+              </button>
             </div>
           ) : (
             <>
@@ -192,22 +178,15 @@ export const WeeklyPhotoUpload = () => {
                 )}
               </div>
 
-              {/* Add more buttons */}
+              {/* Add more button */}
               {selectedFiles.length < MAX_PHOTOS && (
-                <div className="flex gap-2 mb-4">
-                  <button
-                    onClick={() => cameraRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-border text-xs font-medium active:bg-muted transition-colors min-h-[44px]"
-                  >
-                    <Camera className="w-4 h-4" />
-                    Take Photo
-                  </button>
+                <div className="mb-4">
                   <button
                     onClick={() => galleryRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-border text-xs font-medium active:bg-muted transition-colors min-h-[44px]"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-border text-xs font-medium active:bg-muted transition-colors min-h-[44px]"
                   >
                     <ImagePlus className="w-4 h-4" />
-                    From Gallery
+                    Add More Photos
                   </button>
                 </div>
               )}
