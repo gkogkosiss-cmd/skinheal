@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Upload, Camera, ChevronRight, AlertCircle, Sparkles, Loader2, X, ImagePlus, RefreshCw } from "lucide-react";
+import { Upload, ChevronRight, AlertCircle, Sparkles, Loader2, X, ImagePlus, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -93,7 +93,6 @@ const SkinAnalysis = () => {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const [replaceIndex, setReplaceIndex] = useState<number | null>(null);
   const { toast } = useToast();
@@ -101,8 +100,6 @@ const SkinAnalysis = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const previewUrlsRef = useRef<string[]>([]);
-  const cameraSelectionInFlightRef = useRef(false);
-  const lastCameraSelectionRef = useRef<{ signature: string; timestamp: number } | null>(null);
 
   useEffect(() => {
     previewUrlsRef.current = images.map((img) => img.preview);
@@ -143,14 +140,10 @@ const SkinAnalysis = () => {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   }, []);
 
-  const buildCameraSelectionSignature = useCallback((files: File[]) => {
-    return files.map((file) => `${file.name}-${file.size}-${file.lastModified}`).join("|");
-  }, []);
-
-  const openInputPicker = useCallback((input: HTMLInputElement | null, source: ImageSource) => {
+  const openInputPicker = useCallback((input: HTMLInputElement | null) => {
     if (!input) {
-      console.error("[SkinAnalysis] input ref is null", { source });
-      setSelectionError(source === "camera" ? "Camera capture failed. Please try again." : "Photo upload failed. Please try again.");
+      console.error("[SkinAnalysis] input ref is null");
+      setSelectionError("Photo upload failed. Please try again.");
       return;
     }
 
@@ -162,13 +155,11 @@ const SkinAnalysis = () => {
       const pickerInput = input as HTMLInputElement & { showPicker?: () => void };
       if (typeof pickerInput.showPicker === "function") {
         pickerInput.showPicker();
-        console.info("[SkinAnalysis] gallery picker opened via showPicker", { source });
       } else {
         input.click();
-        console.info("[SkinAnalysis] gallery picker opened via click", { source });
       }
     } catch (error) {
-      console.warn("[SkinAnalysis] showPicker failed, falling back to click", { source, error });
+      console.warn("[SkinAnalysis] showPicker failed, falling back to click", error);
       input.click();
     }
   }, []);
@@ -409,35 +400,9 @@ const SkinAnalysis = () => {
   );
 
   const openGalleryPicker = useCallback(() => {
-    openInputPicker(fileInputRef.current, "gallery");
+    openInputPicker(fileInputRef.current);
   }, [openInputPicker]);
 
-  const openCameraPicker = useCallback(() => {
-    console.info("[SkinAnalysis] Take a Photo button clicked");
-    setSelectionError(null);
-
-    const cameraInput = cameraInputRef.current;
-    if (!cameraInput) {
-      console.error("[SkinAnalysis] camera input ref is null");
-      setSelectionError("Camera capture failed. Please try again.");
-      return;
-    }
-
-    try {
-      cameraInput.value = "";
-      cameraInput.accept = "image/*";
-      cameraInput.setAttribute("capture", "environment");
-      console.info("[SkinAnalysis] camera input triggered", {
-        accept: cameraInput.accept,
-        capture: cameraInput.getAttribute("capture"),
-      });
-      cameraInput.click();
-    } catch (error) {
-      console.error("[SkinAnalysis] camera input trigger failed", error);
-      setSelectionError("Camera capture failed. Please try again.");
-      openGalleryPicker();
-    }
-  }, [openGalleryPicker]);
 
   const handleGallerySelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -455,76 +420,6 @@ const SkinAnalysis = () => {
     [processIncomingFiles]
   );
 
-  const handleCameraSelect = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const input = event.currentTarget as HTMLInputElement;
-      const fileList = input.files;
-      const files = Array.from(fileList ?? []);
-
-      console.info("[SkinAnalysis] camera onChange fired", {
-        hasFileList: !!fileList,
-        fileListLength: fileList?.length ?? 0,
-      });
-
-      if (files.length === 0) {
-        console.warn("[SkinAnalysis] camera returned no file");
-        setSelectionError("No photo was returned from the camera. Please try again.");
-        input.value = "";
-        cameraSelectionInFlightRef.current = false;
-        return;
-      }
-
-      const signature = buildCameraSelectionSignature(files);
-      const now = Date.now();
-      const previousSelection = lastCameraSelectionRef.current;
-      if (previousSelection && previousSelection.signature === signature && now - previousSelection.timestamp < 2000) {
-        console.info("[SkinAnalysis] duplicate camera event ignored", { signature });
-        input.value = "";
-        return;
-      }
-      lastCameraSelectionRef.current = { signature, timestamp: now };
-
-      if (cameraSelectionInFlightRef.current) {
-        console.info("[SkinAnalysis] camera processing already in flight; ignoring duplicate event");
-        input.value = "";
-        return;
-      }
-
-      cameraSelectionInFlightRef.current = true;
-
-      const validationError = validateImageFile(files[0]);
-      if (validationError) {
-        console.warn("[SkinAnalysis] camera file validation warning", {
-          name: files[0].name,
-          type: files[0].type,
-          size: files[0].size,
-          validationError,
-        });
-      } else {
-        console.info("[SkinAnalysis] valid image file found", {
-          name: files[0].name,
-          type: files[0].type,
-          size: files[0].size,
-        });
-      }
-
-      try {
-        await processIncomingFiles(files, "camera", "add");
-        console.info("[SkinAnalysis] selectedImages updated from camera capture", {
-          totalImages: imagesRef.current.length,
-          analyzeEnabled: imagesRef.current.length >= 1,
-        });
-      } catch (error) {
-        console.error("[SkinAnalysis] camera capture processing failed", error);
-        setSelectionError("We couldn't process that photo. Please retake it.");
-      } finally {
-        input.value = "";
-        cameraSelectionInFlightRef.current = false;
-        console.info("[SkinAnalysis] camera input reset complete");
-      }
-    },
-    [buildCameraSelectionSignature, processIncomingFiles]
-  );
 
   const handleReplaceSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -543,7 +438,7 @@ const SkinAnalysis = () => {
   const openReplacePicker = useCallback((index: number) => {
     setSelectionError(null);
     setReplaceIndex(index);
-    openInputPicker(replaceInputRef.current, "gallery");
+    openInputPicker(replaceInputRef.current);
   }, [openInputPicker]);
 
   const startAnalysis = async () => {
@@ -792,11 +687,10 @@ const SkinAnalysis = () => {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <p className="text-sm text-primary font-medium mb-1">AI Skin Analysis</p>
         <h1 className="font-serif text-3xl md:text-4xl mb-2">Analyze your skin</h1>
-        <p className="text-muted-foreground mb-8">Upload up to 5 clear photos from different angles for the most thorough analysis.</p>
+        <p className="text-muted-foreground mb-8">Upload up to 5 clear photos for a better analysis.</p>
 
-        {/* Hidden file inputs — gallery and camera are intentionally separate flows */}
+        {/* Hidden file inputs */}
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={handleGallerySelect} />
-        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleCameraSelect} />
         <input ref={replaceInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={handleReplaceSelect} />
 
         <AnimatePresence mode="wait">
@@ -876,25 +770,18 @@ const SkinAnalysis = () => {
                       <p className="text-sm text-muted-foreground max-w-sm">
                         Upload up to 5 clear photos for a better analysis.
                       </p>
+                      <p className="text-xs text-muted-foreground max-w-sm mt-2">
+                        For best results, take your photos first in good lighting, then upload them here.
+                      </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
-                      <button
-                        onClick={openCameraPicker}
-                        disabled={isSelecting}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px] disabled:opacity-40"
-                      >
-                        <Camera className="w-5 h-5" />
-                        Take a photo
-                      </button>
-                      <button
-                        onClick={openGalleryPicker}
-                        disabled={isSelecting}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px] disabled:opacity-40"
-                      >
-                        <Upload className="w-5 h-5" />
-                        Upload Images
-                      </button>
-                    </div>
+                    <button
+                      onClick={openGalleryPicker}
+                      disabled={isSelecting}
+                      className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px] disabled:opacity-40 w-full max-w-xs"
+                    >
+                      <Upload className="w-5 h-5" />
+                      Upload Images
+                    </button>
                   </div>
                 )}
 
@@ -909,24 +796,17 @@ const SkinAnalysis = () => {
                       <Sparkles className="w-4 h-4" />
                       Analyze {images.length} Photo{images.length > 1 ? "s" : ""}
                     </button>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={openCameraPicker}
-                        disabled={images.length >= MAX_IMAGES || isSelecting}
-                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
-                        aria-label="Take another photo"
-                      >
-                        <Camera className="w-5 h-5" />
-                      </button>
+                    {images.length < MAX_IMAGES && (
                       <button
                         onClick={openGalleryPicker}
-                        disabled={images.length >= MAX_IMAGES || isSelecting}
-                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
-                        aria-label="Add photos from gallery"
+                        disabled={isSelecting}
+                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px]"
+                        aria-label="Add more photos"
                       >
                         <ImagePlus className="w-5 h-5" />
+                        <span className="sm:hidden">Add More</span>
                       </button>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -938,10 +818,11 @@ const SkinAnalysis = () => {
                   <div>
                     <p className="font-medium text-foreground mb-1">Tips for better results</p>
                     <ul className="space-y-1">
-                      <li>- Use natural lighting, avoid flash</li>
-                      <li>- Capture close-up and wider views</li>
+                      <li>- Take photos in natural lighting, avoid flash</li>
+                      <li>- Include close-up and wider views</li>
                       <li>- Show the affected area from different angles</li>
-                      <li>- Keep the camera steady and focused</li>
+                      <li>- Make sure photos are sharp and in focus</li>
+                      <li>- Upload JPG, PNG, or WEBP images</li>
                     </ul>
                   </div>
                 </div>
