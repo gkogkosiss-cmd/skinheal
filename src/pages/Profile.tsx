@@ -45,7 +45,6 @@ const Profile = () => {
   // Handle checkout success redirect
   useEffect(() => {
     if (searchParams.get("checkout") === "success") {
-      toast({ title: "Welcome to Premium!", description: "Your subscription is now active." });
       refreshSubscription();
     }
   }, [searchParams]);
