@@ -236,19 +236,11 @@ If the user previously asked about something in this conversation, reference it 
       <div
         ref={containerRef}
         className="flex flex-col min-w-0"
-        style={{ height: "calc(100dvh - 10rem)" }}
+        style={{ height: "calc(100dvh - 10rem)", overflow: "hidden" }}
       >
         {/* Header */}
-        <div className="mb-3 sm:mb-4 flex items-start justify-between shrink-0">
-          <div className="min-w-0">
-            <p className="text-sm text-primary font-medium mb-1">AI Skin Coach</p>
-            <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl mb-1">Ask anything</h1>
-            <p className="text-muted-foreground text-sm">
-              {analysis
-                ? "Personalized guidance based on your skin analysis."
-                : "Evidence-based guidance on skin, nutrition, and gut health."}
-            </p>
-          </div>
+        <div className="mb-3 sm:mb-4 flex items-center justify-between shrink-0">
+          <p className="text-sm text-primary font-medium">AI Skin Coach</p>
           {messages.length > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
