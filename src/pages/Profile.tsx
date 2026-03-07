@@ -79,9 +79,8 @@ const Profile = () => {
     try {
       await deleteAccount();
       navigate("/");
-      toast({ title: "Account data deleted" });
     } catch {
-      toast({ title: "Failed to delete account", variant: "destructive" });
+      // silent fail
     }
   };
 
