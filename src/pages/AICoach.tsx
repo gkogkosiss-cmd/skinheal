@@ -303,7 +303,7 @@ If the user previously asked about something in this conversation, reference it 
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto space-y-4 mb-3 pr-1 min-h-0"
-          style={{ paddingBottom: `${Math.max(12, composerHeight + keyboardOffset + 8)}px` }}
+          style={{ paddingBottom: keyboardOffset ? `${keyboardOffset + 12}px` : "0px" }}
         >
           {isLoadingHistory ? (
             <div className="flex items-center justify-center h-full">
