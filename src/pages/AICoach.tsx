@@ -32,6 +32,7 @@ const AICoach = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { currentAnalysis: analysis } = useCurrentAnalysis();
   const { user } = useAuth();
+  const { viewportHeight } = useVisualViewport();
 
   // Load chat history on mount
   useEffect(() => {
