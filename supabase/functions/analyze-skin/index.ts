@@ -306,9 +306,34 @@ Return the FULL JSON response with ALL fields including bodyArea, skinScore and 
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI analysis failed");
+
+      const rawError = await response.text();
+      const providerMessage = extractGatewayErrorMessage(rawError);
+      console.error("AI gateway error:", response.status, rawError);
+
+      if (response.status === 400 && /unable to process input image|invalid_argument|unsupported/i.test(providerMessage)) {
+        return new Response(
+          JSON.stringify({
+            error: "The backend did not receive usable image data. Please retake or re-upload in JPG/PNG format.",
+            details: providerMessage,
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          error: "Analysis could not be completed due to an internal processing issue.",
+          details: providerMessage,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const data = await response.json();
