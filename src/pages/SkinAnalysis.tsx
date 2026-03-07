@@ -624,7 +624,7 @@ const SkinAnalysis = () => {
                         className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors min-h-[48px] disabled:opacity-40"
                       >
                         <Upload className="w-5 h-5" />
-                        Upload Photos
+                        Upload Images
                       </button>
                     </div>
                   </div>
