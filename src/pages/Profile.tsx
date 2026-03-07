@@ -33,7 +33,7 @@ const Profile = () => {
   const { profile, updateProfile, deleteAccount } = useProfile();
   const { currentAnalysis } = useCurrentAnalysis();
   const { isPremium, subscribed, subscriptionEnd, startCheckout, openCustomerPortal, isCheckingOut, refreshSubscription, isLoading: isSubLoading } = useSubscription();
-  const { toast } = useToast();
+  
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
