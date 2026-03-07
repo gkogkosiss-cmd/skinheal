@@ -9,8 +9,9 @@ const SUPPORTED_MIME_TYPES = new Set([
   "image/heif",
 ]);
 
-const SUPPORTED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
+const ANALYSIS_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+const SUPPORTED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
 export type PreparedImage = {
   file: File;
   base64: string;
@@ -212,6 +213,11 @@ export const prepareImageForAnalysis = async (file: File): Promise<PreparedImage
     if (!SUPPORTED_MIME_TYPES.has(normalizedMimeType) && !normalizedMimeType.startsWith("image/")) {
       URL.revokeObjectURL(previewUrl);
       throw new Error("This file is not a supported photo. Please take or upload a JPG or PNG image.");
+    }
+
+    if (!ANALYSIS_MIME_TYPES.has(normalizedMimeType)) {
+      URL.revokeObjectURL(previewUrl);
+      throw new Error("We couldn't process that photo. Please retake it using JPG or PNG format.");
     }
 
     return {

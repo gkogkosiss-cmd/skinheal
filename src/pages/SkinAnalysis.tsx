@@ -54,6 +54,7 @@ interface AnalysisResult {
 }
 
 const MAX_IMAGES = MAX_IMAGE_COUNT;
+const ANALYSIS_READY_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 type ImageSource = "camera" | "gallery";
 
@@ -61,10 +62,12 @@ type SelectedImage = {
   id: string;
   file: File;
   preview: string;
+  previewUrl: string;
   base64: string;
   mimeType: string;
   fingerprint: string;
   source: ImageSource;
+  uploadedPath?: string;
 };
 
 const healthQuestions = [
@@ -114,6 +117,7 @@ const SkinAnalysis = () => {
       selectedCount: images.length,
       analyzeEnabled: images.length >= 1 && !isSelecting,
       sources: images.map((img) => img.source),
+      analysisReadyCount: images.filter((img) => Boolean(img.base64 && img.mimeType)).length,
     });
   }, [images, isSelecting]);
 
@@ -167,6 +171,66 @@ const SkinAnalysis = () => {
     }
   }, []);
 
+
+  const summarizeSelectedImages = useCallback((selected: SelectedImage[]) => {
+    return selected.map((img) => ({
+      id: img.id,
+      source: img.source,
+      hasFile: img.file instanceof File,
+      fileName: img.file?.name,
+      fileType: img.file?.type,
+      fileSize: img.file?.size,
+      hasBase64: typeof img.base64 === "string" && img.base64.length > 0,
+      base64Length: img.base64?.length ?? 0,
+      mimeType: img.mimeType,
+      hasUploadedPath: Boolean(img.uploadedPath),
+      previewUrl: img.previewUrl,
+    }));
+  }, []);
+
+  const buildAnalysisImagePayload = useCallback((selected: SelectedImage[]) => {
+    const normalized = selected.map((img) => {
+      const mimeType = (img.mimeType || img.file?.type || "image/jpeg").toLowerCase();
+      return {
+        id: img.id,
+        source: img.source,
+        mimeType,
+        base64: typeof img.base64 === "string" ? img.base64.trim() : "",
+      };
+    });
+
+    const hasMissingPayload = normalized.some((img) => img.base64.length === 0);
+    if (hasMissingPayload) {
+      throw new Error("Images were selected, but no valid images were sent for analysis.");
+    }
+
+    const unsupported = normalized.filter((img) => !ANALYSIS_READY_MIME_TYPES.has(img.mimeType));
+    if (unsupported.length > 0) {
+      console.error("[SkinAnalysis] unsupported image format in analysis payload", unsupported);
+      throw new Error("We couldn't process that photo. Please retake it using JPG or PNG.");
+    }
+
+    return normalized.map((img) => ({ base64: img.base64, mimeType: img.mimeType }));
+  }, []);
+
+  const getErrorMessage = useCallback((error: unknown, fallback: string) => {
+    const message = error instanceof Error ? error.message : fallback;
+
+    if (/unable to process input image|invalid_argument|unsupported image format/i.test(message)) {
+      return "The backend did not receive usable image data. Please retake or re-upload the photo.";
+    }
+
+    if (/images were selected, but no valid images/i.test(message)) {
+      return "Images were selected, but no valid images were sent for analysis.";
+    }
+
+    if (/upload/i.test(message) && /failed/i.test(message)) {
+      return "Image upload completed, but the analysis request failed.";
+    }
+
+    return message || fallback;
+  }, []);
+
   const processIncomingFiles = useCallback(
     async (
       incomingFiles: File[],
@@ -214,10 +278,12 @@ const SkinAnalysis = () => {
               id: prev[targetIndex].id,
               file: prepared.file,
               preview: prepared.previewUrl,
+              previewUrl: prepared.previewUrl,
               base64: prepared.base64,
               mimeType: prepared.mimeType,
               fingerprint: rawFingerprint,
               source,
+              uploadedPath: undefined,
             };
             return next;
           });
@@ -257,10 +323,12 @@ const SkinAnalysis = () => {
               id: createImageId(),
               file: prepared.file,
               preview: prepared.previewUrl,
+              previewUrl: prepared.previewUrl,
               base64: prepared.base64,
               mimeType: prepared.mimeType,
               fingerprint: rawFingerprint,
               source,
+              uploadedPath: undefined,
             });
             existingFingerprints.add(rawFingerprint);
           } catch (error) {
@@ -318,7 +386,7 @@ const SkinAnalysis = () => {
 
     try {
       cameraInput.value = "";
-      cameraInput.accept = "image/*";
+      cameraInput.accept = "image/jpeg,image/png,image/webp";
       cameraInput.setAttribute("capture", "environment");
       console.info("[SkinAnalysis] camera input triggered", {
         accept: cameraInput.accept,
@@ -440,12 +508,23 @@ const SkinAnalysis = () => {
   }, [openInputPicker]);
 
   const startAnalysis = async () => {
-    if (images.length === 0 || isSelecting) return;
+    const selectedImages = imagesRef.current;
+    if (selectedImages.length === 0 || isSelecting) return;
+
+    console.info("[SkinAnalysis] Analyze button clicked", {
+      selectedImagesLength: selectedImages.length,
+      selectedImages: summarizeSelectedImages(selectedImages),
+      analyzeEnabled: selectedImages.length >= 1 && !isSelecting,
+    });
+
     setStep("analyzing-photo");
 
     try {
-      const imagesBase64 = images.map((img) => ({ base64: img.base64, mimeType: img.mimeType }));
-      console.info("[SkinAnalysis] starting image scan", { imageCount: imagesBase64.length });
+      const imagesBase64 = buildAnalysisImagePayload(selectedImages);
+      console.info("[SkinAnalysis] request started", {
+        stage: "dynamic-questions",
+        imageCount: imagesBase64.length,
+      });
 
       const { data, error } = await supabase.functions.invoke("analyze-skin", {
         body: { imagesBase64 },
@@ -453,6 +532,12 @@ const SkinAnalysis = () => {
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+
+      console.info("[SkinAnalysis] request completed", {
+        stage: "dynamic-questions",
+        hasBodyArea: Boolean(data?.bodyArea),
+        hasDynamicQuestions: Array.isArray(data?.dynamicQuestions),
+      });
 
       const nextQuestions = Array.isArray(data?.dynamicQuestions) ? data.dynamicQuestions : [];
       setDynamicQuestions(nextQuestions);
@@ -469,8 +554,9 @@ const SkinAnalysis = () => {
 
       setStep("questions");
     } catch (err: any) {
-      console.error("[SkinAnalysis] image scan failed", err);
-      toast({ title: "Analysis failed", description: err.message || "Could not start analysis. Please retry.", variant: "destructive" });
+      console.error("[SkinAnalysis] request failed", { stage: "dynamic-questions", error: err });
+      const message = getErrorMessage(err, "Could not start analysis. Please retry.");
+      toast({ title: "Analysis failed", description: message, variant: "destructive" });
       setStep("upload");
     }
   };
@@ -508,34 +594,53 @@ const SkinAnalysis = () => {
 
   const saveAnalysis = async (analysisData: AnalysisResult) => {
     if (!user) throw new Error("Please log in before running an analysis.");
-    if (images.length === 0) throw new Error("Please add at least one photo before analysis.");
+
+    const selectedImages = imagesRef.current;
+    if (selectedImages.length === 0) throw new Error("Please add at least one photo before analysis.");
 
     const photoUrls: string[] = [];
 
     try {
-      console.info("[SkinAnalysis] uploading photos", { imageCount: images.length });
+      console.info("[SkinAnalysis] upload started", {
+        imageCount: selectedImages.length,
+        selectedImages: summarizeSelectedImages(selectedImages),
+      });
 
-      for (const [index, img] of images.entries()) {
+      for (const [index, img] of selectedImages.entries()) {
         const path = `${user.id}/${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}.jpg`;
         const { error: uploadError } = await supabase.storage
           .from("skin-photos")
           .upload(path, img.file, { contentType: img.file.type || "image/jpeg" });
 
         if (uploadError) {
-          throw new Error("We couldn’t upload one of your images. Please try again.");
+          console.error("[SkinAnalysis] upload failed", { index, fileName: img.file.name, error: uploadError });
+          throw new Error("Image upload completed, but the analysis request failed.");
         }
 
         photoUrls.push(path);
+        console.info("[SkinAnalysis] upload success", { index, path });
       }
 
       if (photoUrls.length === 0) {
         throw new Error("No image was uploaded. Please select images and retry.");
       }
 
+      setImages((prev) =>
+        prev.map((img, index) => ({
+          ...img,
+          uploadedPath: photoUrls[index] ?? img.uploadedPath,
+        }))
+      );
+
       const normalized = normalizeAnalysisRecordPayload({
         analysis: analysisData,
         answers,
         visualFeatures,
+      });
+
+      console.info("[SkinAnalysis] payload built", {
+        uploadedImageCount: photoUrls.length,
+        hasResults: Array.isArray(normalized.results),
       });
 
       const insertResponse = await supabase
@@ -589,7 +694,8 @@ const SkinAnalysis = () => {
   };
 
   const runFullAnalysis = async () => {
-    if (images.length === 0 || isSelecting) {
+    const selectedImages = imagesRef.current;
+    if (selectedImages.length === 0 || isSelecting) {
       toast({ title: "Add photos first", description: "Please add at least one clear photo before analysis." });
       setStep("upload");
       return;
@@ -598,8 +704,14 @@ const SkinAnalysis = () => {
     setStep("loading");
 
     try {
-      const imagesBase64 = images.map((img) => ({ base64: img.base64, mimeType: img.mimeType }));
-      console.info("[SkinAnalysis] full analysis started", { imageCount: imagesBase64.length, answerCount: Object.keys(answers).length });
+      const imagesBase64 = buildAnalysisImagePayload(selectedImages);
+      console.info("[SkinAnalysis] request started", {
+        stage: "full-analysis",
+        selectedImagesLength: selectedImages.length,
+        selectedImages: summarizeSelectedImages(selectedImages),
+        payloadImageCount: imagesBase64.length,
+        answerCount: Object.keys(answers).length,
+      });
 
       const { data, error } = await supabase.functions.invoke("analyze-skin", {
         body: { imagesBase64, answers },
@@ -608,6 +720,12 @@ const SkinAnalysis = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      console.info("[SkinAnalysis] request completed", {
+        stage: "full-analysis",
+        hasBodyArea: Boolean(data?.bodyArea),
+        hasConditions: Array.isArray(data?.conditions),
+      });
+
       const generated = data as AnalysisResult;
       if (data?.bodyArea) setBodyArea(data.bodyArea);
 
@@ -615,12 +733,12 @@ const SkinAnalysis = () => {
 
       setResults(generated);
       setStep("results");
-      // analysis complete, navigating
       console.info("[SkinAnalysis] full analysis completed");
       navigate("/dashboard");
     } catch (err: any) {
-      console.error("[SkinAnalysis] full analysis failed", err);
-      toast({ title: "Analysis failed", description: err?.message || "Your images were selected, but the analysis could not start. Please retry.", variant: "destructive" });
+      console.error("[SkinAnalysis] request failed", { stage: "full-analysis", error: err });
+      const message = getErrorMessage(err, "Analysis could not be completed due to an internal processing issue.");
+      toast({ title: "Analysis failed", description: message, variant: "destructive" });
       setStep("upload");
     }
   };
@@ -639,7 +757,7 @@ const SkinAnalysis = () => {
 
         {/* Hidden file inputs — gallery and camera are intentionally separate flows */}
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={handleGallerySelect} />
-        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleCameraSelect} onInput={handleCameraSelect} />
+        <input ref={cameraInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" onChange={handleCameraSelect} onInput={handleCameraSelect} />
         <input ref={replaceInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={handleReplaceSelect} />
 
         <AnimatePresence mode="wait">

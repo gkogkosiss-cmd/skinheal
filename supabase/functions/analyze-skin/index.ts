@@ -6,6 +6,25 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SUPPORTED_ANALYSIS_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+const normalizeMimeType = (value: string | undefined) => {
+  const mime = (value || "image/jpeg").toLowerCase();
+  return mime === "image/jpg" ? "image/jpeg" : mime;
+};
+
+const extractGatewayErrorMessage = (raw: string) => {
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.error?.metadata?.raw || parsed?.error?.message || raw;
+  } catch {
+    return raw;
+  }
+};
+
+const buildUnsupportedFormatMessage = (mimeType: string) =>
+  `The backend did not receive usable image data. Unsupported image format: ${mimeType}. Please use JPG, PNG, or WEBP.`;
+
 const SYSTEM_PROMPT = `You are an evidence-based skin wellness educator for "SkinHeal AI". You analyze skin photos and user responses to provide educational wellness insights.
 
 CRITICAL RULES:
@@ -143,8 +162,10 @@ serve(async (req) => {
     const images: Array<{ base64: string; mimeType: string }> = [];
 
     const normalizeImage = (input: unknown) => {
-      if (typeof input === "string" && input.length > 0) {
-        images.push({ base64: input, mimeType: "image/jpeg" });
+      if (typeof input === "string") {
+        const trimmed = input.trim();
+        if (!trimmed) return;
+        images.push({ base64: trimmed, mimeType: "image/jpeg" });
         return;
       }
 
@@ -154,11 +175,12 @@ serve(async (req) => {
         typeof (input as { base64?: unknown }).base64 === "string"
       ) {
         const candidate = input as { base64: string; mimeType?: string };
+        const trimmedBase64 = candidate.base64.trim();
+        if (!trimmedBase64) return;
+
         images.push({
-          base64: candidate.base64,
-          mimeType: typeof candidate.mimeType === "string" && candidate.mimeType.startsWith("image/")
-            ? candidate.mimeType
-            : "image/jpeg",
+          base64: trimmedBase64,
+          mimeType: normalizeMimeType(candidate.mimeType),
         });
       }
     };
@@ -170,12 +192,33 @@ serve(async (req) => {
     }
 
     if (images.length === 0) {
-      throw new Error("At least one image is required");
+      return new Response(JSON.stringify({ error: "Images were selected, but no valid images were sent for analysis." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const unsupportedImage = images.find((img) => !SUPPORTED_ANALYSIS_MIME_TYPES.has(img.mimeType));
+    if (unsupportedImage) {
+      const message = buildUnsupportedFormatMessage(unsupportedImage.mimeType);
+      console.error("[analyze-skin] unsupported mime type", {
+        mimeType: unsupportedImage.mimeType,
+        imageCount: images.length,
+      });
+      return new Response(JSON.stringify({ error: message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.info("[analyze-skin] request received", {
       imageCount: images.length,
       hasAnswers: !!answers,
+      imageMeta: images.map((img, index) => ({
+        index,
+        mimeType: img.mimeType,
+        base64Length: img.base64.length,
+      })),
     });
 
     const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
@@ -263,9 +306,34 @@ Return the FULL JSON response with ALL fields including bodyArea, skinScore and 
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI analysis failed");
+
+      const rawError = await response.text();
+      const providerMessage = extractGatewayErrorMessage(rawError);
+      console.error("AI gateway error:", response.status, rawError);
+
+      if (response.status === 400 && /unable to process input image|invalid_argument|unsupported/i.test(providerMessage)) {
+        return new Response(
+          JSON.stringify({
+            error: "The backend did not receive usable image data. Please retake or re-upload in JPG/PNG format.",
+            details: providerMessage,
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          error: "Analysis could not be completed due to an internal processing issue.",
+          details: providerMessage,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const data = await response.json();
