@@ -507,12 +507,23 @@ const SkinAnalysis = () => {
   }, [openInputPicker]);
 
   const startAnalysis = async () => {
-    if (images.length === 0 || isSelecting) return;
+    const selectedImages = imagesRef.current;
+    if (selectedImages.length === 0 || isSelecting) return;
+
+    console.info("[SkinAnalysis] Analyze button clicked", {
+      selectedImagesLength: selectedImages.length,
+      selectedImages: summarizeSelectedImages(selectedImages),
+      analyzeEnabled: selectedImages.length >= 1 && !isSelecting,
+    });
+
     setStep("analyzing-photo");
 
     try {
-      const imagesBase64 = images.map((img) => ({ base64: img.base64, mimeType: img.mimeType }));
-      console.info("[SkinAnalysis] starting image scan", { imageCount: imagesBase64.length });
+      const imagesBase64 = buildAnalysisImagePayload(selectedImages);
+      console.info("[SkinAnalysis] request started", {
+        stage: "dynamic-questions",
+        imageCount: imagesBase64.length,
+      });
 
       const { data, error } = await supabase.functions.invoke("analyze-skin", {
         body: { imagesBase64 },
@@ -520,6 +531,12 @@ const SkinAnalysis = () => {
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+
+      console.info("[SkinAnalysis] request completed", {
+        stage: "dynamic-questions",
+        hasBodyArea: Boolean(data?.bodyArea),
+        hasDynamicQuestions: Array.isArray(data?.dynamicQuestions),
+      });
 
       const nextQuestions = Array.isArray(data?.dynamicQuestions) ? data.dynamicQuestions : [];
       setDynamicQuestions(nextQuestions);
@@ -536,8 +553,9 @@ const SkinAnalysis = () => {
 
       setStep("questions");
     } catch (err: any) {
-      console.error("[SkinAnalysis] image scan failed", err);
-      toast({ title: "Analysis failed", description: err.message || "Could not start analysis. Please retry.", variant: "destructive" });
+      console.error("[SkinAnalysis] request failed", { stage: "dynamic-questions", error: err });
+      const message = getErrorMessage(err, "Could not start analysis. Please retry.");
+      toast({ title: "Analysis failed", description: message, variant: "destructive" });
       setStep("upload");
     }
   };
