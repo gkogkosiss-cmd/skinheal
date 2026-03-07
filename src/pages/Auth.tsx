@@ -46,16 +46,24 @@ const Auth = () => {
     setLoading(true);
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        console.log("[Auth] signUp called with email:", email);
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
+        console.log("[Auth] signUp result:", { user: data?.user?.id, session: !!data?.session, error: error?.message });
         if (error) throw error;
+        if (data?.user && !data?.session) {
+          toast({ title: "Check your email", description: "A confirmation link has been sent to your email." });
+        }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        console.log("[Auth] signIn called with email:", email);
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        console.log("[Auth] signIn result:", { user: data?.user?.id, session: !!data?.session, error: error?.message });
         if (error) throw error;
       }
     } catch (err: any) {
+      console.error("[Auth] Error:", err.message);
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
 import { Send, Bot, User, Sparkles, AlertCircle, Trash2 } from "lucide-react";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +32,7 @@ const AICoach = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { currentAnalysis: analysis } = useCurrentAnalysis();
   const { user } = useAuth();
+  const { viewportHeight } = useVisualViewport();
 
   // Load chat history on mount
   useEffect(() => {
@@ -236,7 +238,7 @@ If the user previously asked about something in this conversation, reference it 
       <div
         ref={containerRef}
         className="flex flex-col min-w-0"
-        style={{ height: "calc(100dvh - 10rem)", overflow: "hidden" }}
+        style={{ height: `${viewportHeight - 160}px`, overflow: "hidden", transition: "height 0.15s ease-out" }}
       >
         {/* Header */}
         <div className="mb-3 sm:mb-4 flex items-center justify-between shrink-0">
@@ -348,10 +350,13 @@ If the user previously asked about something in this conversation, reference it 
               value={input}
               onChange={(e) => setInput(e.target.value)}
                onFocus={() => {
-                 requestAnimationFrame(() => {
-                   scrollToBottom("auto");
-                 });
+                 requestAnimationFrame(() => scrollToBottom("auto"));
                  setTimeout(() => scrollToBottom("auto"), 120);
+                 // Extra delayed scroll for slow webview keyboard resize
+                 setTimeout(() => {
+                   inputRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                   scrollToBottom("auto");
+                 }, 400);
                }}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send(input)}
               placeholder="Ask about your skin, diet, or healing..."

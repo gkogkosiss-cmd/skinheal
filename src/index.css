@@ -173,6 +173,21 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Webview / Instagram in-app browser fixes */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  /* Prevent iOS bounce that causes layout issues in webviews */
+  overscroll-behavior: none;
+}
+
+/* Ensure interactive-widget=resizes-content works where supported */
+@supports (height: 100svh) {
+  .h-svh {
+    height: 100svh;
+  }
+}
+
 /* Prevent any page-level horizontal overflow */
 #root {
   width: 100%;
