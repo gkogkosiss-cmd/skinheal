@@ -96,7 +96,7 @@ const Progress = () => {
 
   return (
     <Layout>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="min-w-0">
         <p className="text-sm text-primary font-medium mb-1">Progress Tracker</p>
         <h1 className="font-serif text-3xl md:text-4xl mb-2">Track Your Healing</h1>
         <p className="text-muted-foreground mb-8">Upload weekly photos to visualize your improvement over time.</p>
@@ -134,7 +134,7 @@ const Progress = () => {
           {canShare && (
             <button
               onClick={() => setShowShareCard(true)}
-              className="w-full card-elevated gradient-sage flex items-center justify-center gap-3 py-4 cursor-pointer hover:opacity-90 transition-opacity"
+              className="w-full card-elevated gradient-sage flex items-center justify-center gap-3 py-4 cursor-pointer hover:opacity-90 transition-opacity min-w-0"
             >
               <Share2 className="w-5 h-5 text-primary" />
               <span className="font-medium text-sm">Share Your Progress</span>
@@ -215,11 +215,11 @@ const Progress = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1 gap-3">
-                          <p className="font-medium text-sm">
+                        <div className="flex flex-wrap items-start justify-between mb-1 gap-2">
+                          <p className="font-medium text-sm break-words">
                             {i === analyses!.length - 1 ? "Initial Analysis" : `Analysis ${analyses!.length - i}`}
                           </p>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-end flex-wrap gap-1.5 min-w-0">
                             {score > 0 && (
                               <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
                                 {score}/100
@@ -235,11 +235,11 @@ const Progress = () => {
                                 Current
                               </span>
                             )}
-                            <span className="text-xs text-muted-foreground">{date.toLocaleDateString()}</span>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">{date.toLocaleDateString()}</span>
                           </div>
                         </div>
                         {topCondition && (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground break-words">
                             {topCondition.condition} — {topCondition.probability}% likelihood
                           </p>
                         )}
@@ -260,7 +260,7 @@ const Progress = () => {
           {compareMode && compareAnalyses && compareAnalyses.length === 2 && (
             <div className="card-elevated">
               <h3 className="font-serif text-xl mb-5">Side-by-Side Comparison</h3>
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 {compareAnalyses.map((a) => (
                   <div key={a.id} className="text-center">
                     <div className="w-full aspect-square rounded-xl bg-muted overflow-hidden mb-2">

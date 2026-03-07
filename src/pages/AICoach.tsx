@@ -25,6 +25,8 @@ const AICoach = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [chatViewportHeight, setChatViewportHeight] = useState<number | null>(null);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -60,41 +62,43 @@ const AICoach = () => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Mobile keyboard: use visualViewport to keep input visible
+  // Mobile keyboard: lock chat height to the visible viewport so input never hides behind keyboard
   useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv || !containerRef.current) return;
-
-    const onResize = () => {
+    const updateViewportLayout = () => {
       if (!containerRef.current) return;
-      const offsetTop = vv.offsetTop;
-      const height = vv.height;
-      // Adjust container to fit within visual viewport
-      containerRef.current.style.height = `${height - 20}px`;
-      containerRef.current.style.transform = `translateY(${offsetTop}px)`;
-      // Scroll chat to bottom
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-      });
-    };
 
-    const onScrollViewport = () => {
-      if (!containerRef.current) return;
-      containerRef.current.style.transform = `translateY(${vv.offsetTop}px)`;
-    };
+      const vv = window.visualViewport;
+      const viewportBottom = vv ? vv.height + vv.offsetTop : window.innerHeight;
+      const top = containerRef.current.getBoundingClientRect().top;
+      const nextHeight = Math.max(320, viewportBottom - top - 8);
 
-    vv.addEventListener("resize", onResize);
-    vv.addEventListener("scroll", onScrollViewport);
+      setChatViewportHeight(nextHeight);
 
-    return () => {
-      vv.removeEventListener("resize", onResize);
-      vv.removeEventListener("scroll", onScrollViewport);
-      if (containerRef.current) {
-        containerRef.current.style.height = "";
-        containerRef.current.style.transform = "";
+      if (isInputFocused) {
+        requestAnimationFrame(() => {
+          scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+        });
       }
     };
-  }, []);
+
+    updateViewportLayout();
+
+    const vv = window.visualViewport;
+    if (!vv) {
+      window.addEventListener("resize", updateViewportLayout);
+      return () => window.removeEventListener("resize", updateViewportLayout);
+    }
+
+    vv.addEventListener("resize", updateViewportLayout);
+    vv.addEventListener("scroll", updateViewportLayout);
+    window.addEventListener("orientationchange", updateViewportLayout);
+
+    return () => {
+      vv.removeEventListener("resize", updateViewportLayout);
+      vv.removeEventListener("scroll", updateViewportLayout);
+      window.removeEventListener("orientationchange", updateViewportLayout);
+    };
+  }, [isInputFocused]);
 
   const saveMessage = useCallback(async (role: "user" | "assistant", content: string) => {
     if (!user) return;
@@ -237,7 +241,7 @@ If the user previously asked about something in this conversation, reference it 
       <div
         ref={containerRef}
         className="flex flex-col min-w-0"
-        style={{ height: "calc(100dvh - 10rem)" }}
+        style={{ height: chatViewportHeight ? `${chatViewportHeight}px` : "calc(100dvh - 10rem)" }}
       >
         {/* Header */}
         <div className="mb-3 sm:mb-4 flex items-start justify-between shrink-0">
@@ -350,6 +354,13 @@ If the user previously asked about something in this conversation, reference it 
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onFocus={() => {
+                setIsInputFocused(true);
+                requestAnimationFrame(() => {
+                  scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+                });
+              }}
+              onBlur={() => setIsInputFocused(false)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send(input)}
               placeholder="Ask about your skin, diet, or healing..."
               className="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl bg-card border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 min-w-0"

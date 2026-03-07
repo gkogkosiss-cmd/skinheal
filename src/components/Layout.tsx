@@ -24,7 +24,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   return (
-    <div className="flex min-h-[100dvh] bg-background overflow-x-hidden">
+    <div className="flex min-h-[100dvh] bg-background overflow-x-hidden w-full max-w-full">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card/50 p-6 gap-2 fixed h-full">
         <Link to="/" className="flex items-center gap-2.5 mb-8 px-2">
@@ -64,7 +64,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       </aside>
 
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur-lg border-b border-border">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 w-full max-w-full flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur-lg border-b border-border">
         <Link to="/" className="flex items-center gap-2">
           <img src={skinhealLogo} alt="SkinHeal" className="w-8 h-8 rounded-lg" />
           <span className="font-serif text-lg">SkinHeal</span>
@@ -84,7 +84,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="lg:hidden fixed inset-0 z-40 bg-background/95 backdrop-blur-md pt-20 px-4"
+            className="lg:hidden fixed inset-0 z-40 bg-background/95 backdrop-blur-md pt-20 px-4 overflow-y-auto overflow-x-hidden content-safe"
           >
             <nav className="flex flex-col gap-1">
               {navItems.map((item, i) => {
@@ -117,8 +117,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 w-full min-w-0 overflow-x-hidden">
-        <div className="max-w-5xl mx-auto px-4 py-5 sm:px-5 sm:py-8 lg:px-10 lg:py-12 min-w-0">
+      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 w-full min-w-0 overflow-x-hidden content-safe">
+        <div className="max-w-5xl mx-auto px-4 py-5 sm:px-5 sm:py-8 lg:px-10 lg:py-12 min-w-0 w-full content-safe">
           {children}
         </div>
       </main>
