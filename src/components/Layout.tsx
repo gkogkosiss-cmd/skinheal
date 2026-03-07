@@ -24,7 +24,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   return (
-    <div className="flex min-h-[100dvh] bg-background overflow-x-hidden">
+    <div className="flex min-h-[100dvh] bg-background overflow-x-hidden w-full max-w-full">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card/50 p-6 gap-2 fixed h-full">
         <Link to="/" className="flex items-center gap-2.5 mb-8 px-2">
