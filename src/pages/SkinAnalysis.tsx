@@ -55,6 +55,7 @@ interface AnalysisResult {
 
 const MAX_IMAGES = MAX_IMAGE_COUNT;
 const ANALYSIS_READY_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MIN_ANALYSIS_BASE64_LENGTH = 256;
 
 type ImageSource = "camera" | "gallery";
 
@@ -199,7 +200,9 @@ const SkinAnalysis = () => {
       };
     });
 
-    const hasMissingPayload = normalized.some((img) => img.base64.length === 0);
+    const hasMissingPayload = normalized.some(
+      (img) => img.base64.length < MIN_ANALYSIS_BASE64_LENGTH
+    );
     if (hasMissingPayload) {
       throw new Error("Images were selected, but no valid images were sent for analysis.");
     }
@@ -375,18 +378,9 @@ const SkinAnalysis = () => {
       return;
     }
 
-    const ua = navigator.userAgent || "";
-    const isLikelyMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (navigator.maxTouchPoints ?? 0) > 1;
-
-    if (!isLikelyMobile) {
-      console.warn("[SkinAnalysis] camera capture likely unsupported, falling back to gallery");
-      openGalleryPicker();
-      return;
-    }
-
     try {
       cameraInput.value = "";
-      cameraInput.accept = "image/jpeg,image/png,image/webp";
+      cameraInput.accept = "image/*";
       cameraInput.setAttribute("capture", "environment");
       console.info("[SkinAnalysis] camera input triggered", {
         accept: cameraInput.accept,
@@ -417,7 +411,7 @@ const SkinAnalysis = () => {
   );
 
   const handleCameraSelect = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>) => {
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
       const input = event.currentTarget as HTMLInputElement;
       const fileList = input.files;
       const files = Array.from(fileList ?? []);
@@ -757,7 +751,7 @@ const SkinAnalysis = () => {
 
         {/* Hidden file inputs — gallery and camera are intentionally separate flows */}
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={handleGallerySelect} />
-        <input ref={cameraInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" onChange={handleCameraSelect} onInput={handleCameraSelect} />
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleCameraSelect} />
         <input ref={replaceInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={handleReplaceSelect} />
 
         <AnimatePresence mode="wait">

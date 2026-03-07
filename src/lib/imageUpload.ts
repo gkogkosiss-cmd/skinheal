@@ -23,6 +23,7 @@ export type PreparedImage = {
 const FILE_READ_TIMEOUT_MS = 15000;
 const IMAGE_DECODE_TIMEOUT_MS = 10000;
 const CANVAS_TO_BLOB_TIMEOUT_MS = 10000;
+const MIN_ANALYSIS_BASE64_LENGTH = 256;
 
 const readBlobAsDataUrl = (blob: Blob, timeoutMs = FILE_READ_TIMEOUT_MS): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -107,6 +108,9 @@ const convertImageToJpeg = async (file: File): Promise<Blob> => {
   try {
     const img = await loadImage(sourceUrl);
     const maxDimension = 1600;
+    if (img.width < 64 || img.height < 64) {
+      throw new Error("IMAGE_TOO_SMALL");
+    }
     const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
     const width = Math.max(1, Math.round(img.width * scale));
     const height = Math.max(1, Math.round(img.height * scale));
@@ -185,7 +189,7 @@ export const prepareImageForAnalysis = async (file: File): Promise<PreparedImage
     const base64 = dataUrl.split(",")[1] || "";
     const previewUrl = URL.createObjectURL(processedFile);
 
-    if (!base64) {
+    if (!base64 || base64.length < MIN_ANALYSIS_BASE64_LENGTH) {
       URL.revokeObjectURL(previewUrl);
       throw new Error("Failed to prepare image for analysis.");
     }
@@ -197,7 +201,14 @@ export const prepareImageForAnalysis = async (file: File): Promise<PreparedImage
       previewUrl,
       fingerprint: getFileFingerprint(processedFile),
     };
-  } catch {
+  } catch (processingError) {
+    if (
+      processingError instanceof Error &&
+      (processingError.message === "IMAGE_TOO_SMALL" || /Could not decode this image/i.test(processingError.message))
+    ) {
+      throw new Error("We couldn't process that photo. Please retake it.");
+    }
+
     const dataUrl = await readBlobAsDataUrl(file);
     const base64 = dataUrl.split(",")[1] || "";
     const mimeFromDataUrl = dataUrl.slice(5, dataUrl.indexOf(";"));
@@ -205,7 +216,7 @@ export const prepareImageForAnalysis = async (file: File): Promise<PreparedImage
     const normalizedMimeType = mimeType === "image/jpg" ? "image/jpeg" : mimeType;
     const previewUrl = URL.createObjectURL(file);
 
-    if (!base64) {
+    if (!base64 || base64.length < MIN_ANALYSIS_BASE64_LENGTH) {
       URL.revokeObjectURL(previewUrl);
       throw new Error("Could not decode this image. Try selecting a clearer JPG or PNG photo.");
     }

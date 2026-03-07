@@ -198,6 +198,24 @@ serve(async (req) => {
       });
     }
 
+    const unusableImage = images.find((img) => !img.base64 || img.base64.trim().length < 256);
+    if (unusableImage) {
+      console.error("[analyze-skin] unusable image payload", {
+        imageCount: images.length,
+        mimeType: unusableImage.mimeType,
+        base64Length: unusableImage.base64?.length ?? 0,
+      });
+      return new Response(
+        JSON.stringify({
+          error: "The backend did not receive usable image data. Please retake or re-upload in JPG/PNG format.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const unsupportedImage = images.find((img) => !SUPPORTED_ANALYSIS_MIME_TYPES.has(img.mimeType));
     if (unsupportedImage) {
       const message = buildUnsupportedFormatMessage(unsupportedImage.mimeType);
