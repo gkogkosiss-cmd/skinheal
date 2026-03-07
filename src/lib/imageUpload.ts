@@ -23,6 +23,7 @@ export type PreparedImage = {
 const FILE_READ_TIMEOUT_MS = 15000;
 const IMAGE_DECODE_TIMEOUT_MS = 10000;
 const CANVAS_TO_BLOB_TIMEOUT_MS = 10000;
+const MIN_ANALYSIS_BASE64_LENGTH = 256;
 
 const readBlobAsDataUrl = (blob: Blob, timeoutMs = FILE_READ_TIMEOUT_MS): Promise<string> =>
   new Promise((resolve, reject) => {
