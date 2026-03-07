@@ -693,7 +693,8 @@ const SkinAnalysis = () => {
   };
 
   const runFullAnalysis = async () => {
-    if (images.length === 0 || isSelecting) {
+    const selectedImages = imagesRef.current;
+    if (selectedImages.length === 0 || isSelecting) {
       toast({ title: "Add photos first", description: "Please add at least one clear photo before analysis." });
       setStep("upload");
       return;
@@ -702,8 +703,14 @@ const SkinAnalysis = () => {
     setStep("loading");
 
     try {
-      const imagesBase64 = images.map((img) => ({ base64: img.base64, mimeType: img.mimeType }));
-      console.info("[SkinAnalysis] full analysis started", { imageCount: imagesBase64.length, answerCount: Object.keys(answers).length });
+      const imagesBase64 = buildAnalysisImagePayload(selectedImages);
+      console.info("[SkinAnalysis] request started", {
+        stage: "full-analysis",
+        selectedImagesLength: selectedImages.length,
+        selectedImages: summarizeSelectedImages(selectedImages),
+        payloadImageCount: imagesBase64.length,
+        answerCount: Object.keys(answers).length,
+      });
 
       const { data, error } = await supabase.functions.invoke("analyze-skin", {
         body: { imagesBase64, answers },
@@ -712,6 +719,12 @@ const SkinAnalysis = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      console.info("[SkinAnalysis] request completed", {
+        stage: "full-analysis",
+        hasBodyArea: Boolean(data?.bodyArea),
+        hasConditions: Array.isArray(data?.conditions),
+      });
+
       const generated = data as AnalysisResult;
       if (data?.bodyArea) setBodyArea(data.bodyArea);
 
@@ -719,12 +732,12 @@ const SkinAnalysis = () => {
 
       setResults(generated);
       setStep("results");
-      // analysis complete, navigating
       console.info("[SkinAnalysis] full analysis completed");
       navigate("/dashboard");
     } catch (err: any) {
-      console.error("[SkinAnalysis] full analysis failed", err);
-      toast({ title: "Analysis failed", description: err?.message || "Your images were selected, but the analysis could not start. Please retry.", variant: "destructive" });
+      console.error("[SkinAnalysis] request failed", { stage: "full-analysis", error: err });
+      const message = getErrorMessage(err, "Analysis could not be completed due to an internal processing issue.");
+      toast({ title: "Analysis failed", description: message, variant: "destructive" });
       setStep("upload");
     }
   };
