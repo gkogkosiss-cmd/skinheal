@@ -400,7 +400,7 @@ const SkinAnalysis = () => {
   );
 
   const openGalleryPicker = useCallback(() => {
-    openInputPicker(fileInputRef.current, "gallery");
+    openInputPicker(fileInputRef.current);
   }, [openInputPicker]);
 
   const openCameraPicker = useCallback(() => {
