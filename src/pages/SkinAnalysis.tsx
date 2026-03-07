@@ -120,14 +120,55 @@ const SkinAnalysis = () => {
   const imagesRef = useRef<SelectedImage[]>([]);
   imagesRef.current = images;
 
+  const createImageId = useCallback(() => {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }, []);
+
+  const openInputPicker = useCallback((input: HTMLInputElement | null, source: ImageSource) => {
+    if (!input) {
+      setSelectionError(source === "camera" ? "Camera capture failed. Please retake the photo." : "Photo upload failed. Please try again.");
+      return;
+    }
+
+    try {
+      setSelectionError(null);
+      input.value = "";
+
+      const pickerInput = input as HTMLInputElement & { showPicker?: () => void };
+      if (typeof pickerInput.showPicker === "function") {
+        pickerInput.showPicker();
+      } else {
+        input.click();
+      }
+
+      console.info("[SkinAnalysis] picker opened", { source });
+    } catch (error) {
+      console.error("[SkinAnalysis] failed to open picker", { source, error });
+      setSelectionError(source === "camera" ? "Camera capture failed. Please retake the photo." : "Photo upload failed. Please try again.");
+    }
+  }, []);
+
   const processIncomingFiles = useCallback(
-    async (incomingFiles: File[], mode: "add" | "replace" = "add", targetIndex?: number) => {
+    async (
+      incomingFiles: File[],
+      source: ImageSource,
+      mode: "add" | "replace" = "add",
+      targetIndex?: number
+    ) => {
       if (incomingFiles.length === 0) {
-        console.warn("[SkinAnalysis] processIncomingFiles called with 0 files");
+        setSelectionError(source === "camera" ? "Camera capture failed. Please retake the photo." : "Photo upload failed. Please try again.");
         return;
       }
 
-      console.info("[SkinAnalysis] processIncomingFiles", { count: incomingFiles.length, mode, names: incomingFiles.map(f => f.name) });
+      console.info("[SkinAnalysis] processIncomingFiles", {
+        count: incomingFiles.length,
+        source,
+        mode,
+        names: incomingFiles.map((f) => f.name),
+      });
 
       setIsSelecting(true);
       setSelectionError(null);
@@ -160,27 +201,29 @@ const SkinAnalysis = () => {
               base64: prepared.base64,
               mimeType: prepared.mimeType,
               fingerprint: rawFingerprint,
+              source,
             };
             return next;
           });
           return;
         }
 
-        // Read current images from ref to avoid stale closure
         const currentImages = imagesRef.current;
-        let remaining = MAX_IMAGES - currentImages.length;
-        if (remaining <= 0) {
-          setSelectionError(`You can upload up to ${MAX_IMAGES} images.`);
+        const remainingSlots = Math.max(0, MAX_IMAGES - currentImages.length);
+
+        if (remainingSlots <= 0) {
+          setSelectionError(`Maximum ${MAX_IMAGES} photos allowed.`);
           return;
         }
+
+        const filesToProcess = incomingFiles.slice(0, remainingSlots);
+        const droppedByLimit = incomingFiles.length - filesToProcess.length;
 
         const existingFingerprints = new Set(currentImages.map((img) => img.fingerprint));
         const preparedImages: SelectedImage[] = [];
         const errors: string[] = [];
 
-        for (const file of incomingFiles) {
-          if (remaining <= 0) break;
-
+        for (const file of filesToProcess) {
           const validationError = validateImageFile(file);
           if (validationError) {
             errors.push(validationError);
@@ -195,73 +238,72 @@ const SkinAnalysis = () => {
           try {
             const prepared = await prepareImageForAnalysis(file);
             preparedImages.push({
-              id: crypto.randomUUID(),
+              id: createImageId(),
               file: prepared.file,
               preview: prepared.previewUrl,
               base64: prepared.base64,
               mimeType: prepared.mimeType,
               fingerprint: rawFingerprint,
+              source,
             });
             existingFingerprints.add(rawFingerprint);
-            remaining -= 1;
           } catch (error) {
             console.error("[SkinAnalysis] image processing failed", error);
-            errors.push(error instanceof Error ? error.message : "Could not process one of the selected images.");
+            errors.push(error instanceof Error ? error.message : "We couldn’t process this photo. Please retake it.");
           }
         }
 
         if (preparedImages.length > 0) {
           setImages((prev) => [...prev, ...preparedImages].slice(0, MAX_IMAGES));
-          console.info("[SkinAnalysis] images added", { added: preparedImages.length, newTotal: currentImages.length + preparedImages.length });
+          console.info("[SkinAnalysis] preview created", {
+            added: preparedImages.length,
+            totalAfterAdd: currentImages.length + preparedImages.length,
+          });
         }
 
-        if (errors.length > 0) {
+        if (droppedByLimit > 0) {
+          setSelectionError(`Maximum ${MAX_IMAGES} photos allowed.`);
+        } else if (errors.length > 0) {
           const message = errors[0];
           setSelectionError(message);
-          toast({ title: "Some images were not added", description: message, variant: "destructive" });
+          toast({ title: "Some photos were not added", description: message, variant: "destructive" });
         }
       } finally {
         setIsSelecting(false);
       }
     },
-    [toast]
+    [createImageId, toast]
   );
 
   const openGalleryPicker = useCallback(() => {
-    setSelectionError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-      fileInputRef.current.click();
-    }
-  }, []);
+    openInputPicker(fileInputRef.current, "gallery");
+  }, [openInputPicker]);
 
   const openCameraPicker = useCallback(() => {
-    setSelectionError(null);
+    const ua = navigator.userAgent || "";
+    const isLikelyMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (navigator.maxTouchPoints ?? 0) > 1;
 
-    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (!isMobileDevice || !cameraInputRef.current) {
+    if (!isLikelyMobile) {
       openGalleryPicker();
       return;
     }
 
-    cameraInputRef.current.value = "";
-    cameraInputRef.current.click();
-  }, [openGalleryPicker]);
+    openInputPicker(cameraInputRef.current, "camera");
+  }, [openGalleryPicker, openInputPicker]);
 
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const source = e.currentTarget.dataset.source === "camera" ? "camera" : "gallery";
-      const fileList = e.target.files;
+      const files = Array.from(e.target.files ?? []);
       e.target.value = "";
 
-      if (!fileList || fileList.length === 0) {
+      if (files.length === 0) {
         console.info("[SkinAnalysis] picker closed with no file", { source });
         return;
       }
 
-      const files = Array.from(fileList);
-      console.info("[SkinAnalysis] file input returned", { count: files.length, source });
-      await processIncomingFiles(files, "add");
+      console.info("[SkinAnalysis] file returned from picker", { source, count: files.length });
+      await processIncomingFiles(files, source, "add");
     },
     [processIncomingFiles]
   );
@@ -272,7 +314,9 @@ const SkinAnalysis = () => {
       e.target.value = "";
 
       if (replaceIndex === null) return;
-      await processIncomingFiles(files, "replace", replaceIndex);
+
+      const source = imagesRef.current[replaceIndex]?.source ?? "gallery";
+      await processIncomingFiles(files, source, "replace", replaceIndex);
       setReplaceIndex(null);
     },
     [processIncomingFiles, replaceIndex]
@@ -281,11 +325,8 @@ const SkinAnalysis = () => {
   const openReplacePicker = useCallback((index: number) => {
     setSelectionError(null);
     setReplaceIndex(index);
-    if (replaceInputRef.current) {
-      replaceInputRef.current.value = "";
-      replaceInputRef.current.click();
-    }
-  }, []);
+    openInputPicker(replaceInputRef.current, "gallery");
+  }, [openInputPicker]);
 
   const startAnalysis = async () => {
     if (images.length === 0 || isSelecting) return;
