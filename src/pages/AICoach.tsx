@@ -238,7 +238,7 @@ If the user previously asked about something in this conversation, reference it 
       <div
         ref={containerRef}
         className="flex flex-col min-w-0"
-        style={{ height: "calc(100dvh - 10rem)", overflow: "hidden" }}
+        style={{ height: `${viewportHeight - 160}px`, overflow: "hidden", transition: "height 0.15s ease-out" }}
       >
         {/* Header */}
         <div className="mb-3 sm:mb-4 flex items-center justify-between shrink-0">
