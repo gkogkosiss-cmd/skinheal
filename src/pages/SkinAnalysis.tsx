@@ -305,17 +305,16 @@ const SkinAnalysis = () => {
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const source = e.currentTarget.dataset.source === "camera" ? "camera" : "gallery";
       const files = Array.from(e.target.files ?? []);
+      // Reset immediately so the same file can be re-selected
       e.target.value = "";
 
       if (files.length === 0) {
-        console.info("[SkinAnalysis] picker closed with no file", { source });
-        if (source === "camera") {
-          setSelectionError("Camera capture failed. Please retake the photo.");
-        }
+        // User cancelled — this is normal, don't show an error
+        console.info("[SkinAnalysis] picker cancelled", { source });
         return;
       }
 
-      console.info("[SkinAnalysis] file returned from picker", { source, count: files.length });
+      console.info("[SkinAnalysis] onChange fired", { source, fileCount: files.length, names: files.map(f => f.name) });
       await processIncomingFiles(files, source, "add");
     },
     [processIncomingFiles]
