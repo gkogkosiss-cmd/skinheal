@@ -36,7 +36,7 @@ const Progress = () => {
   const [selectedReport, setSelectedReport] = useState<Analysis | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
-  const [showShareCard, setShowShareCard] = useState(false);
+  
   const [deleteTarget, setDeleteTarget] = useState<Analysis | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const hasAnalyses = analyses && analyses.length > 0;
