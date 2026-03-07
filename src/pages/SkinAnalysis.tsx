@@ -130,33 +130,25 @@ const SkinAnalysis = () => {
   const openInputPicker = useCallback((input: HTMLInputElement | null, source: ImageSource) => {
     if (!input) {
       console.error("[SkinAnalysis] input ref is null", { source });
-      setSelectionError(source === "camera" ? "Camera capture failed. Please retake the photo." : "Photo upload failed. Please try again.");
+      setSelectionError(source === "camera" ? "Camera capture failed. Please try again." : "Photo upload failed. Please try again.");
       return;
     }
 
     setSelectionError(null);
     input.value = "";
 
-    // For camera capture inputs, always use .click() — showPicker() throws on
-    // mobile browsers when the input has a capture attribute.
-    if (source === "camera") {
-      console.info("[SkinAnalysis] camera picker: using .click()", { capture: input.getAttribute("capture") });
-      input.click();
-      return;
-    }
-
-    // Gallery: try showPicker first for a nicer UX, fall back to click
+    // Gallery/replace picker
     try {
       const pickerInput = input as HTMLInputElement & { showPicker?: () => void };
       if (typeof pickerInput.showPicker === "function") {
         pickerInput.showPicker();
-        console.info("[SkinAnalysis] gallery picker opened via showPicker");
+        console.info("[SkinAnalysis] gallery picker opened via showPicker", { source });
       } else {
         input.click();
-        console.info("[SkinAnalysis] gallery picker opened via click");
+        console.info("[SkinAnalysis] gallery picker opened via click", { source });
       }
     } catch (error) {
-      console.warn("[SkinAnalysis] showPicker failed, falling back to click", error);
+      console.warn("[SkinAnalysis] showPicker failed, falling back to click", { source, error });
       input.click();
     }
   }, []);
@@ -169,7 +161,7 @@ const SkinAnalysis = () => {
       targetIndex?: number
     ) => {
       if (incomingFiles.length === 0) {
-        setSelectionError(source === "camera" ? "Camera capture failed. Please retake the photo." : "Photo upload failed. Please try again.");
+        setSelectionError(source === "camera" ? "No photo was returned from the camera. Please try again." : "Photo upload failed. Please try again.");
         return;
       }
 
@@ -259,15 +251,16 @@ const SkinAnalysis = () => {
             existingFingerprints.add(rawFingerprint);
           } catch (error) {
             console.error("[SkinAnalysis] image processing failed", error);
-            errors.push(error instanceof Error ? error.message : "We couldn’t process this photo. Please retake it.");
+            errors.push(error instanceof Error ? error.message : "We couldn't process that photo. Please retake it.");
           }
         }
 
         if (preparedImages.length > 0) {
           setImages((prev) => [...prev, ...preparedImages].slice(0, MAX_IMAGES));
           console.info("[SkinAnalysis] preview created", {
+            source,
             added: preparedImages.length,
-            totalAfterAdd: currentImages.length + preparedImages.length,
+            totalAfterAdd: Math.min(MAX_IMAGES, currentImages.length + preparedImages.length),
           });
         }
 
@@ -290,32 +283,100 @@ const SkinAnalysis = () => {
   }, [openInputPicker]);
 
   const openCameraPicker = useCallback(() => {
+    console.info("[SkinAnalysis] Take a Photo button clicked");
+    setSelectionError(null);
+
+    const cameraInput = cameraInputRef.current;
+    if (!cameraInput) {
+      console.error("[SkinAnalysis] camera input ref is null");
+      setSelectionError("Camera capture failed. Please try again.");
+      return;
+    }
+
     const ua = navigator.userAgent || "";
     const isLikelyMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (navigator.maxTouchPoints ?? 0) > 1;
 
     if (!isLikelyMobile) {
+      console.warn("[SkinAnalysis] camera capture likely unsupported, falling back to gallery");
       openGalleryPicker();
       return;
     }
 
-    openInputPicker(cameraInputRef.current, "camera");
-  }, [openGalleryPicker, openInputPicker]);
+    try {
+      cameraInput.value = "";
+      cameraInput.accept = "image/*";
+      cameraInput.setAttribute("capture", "environment");
+      console.info("[SkinAnalysis] camera input triggered", {
+        accept: cameraInput.accept,
+        capture: cameraInput.getAttribute("capture"),
+      });
+      cameraInput.click();
+    } catch (error) {
+      console.error("[SkinAnalysis] camera input trigger failed", error);
+      setSelectionError("Camera capture failed. Please try again.");
+      openGalleryPicker();
+    }
+  }, [openGalleryPicker]);
 
-  const handleFileSelect = useCallback(
+  const handleGallerySelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const source = e.currentTarget.dataset.source === "camera" ? "camera" : "gallery";
       const files = Array.from(e.target.files ?? []);
-      // Reset immediately so the same file can be re-selected
       e.target.value = "";
 
       if (files.length === 0) {
-        // User cancelled — this is normal, don't show an error
-        console.info("[SkinAnalysis] picker cancelled", { source });
+        console.info("[SkinAnalysis] gallery picker cancelled");
         return;
       }
 
-      console.info("[SkinAnalysis] onChange fired", { source, fileCount: files.length, names: files.map(f => f.name) });
-      await processIncomingFiles(files, source, "add");
+      console.info("[SkinAnalysis] gallery onChange fired", { fileCount: files.length, names: files.map((f) => f.name) });
+      await processIncomingFiles(files, "gallery", "add");
+    },
+    [processIncomingFiles]
+  );
+
+  const handleCameraSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const fileList = e.target.files;
+      const files = Array.from(fileList ?? []);
+      console.info("[SkinAnalysis] camera onChange fired", {
+        hasFileList: !!fileList,
+        fileListLength: fileList?.length ?? 0,
+      });
+
+      // Always reset so repeated captures work reliably.
+      e.target.value = "";
+
+      if (files.length === 0) {
+        console.warn("[SkinAnalysis] camera returned no file");
+        setSelectionError("No photo was returned from the camera. Please try again.");
+        return;
+      }
+
+      const validationError = validateImageFile(files[0]);
+      if (validationError) {
+        console.warn("[SkinAnalysis] camera file validation failed", {
+          name: files[0].name,
+          type: files[0].type,
+          size: files[0].size,
+          validationError,
+        });
+      } else {
+        console.info("[SkinAnalysis] valid image file found", {
+          name: files[0].name,
+          type: files[0].type,
+          size: files[0].size,
+        });
+      }
+
+      try {
+        await processIncomingFiles(files, "camera", "add");
+        console.info("[SkinAnalysis] selectedImages update requested from camera capture", {
+          previousCount: imagesRef.current.length,
+        });
+      } catch (error) {
+        console.error("[SkinAnalysis] camera capture processing failed", error);
+        setSelectionError("We couldn't process that photo. Please retake it.");
+      }
     },
     [processIncomingFiles]
   );
