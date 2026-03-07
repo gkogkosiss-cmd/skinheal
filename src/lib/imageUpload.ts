@@ -189,7 +189,7 @@ export const prepareImageForAnalysis = async (file: File): Promise<PreparedImage
     const base64 = dataUrl.split(",")[1] || "";
     const previewUrl = URL.createObjectURL(processedFile);
 
-    if (!base64) {
+    if (!base64 || base64.length < MIN_ANALYSIS_BASE64_LENGTH) {
       URL.revokeObjectURL(previewUrl);
       throw new Error("Failed to prepare image for analysis.");
     }
@@ -201,7 +201,14 @@ export const prepareImageForAnalysis = async (file: File): Promise<PreparedImage
       previewUrl,
       fingerprint: getFileFingerprint(processedFile),
     };
-  } catch {
+  } catch (processingError) {
+    if (
+      processingError instanceof Error &&
+      (processingError.message === "IMAGE_TOO_SMALL" || /Could not decode this image/i.test(processingError.message))
+    ) {
+      throw new Error("We couldn't process that photo. Please retake it.");
+    }
+
     const dataUrl = await readBlobAsDataUrl(file);
     const base64 = dataUrl.split(",")[1] || "";
     const mimeFromDataUrl = dataUrl.slice(5, dataUrl.indexOf(";"));
@@ -209,7 +216,7 @@ export const prepareImageForAnalysis = async (file: File): Promise<PreparedImage
     const normalizedMimeType = mimeType === "image/jpg" ? "image/jpeg" : mimeType;
     const previewUrl = URL.createObjectURL(file);
 
-    if (!base64) {
+    if (!base64 || base64.length < MIN_ANALYSIS_BASE64_LENGTH) {
       URL.revokeObjectURL(previewUrl);
       throw new Error("Could not decode this image. Try selecting a clearer JPG or PNG photo.");
     }
