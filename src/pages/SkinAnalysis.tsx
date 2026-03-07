@@ -200,7 +200,9 @@ const SkinAnalysis = () => {
       };
     });
 
-    const hasMissingPayload = normalized.some((img) => img.base64.length === 0);
+    const hasMissingPayload = normalized.some(
+      (img) => img.base64.length < MIN_ANALYSIS_BASE64_LENGTH
+    );
     if (hasMissingPayload) {
       throw new Error("Images were selected, but no valid images were sent for analysis.");
     }
