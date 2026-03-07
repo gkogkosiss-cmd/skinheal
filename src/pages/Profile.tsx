@@ -95,7 +95,6 @@ const Profile = () => {
     });
     setSendingFeedback(false);
     setFeedbackText("");
-    toast({ title: "Feedback sent. Thank you!" });
   };
 
   const skinScore = currentAnalysis?.skin_score as any;

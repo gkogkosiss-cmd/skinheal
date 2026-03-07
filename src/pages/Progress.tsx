@@ -74,7 +74,7 @@ const Progress = () => {
         queryClient.invalidateQueries({ queryKey: latestAnalysisQueryKey(user.id) }),
       ]);
       if (selectedReport?.id === deleteTarget.id) setSelectedReport(null);
-      toast({ title: "Deleted", description: "Analysis removed successfully." });
+      // silently removed
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {

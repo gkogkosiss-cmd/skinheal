@@ -85,11 +85,16 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     refreshSubscription();
   }, [refreshSubscription]);
 
-  // Auto-refresh every 60 seconds
+  // Auto-refresh every 60 seconds and on window focus (e.g. returning from checkout tab)
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(refreshSubscription, 60000);
-    return () => clearInterval(interval);
+    const handleFocus = () => refreshSubscription();
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [user, refreshSubscription]);
 
   const startCheckout = useCallback(async () => {
