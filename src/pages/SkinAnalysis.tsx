@@ -616,7 +616,7 @@ const SkinAnalysis = () => {
                         className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px] disabled:opacity-40"
                       >
                         <Camera className="w-5 h-5" />
-                        Take Photo
+                        Take a photo
                       </button>
                       <button
                         onClick={openGalleryPicker}
