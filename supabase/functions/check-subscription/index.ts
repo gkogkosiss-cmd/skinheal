@@ -64,8 +64,29 @@ serve(async (req) => {
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      productId = subscription.items.data[0].price.product;
+      logStep("Raw subscription data", { 
+        current_period_end: subscription.current_period_end,
+        type: typeof subscription.current_period_end 
+      });
+      
+      // Safely handle the period end - it could be a unix timestamp (number) or already a date string
+      if (subscription.current_period_end) {
+        try {
+          const endValue = subscription.current_period_end;
+          if (typeof endValue === 'number') {
+            subscriptionEnd = new Date(endValue * 1000).toISOString();
+          } else if (typeof endValue === 'string') {
+            const parsed = new Date(endValue);
+            if (!isNaN(parsed.getTime())) {
+              subscriptionEnd = parsed.toISOString();
+            }
+          }
+        } catch (e) {
+          logStep("Could not parse subscription end date, continuing without it");
+        }
+      }
+      
+      productId = subscription.items.data[0]?.price?.product ?? null;
       logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
     } else {
       logStep("No active subscription found");
