@@ -84,7 +84,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="lg:hidden fixed inset-0 z-40 bg-background/95 backdrop-blur-md pt-20 px-4"
+            className="lg:hidden fixed inset-0 z-40 bg-background/95 backdrop-blur-md pt-20 px-4 overflow-y-auto overflow-x-hidden content-safe"
           >
             <nav className="flex flex-col gap-1">
               {navItems.map((item, i) => {
