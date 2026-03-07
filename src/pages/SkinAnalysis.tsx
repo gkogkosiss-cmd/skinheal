@@ -349,26 +349,45 @@ const SkinAnalysis = () => {
   );
 
   const handleCameraSelect = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const fileList = e.target.files;
+    async (event: React.ChangeEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>) => {
+      const input = event.currentTarget as HTMLInputElement;
+      const fileList = input.files;
       const files = Array.from(fileList ?? []);
+
       console.info("[SkinAnalysis] camera onChange fired", {
         hasFileList: !!fileList,
         fileListLength: fileList?.length ?? 0,
       });
 
-      // Always reset so repeated captures work reliably.
-      e.target.value = "";
-
       if (files.length === 0) {
         console.warn("[SkinAnalysis] camera returned no file");
         setSelectionError("No photo was returned from the camera. Please try again.");
+        input.value = "";
+        cameraSelectionInFlightRef.current = false;
         return;
       }
 
+      const signature = buildCameraSelectionSignature(files);
+      const now = Date.now();
+      const previousSelection = lastCameraSelectionRef.current;
+      if (previousSelection && previousSelection.signature === signature && now - previousSelection.timestamp < 2000) {
+        console.info("[SkinAnalysis] duplicate camera event ignored", { signature });
+        input.value = "";
+        return;
+      }
+      lastCameraSelectionRef.current = { signature, timestamp: now };
+
+      if (cameraSelectionInFlightRef.current) {
+        console.info("[SkinAnalysis] camera processing already in flight; ignoring duplicate event");
+        input.value = "";
+        return;
+      }
+
+      cameraSelectionInFlightRef.current = true;
+
       const validationError = validateImageFile(files[0]);
       if (validationError) {
-        console.warn("[SkinAnalysis] camera file validation failed", {
+        console.warn("[SkinAnalysis] camera file validation warning", {
           name: files[0].name,
           type: files[0].type,
           size: files[0].size,
@@ -384,15 +403,20 @@ const SkinAnalysis = () => {
 
       try {
         await processIncomingFiles(files, "camera", "add");
-        console.info("[SkinAnalysis] selectedImages update requested from camera capture", {
-          previousCount: imagesRef.current.length,
+        console.info("[SkinAnalysis] selectedImages updated from camera capture", {
+          totalImages: imagesRef.current.length,
+          analyzeEnabled: imagesRef.current.length >= 1,
         });
       } catch (error) {
         console.error("[SkinAnalysis] camera capture processing failed", error);
         setSelectionError("We couldn't process that photo. Please retake it.");
+      } finally {
+        input.value = "";
+        cameraSelectionInFlightRef.current = false;
+        console.info("[SkinAnalysis] camera input reset complete");
       }
     },
-    [processIncomingFiles]
+    [buildCameraSelectionSignature, processIncomingFiles]
   );
 
   const handleReplaceSelect = useCallback(
