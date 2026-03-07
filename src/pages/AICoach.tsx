@@ -5,7 +5,6 @@ import { Send, Bot, User, Sparkles, AlertCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { PremiumGate } from "@/components/premium/PremiumGate";
 import {
   AlertDialog,
