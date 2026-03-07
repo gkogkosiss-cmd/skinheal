@@ -438,7 +438,7 @@ const SkinAnalysis = () => {
   const openReplacePicker = useCallback((index: number) => {
     setSelectionError(null);
     setReplaceIndex(index);
-    openInputPicker(replaceInputRef.current, "gallery");
+    openInputPicker(replaceInputRef.current);
   }, [openInputPicker]);
 
   const startAnalysis = async () => {
