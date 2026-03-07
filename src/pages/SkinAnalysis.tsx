@@ -158,7 +158,7 @@ const SkinAnalysis = () => {
 
         let remaining = MAX_IMAGES - images.length;
         if (remaining <= 0) {
-          toast({ title: "Photo limit reached", description: `You can upload up to ${MAX_IMAGES} images.` });
+          setSelectionError(`You can upload up to ${MAX_IMAGES} images.`);
           return;
         }
 
