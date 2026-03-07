@@ -117,6 +117,7 @@ const SkinAnalysis = () => {
       selectedCount: images.length,
       analyzeEnabled: images.length >= 1 && !isSelecting,
       sources: images.map((img) => img.source),
+      analysisReadyCount: images.filter((img) => Boolean(img.base64 && img.mimeType)).length,
     });
   }, [images, isSelecting]);
 
