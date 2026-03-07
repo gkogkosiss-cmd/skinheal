@@ -6,6 +6,25 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SUPPORTED_ANALYSIS_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+const normalizeMimeType = (value: string | undefined) => {
+  const mime = (value || "image/jpeg").toLowerCase();
+  return mime === "image/jpg" ? "image/jpeg" : mime;
+};
+
+const extractGatewayErrorMessage = (raw: string) => {
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.error?.metadata?.raw || parsed?.error?.message || raw;
+  } catch {
+    return raw;
+  }
+};
+
+const buildUnsupportedFormatMessage = (mimeType: string) =>
+  `The backend did not receive usable image data. Unsupported image format: ${mimeType}. Please use JPG, PNG, or WEBP.`;
+
 const SYSTEM_PROMPT = `You are an evidence-based skin wellness educator for "SkinHeal AI". You analyze skin photos and user responses to provide educational wellness insights.
 
 CRITICAL RULES:
