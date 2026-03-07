@@ -567,7 +567,7 @@ const SkinAnalysis = () => {
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
                       <button
-                        onClick={() => cameraInputRef.current?.click()}
+                        onClick={openCameraPicker}
                         disabled={isSelecting}
                         className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:opacity-80 transition-opacity min-h-[48px] disabled:opacity-40"
                       >
