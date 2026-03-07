@@ -216,10 +216,12 @@ const SkinAnalysis = () => {
               id: prev[targetIndex].id,
               file: prepared.file,
               preview: prepared.previewUrl,
+              previewUrl: prepared.previewUrl,
               base64: prepared.base64,
               mimeType: prepared.mimeType,
               fingerprint: rawFingerprint,
               source,
+              uploadedPath: undefined,
             };
             return next;
           });
