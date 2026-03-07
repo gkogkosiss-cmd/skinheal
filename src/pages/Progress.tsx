@@ -467,17 +467,6 @@ const Progress = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {showShareCard && analyses && analyses.length >= 2 && (
-        <ShareableProgressCard
-          oldScore={analyses[analyses.length - 1].skin_score}
-          newScore={analyses[0].skin_score}
-          oldDate={analyses[analyses.length - 1].created_at}
-          newDate={analyses[0].created_at}
-          weekStart={0}
-          weekEnd={analyses.length - 1}
-          onClose={() => setShowShareCard(false)}
-        />
-      )}
     </Layout>
   );
 };
