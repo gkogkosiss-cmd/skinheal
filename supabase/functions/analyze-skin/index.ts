@@ -162,8 +162,10 @@ serve(async (req) => {
     const images: Array<{ base64: string; mimeType: string }> = [];
 
     const normalizeImage = (input: unknown) => {
-      if (typeof input === "string" && input.length > 0) {
-        images.push({ base64: input, mimeType: "image/jpeg" });
+      if (typeof input === "string") {
+        const trimmed = input.trim();
+        if (!trimmed) return;
+        images.push({ base64: trimmed, mimeType: "image/jpeg" });
         return;
       }
 
@@ -173,11 +175,12 @@ serve(async (req) => {
         typeof (input as { base64?: unknown }).base64 === "string"
       ) {
         const candidate = input as { base64: string; mimeType?: string };
+        const trimmedBase64 = candidate.base64.trim();
+        if (!trimmedBase64) return;
+
         images.push({
-          base64: candidate.base64,
-          mimeType: typeof candidate.mimeType === "string" && candidate.mimeType.startsWith("image/")
-            ? candidate.mimeType
-            : "image/jpeg",
+          base64: trimmedBase64,
+          mimeType: normalizeMimeType(candidate.mimeType),
         });
       }
     };
@@ -189,12 +192,33 @@ serve(async (req) => {
     }
 
     if (images.length === 0) {
-      throw new Error("At least one image is required");
+      return new Response(JSON.stringify({ error: "Images were selected, but no valid images were sent for analysis." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const unsupportedImage = images.find((img) => !SUPPORTED_ANALYSIS_MIME_TYPES.has(img.mimeType));
+    if (unsupportedImage) {
+      const message = buildUnsupportedFormatMessage(unsupportedImage.mimeType);
+      console.error("[analyze-skin] unsupported mime type", {
+        mimeType: unsupportedImage.mimeType,
+        imageCount: images.length,
+      });
+      return new Response(JSON.stringify({ error: message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.info("[analyze-skin] request received", {
       imageCount: images.length,
       hasAnswers: !!answers,
+      imageMeta: images.map((img, index) => ({
+        index,
+        mimeType: img.mimeType,
+        base64Length: img.base64.length,
+      })),
     });
 
     const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
