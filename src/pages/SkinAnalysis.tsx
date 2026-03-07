@@ -224,19 +224,40 @@ const SkinAnalysis = () => {
     [toast]
   );
 
+  const openGalleryPicker = useCallback(() => {
+    setSelectionError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  }, []);
+
+  const openCameraPicker = useCallback(() => {
+    setSelectionError(null);
+
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobileDevice || !cameraInputRef.current) {
+      openGalleryPicker();
+      return;
+    }
+
+    cameraInputRef.current.value = "";
+    cameraInputRef.current.click();
+  }, [openGalleryPicker]);
+
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const source = e.currentTarget.dataset.source === "camera" ? "camera" : "gallery";
       const fileList = e.target.files;
-      // Reset immediately so the same input can be reused
       e.target.value = "";
 
       if (!fileList || fileList.length === 0) {
-        console.info("[SkinAnalysis] file input returned no files (user cancelled or error)");
+        console.info("[SkinAnalysis] picker closed with no file", { source });
         return;
       }
 
       const files = Array.from(fileList);
-      console.info("[SkinAnalysis] file input returned", { count: files.length, source: e.target === cameraInputRef.current ? "camera" : "gallery" });
+      console.info("[SkinAnalysis] file input returned", { count: files.length, source });
       await processIncomingFiles(files, "add");
     },
     [processIncomingFiles]
@@ -255,8 +276,12 @@ const SkinAnalysis = () => {
   );
 
   const openReplacePicker = useCallback((index: number) => {
+    setSelectionError(null);
     setReplaceIndex(index);
-    replaceInputRef.current?.click();
+    if (replaceInputRef.current) {
+      replaceInputRef.current.value = "";
+      replaceInputRef.current.click();
+    }
   }, []);
 
   const startAnalysis = async () => {
