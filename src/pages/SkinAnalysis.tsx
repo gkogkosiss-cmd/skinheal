@@ -129,25 +129,35 @@ const SkinAnalysis = () => {
 
   const openInputPicker = useCallback((input: HTMLInputElement | null, source: ImageSource) => {
     if (!input) {
+      console.error("[SkinAnalysis] input ref is null", { source });
       setSelectionError(source === "camera" ? "Camera capture failed. Please retake the photo." : "Photo upload failed. Please try again.");
       return;
     }
 
-    try {
-      setSelectionError(null);
-      input.value = "";
+    setSelectionError(null);
+    input.value = "";
 
+    // For camera capture inputs, always use .click() — showPicker() throws on
+    // mobile browsers when the input has a capture attribute.
+    if (source === "camera") {
+      console.info("[SkinAnalysis] camera picker: using .click()", { capture: input.getAttribute("capture") });
+      input.click();
+      return;
+    }
+
+    // Gallery: try showPicker first for a nicer UX, fall back to click
+    try {
       const pickerInput = input as HTMLInputElement & { showPicker?: () => void };
       if (typeof pickerInput.showPicker === "function") {
         pickerInput.showPicker();
+        console.info("[SkinAnalysis] gallery picker opened via showPicker");
       } else {
         input.click();
+        console.info("[SkinAnalysis] gallery picker opened via click");
       }
-
-      console.info("[SkinAnalysis] picker opened", { source });
     } catch (error) {
-      console.error("[SkinAnalysis] failed to open picker", { source, error });
-      setSelectionError(source === "camera" ? "Camera capture failed. Please retake the photo." : "Photo upload failed. Please try again.");
+      console.warn("[SkinAnalysis] showPicker failed, falling back to click", error);
+      input.click();
     }
   }, []);
 
@@ -295,17 +305,16 @@ const SkinAnalysis = () => {
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const source = e.currentTarget.dataset.source === "camera" ? "camera" : "gallery";
       const files = Array.from(e.target.files ?? []);
+      // Reset immediately so the same file can be re-selected
       e.target.value = "";
 
       if (files.length === 0) {
-        console.info("[SkinAnalysis] picker closed with no file", { source });
-        if (source === "camera") {
-          setSelectionError("Camera capture failed. Please retake the photo.");
-        }
+        // User cancelled — this is normal, don't show an error
+        console.info("[SkinAnalysis] picker cancelled", { source });
         return;
       }
 
-      console.info("[SkinAnalysis] file returned from picker", { source, count: files.length });
+      console.info("[SkinAnalysis] onChange fired", { source, fileCount: files.length, names: files.map(f => f.name) });
       await processIncomingFiles(files, source, "add");
     },
     [processIncomingFiles]
