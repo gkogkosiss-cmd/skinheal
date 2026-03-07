@@ -260,7 +260,7 @@ const Progress = () => {
           {compareMode && compareAnalyses && compareAnalyses.length === 2 && (
             <div className="card-elevated">
               <h3 className="font-serif text-xl mb-5">Side-by-Side Comparison</h3>
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 {compareAnalyses.map((a) => (
                   <div key={a.id} className="text-center">
                     <div className="w-full aspect-square rounded-xl bg-muted overflow-hidden mb-2">
