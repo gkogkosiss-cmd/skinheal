@@ -258,7 +258,11 @@ If the user previously asked about something in this conversation, reference it 
   return (
     <Layout>
       <PremiumGate featureName="AI Skin Coach">
-      <div className="flex flex-col min-w-0" style={{ height: "calc(100dvh - 10rem)" }}>
+      <div
+        ref={containerRef}
+        className="flex flex-col min-w-0"
+        style={{ height: chatViewportHeight ? `${chatViewportHeight}px` : "calc(100dvh - 10rem)" }}
+      >
         {/* Header */}
         <div className="mb-3 sm:mb-4 flex items-start justify-between shrink-0">
           <div className="min-w-0">
