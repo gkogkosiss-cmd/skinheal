@@ -599,9 +599,9 @@ const SkinAnalysis = () => {
         <h1 className="font-serif text-3xl md:text-4xl mb-2">Analyze your skin</h1>
         <p className="text-muted-foreground mb-8">Upload up to 5 clear photos from different angles for the most thorough analysis.</p>
 
-        {/* Hidden file inputs — gallery uses multiple, camera uses capture */}
-        <input ref={fileInputRef} data-source="gallery" type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={handleFileSelect} />
-        <input ref={cameraInputRef} data-source="camera" type="file" accept="image/jpeg,image/png,image/webp,image/*" capture="environment" className="sr-only" onChange={handleFileSelect} />
+        {/* Hidden file inputs — gallery and camera are intentionally separate flows */}
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={handleGallerySelect} />
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleCameraSelect} />
         <input ref={replaceInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={handleReplaceSelect} />
 
         <AnimatePresence mode="wait">
