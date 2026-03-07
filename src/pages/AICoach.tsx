@@ -350,10 +350,13 @@ If the user previously asked about something in this conversation, reference it 
               value={input}
               onChange={(e) => setInput(e.target.value)}
                onFocus={() => {
-                 requestAnimationFrame(() => {
-                   scrollToBottom("auto");
-                 });
+                 requestAnimationFrame(() => scrollToBottom("auto"));
                  setTimeout(() => scrollToBottom("auto"), 120);
+                 // Extra delayed scroll for slow webview keyboard resize
+                 setTimeout(() => {
+                   inputRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                   scrollToBottom("auto");
+                 }, 400);
                }}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send(input)}
               placeholder="Ask about your skin, diet, or healing..."
