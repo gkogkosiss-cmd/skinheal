@@ -67,21 +67,6 @@ const AICoach = () => {
   useEffect(() => {
     scrollToBottom(isTyping ? "auto" : "smooth");
   }, [messages, isTyping, scrollToBottom]);
-
-  // Track composer height so latest messages are never hidden behind keyboard/input
-  useEffect(() => {
-    if (!formRef.current) return;
-    const formEl = formRef.current;
-
-    const measure = () => setComposerHeight(formEl.offsetHeight || 0);
-    measure();
-
-    const resizeObserver = new ResizeObserver(measure);
-    resizeObserver.observe(formEl);
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
   // Mobile keyboard: keep composer anchored above keyboard and preserve visible chat area
   useEffect(() => {
     const vv = window.visualViewport;
