@@ -60,39 +60,65 @@ const AICoach = () => {
     loadHistory();
   }, [user?.id]);
 
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
+  }, []);
+
   // Scroll to bottom on new messages
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, isTyping]);
+    scrollToBottom(isTyping ? "auto" : "smooth");
+  }, [messages, isTyping, scrollToBottom]);
 
-  // Mobile keyboard: use visualViewport to keep input visible
+  // Track composer height so latest messages are never hidden behind keyboard/input
+  useEffect(() => {
+    if (!formRef.current) return;
+    const formEl = formRef.current;
+
+    const measure = () => setComposerHeight(formEl.offsetHeight || 0);
+    measure();
+
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(formEl);
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // Mobile keyboard: keep composer anchored above keyboard and preserve visible chat area
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
 
-    const onViewportChange = () => {
-      if (!formRef.current) return;
-      // Calculate how much the viewport shrank (keyboard height)
-      const keyboardHeight = window.innerHeight - vv.height;
-      if (keyboardHeight > 50) {
-        // Keyboard is open — push the input bar up
-        formRef.current.style.transform = `translateY(-${keyboardHeight}px)`;
-      } else {
-        formRef.current.style.transform = "translateY(0)";
-      }
-      // Scroll chat to bottom
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    let rafId = 0;
+
+    const updateViewport = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        baselineViewportRef.current = Math.max(baselineViewportRef.current, vv.height + vv.offsetTop);
+
+        const containerTop = containerRef.current?.getBoundingClientRect().top ?? 0;
+        const nextHeight = Math.max(320, vv.height - containerTop);
+        setChatViewportHeight(nextHeight);
+
+        const rawKeyboardOffset = baselineViewportRef.current - (vv.height + vv.offsetTop);
+        const nextKeyboardOffset = rawKeyboardOffset > 24 ? rawKeyboardOffset : 0;
+        setKeyboardOffset(nextKeyboardOffset);
+
+        scrollToBottom("auto");
       });
     };
 
-    vv.addEventListener("resize", onViewportChange);
-    vv.addEventListener("scroll", onViewportChange);
+    updateViewport();
+    vv.addEventListener("resize", updateViewport);
+    vv.addEventListener("scroll", updateViewport);
+    window.addEventListener("orientationchange", updateViewport);
+
     return () => {
-      vv.removeEventListener("resize", onViewportChange);
-      vv.removeEventListener("scroll", onViewportChange);
+      if (rafId) cancelAnimationFrame(rafId);
+      vv.removeEventListener("resize", updateViewport);
+      vv.removeEventListener("scroll", updateViewport);
+      window.removeEventListener("orientationchange", updateViewport);
     };
-  }, []);
+  }, [scrollToBottom]);
 
   const saveMessage = useCallback(async (role: "user" | "assistant", content: string) => {
     if (!user) return;
