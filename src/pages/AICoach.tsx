@@ -378,11 +378,12 @@ If the user previously asked about something in this conversation, reference it 
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onFocus={() => {
-                requestAnimationFrame(() => {
-                  scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-                });
-              }}
+               onFocus={() => {
+                 requestAnimationFrame(() => {
+                   scrollToBottom("auto");
+                 });
+                 setTimeout(() => scrollToBottom("auto"), 120);
+               }}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send(input)}
               placeholder="Ask about your skin, diet, or healing..."
               className="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl bg-card border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 min-w-0"
