@@ -113,9 +113,18 @@ const SkinAnalysis = () => {
     setSelectionError(null);
   }, []);
 
+  // Use a ref to always have current images without stale closures
+  const imagesRef = useRef<SelectedImage[]>([]);
+  imagesRef.current = images;
+
   const processIncomingFiles = useCallback(
     async (incomingFiles: File[], mode: "add" | "replace" = "add", targetIndex?: number) => {
-      if (incomingFiles.length === 0) return;
+      if (incomingFiles.length === 0) {
+        console.warn("[SkinAnalysis] processIncomingFiles called with 0 files");
+        return;
+      }
+
+      console.info("[SkinAnalysis] processIncomingFiles", { count: incomingFiles.length, mode, names: incomingFiles.map(f => f.name) });
 
       setIsSelecting(true);
       setSelectionError(null);
@@ -151,21 +160,20 @@ const SkinAnalysis = () => {
             };
             return next;
           });
-
-          // photo replaced silently
           return;
         }
 
-        let remaining = MAX_IMAGES - images.length;
+        // Read current images from ref to avoid stale closure
+        const currentImages = imagesRef.current;
+        let remaining = MAX_IMAGES - currentImages.length;
         if (remaining <= 0) {
           setSelectionError(`You can upload up to ${MAX_IMAGES} images.`);
           return;
         }
 
-        const existingFingerprints = new Set(images.map((img) => img.fingerprint));
+        const existingFingerprints = new Set(currentImages.map((img) => img.fingerprint));
         const preparedImages: SelectedImage[] = [];
         const errors: string[] = [];
-        let duplicateCount = 0;
 
         for (const file of incomingFiles) {
           if (remaining <= 0) break;
@@ -178,7 +186,6 @@ const SkinAnalysis = () => {
 
           const rawFingerprint = getFileFingerprint(file);
           if (existingFingerprints.has(rawFingerprint)) {
-            duplicateCount += 1;
             continue;
           }
 
@@ -195,19 +202,15 @@ const SkinAnalysis = () => {
             existingFingerprints.add(rawFingerprint);
             remaining -= 1;
           } catch (error) {
+            console.error("[SkinAnalysis] image processing failed", error);
             errors.push(error instanceof Error ? error.message : "Could not process one of the selected images.");
           }
         }
 
         if (preparedImages.length > 0) {
           setImages((prev) => [...prev, ...preparedImages].slice(0, MAX_IMAGES));
-          console.info("[SkinAnalysis] images selected", {
-            added: preparedImages.length,
-            total: images.length + preparedImages.length,
-          });
+          console.info("[SkinAnalysis] images added", { added: preparedImages.length, newTotal: currentImages.length + preparedImages.length });
         }
-
-        // duplicates silently ignored
 
         if (errors.length > 0) {
           const message = errors[0];
@@ -218,7 +221,7 @@ const SkinAnalysis = () => {
         setIsSelecting(false);
       }
     },
-    [images, toast]
+    [toast]
   );
 
   const handleFileSelect = useCallback(
