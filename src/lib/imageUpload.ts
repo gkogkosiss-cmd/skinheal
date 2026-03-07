@@ -199,6 +199,9 @@ export const prepareImageForAnalysis = async (file: File): Promise<PreparedImage
   } catch {
     const dataUrl = await readBlobAsDataUrl(file);
     const base64 = dataUrl.split(",")[1] || "";
+    const mimeFromDataUrl = dataUrl.slice(5, dataUrl.indexOf(";"));
+    const mimeType = (mimeFromDataUrl || file.type || "image/jpeg").toLowerCase();
+    const normalizedMimeType = mimeType === "image/jpg" ? "image/jpeg" : mimeType;
     const previewUrl = URL.createObjectURL(file);
 
     if (!base64) {
@@ -206,10 +209,15 @@ export const prepareImageForAnalysis = async (file: File): Promise<PreparedImage
       throw new Error("Could not decode this image. Try selecting a clearer JPG or PNG photo.");
     }
 
+    if (!SUPPORTED_MIME_TYPES.has(normalizedMimeType) && !normalizedMimeType.startsWith("image/")) {
+      URL.revokeObjectURL(previewUrl);
+      throw new Error("This file is not a supported photo. Please take or upload a JPG or PNG image.");
+    }
+
     return {
       file,
       base64,
-      mimeType: file.type && file.type.startsWith("image/") ? file.type : "image/jpeg",
+      mimeType: normalizedMimeType,
       previewUrl,
       fingerprint: getFileFingerprint(file),
     };
