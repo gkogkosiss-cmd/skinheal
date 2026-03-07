@@ -378,18 +378,9 @@ const SkinAnalysis = () => {
       return;
     }
 
-    const ua = navigator.userAgent || "";
-    const isLikelyMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (navigator.maxTouchPoints ?? 0) > 1;
-
-    if (!isLikelyMobile) {
-      console.warn("[SkinAnalysis] camera capture likely unsupported, falling back to gallery");
-      openGalleryPicker();
-      return;
-    }
-
     try {
       cameraInput.value = "";
-      cameraInput.accept = "image/jpeg,image/png,image/webp";
+      cameraInput.accept = "image/*";
       cameraInput.setAttribute("capture", "environment");
       console.info("[SkinAnalysis] camera input triggered", {
         accept: cameraInput.accept,
