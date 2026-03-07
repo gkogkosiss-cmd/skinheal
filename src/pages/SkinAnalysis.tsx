@@ -169,6 +169,67 @@ const SkinAnalysis = () => {
     }
   }, []);
 
+  const ANALYSIS_READY_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+  const summarizeSelectedImages = useCallback((selected: SelectedImage[]) => {
+    return selected.map((img) => ({
+      id: img.id,
+      source: img.source,
+      hasFile: img.file instanceof File,
+      fileName: img.file?.name,
+      fileType: img.file?.type,
+      fileSize: img.file?.size,
+      hasBase64: typeof img.base64 === "string" && img.base64.length > 0,
+      base64Length: img.base64?.length ?? 0,
+      mimeType: img.mimeType,
+      hasUploadedPath: Boolean(img.uploadedPath),
+      previewUrl: img.previewUrl,
+    }));
+  }, []);
+
+  const buildAnalysisImagePayload = useCallback((selected: SelectedImage[]) => {
+    const normalized = selected.map((img) => {
+      const mimeType = (img.mimeType || img.file?.type || "image/jpeg").toLowerCase();
+      return {
+        id: img.id,
+        source: img.source,
+        mimeType,
+        base64: typeof img.base64 === "string" ? img.base64.trim() : "",
+      };
+    });
+
+    const hasMissingPayload = normalized.some((img) => img.base64.length === 0);
+    if (hasMissingPayload) {
+      throw new Error("Images were selected, but no valid images were sent for analysis.");
+    }
+
+    const unsupported = normalized.filter((img) => !ANALYSIS_READY_MIME_TYPES.has(img.mimeType));
+    if (unsupported.length > 0) {
+      console.error("[SkinAnalysis] unsupported image format in analysis payload", unsupported);
+      throw new Error("We couldn't process that photo. Please retake it using JPG or PNG.");
+    }
+
+    return normalized.map((img) => ({ base64: img.base64, mimeType: img.mimeType }));
+  }, []);
+
+  const getErrorMessage = useCallback((error: unknown, fallback: string) => {
+    const message = error instanceof Error ? error.message : fallback;
+
+    if (/unable to process input image|invalid_argument|unsupported image format/i.test(message)) {
+      return "The backend did not receive usable image data. Please retake or re-upload the photo.";
+    }
+
+    if (/images were selected, but no valid images/i.test(message)) {
+      return "Images were selected, but no valid images were sent for analysis.";
+    }
+
+    if (/upload/i.test(message) && /failed/i.test(message)) {
+      return "Image upload completed, but the analysis request failed.";
+    }
+
+    return message || fallback;
+  }, []);
+
   const processIncomingFiles = useCallback(
     async (
       incomingFiles: File[],
