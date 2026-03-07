@@ -64,40 +64,34 @@ const AICoach = () => {
   useEffect(() => {
     scrollToBottom(isTyping ? "auto" : "smooth");
   }, [messages, isTyping, scrollToBottom]);
-  // Mobile keyboard: keep composer anchored above keyboard and preserve visible chat area
+  // Mobile keyboard: resize container to fit visual viewport so input sits right above keyboard
   useEffect(() => {
     const vv = window.visualViewport;
-    if (!vv) return;
+    if (!vv || !containerRef.current) return;
 
     let rafId = 0;
 
-    const updateViewport = () => {
+    const syncHeight = () => {
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
-        baselineViewportRef.current = Math.max(baselineViewportRef.current, vv.height + vv.offsetTop);
-
-        const containerTop = containerRef.current?.getBoundingClientRect().top ?? 0;
-        const nextHeight = Math.max(320, vv.height - containerTop);
-        setChatViewportHeight(nextHeight);
-
-        const rawKeyboardOffset = baselineViewportRef.current - (vv.height + vv.offsetTop);
-        const nextKeyboardOffset = rawKeyboardOffset > 24 ? rawKeyboardOffset : 0;
-        setKeyboardOffset(nextKeyboardOffset);
-
+        if (!containerRef.current) return;
+        // Set the container to exactly fill the visual viewport minus its top offset
+        const topOffset = containerRef.current.getBoundingClientRect().top;
+        const availableHeight = vv.height - topOffset + vv.offsetTop;
+        containerRef.current.style.height = `${Math.max(300, availableHeight)}px`;
+        
         scrollToBottom("auto");
       });
     };
 
-    updateViewport();
-    vv.addEventListener("resize", updateViewport);
-    vv.addEventListener("scroll", updateViewport);
-    window.addEventListener("orientationchange", updateViewport);
+    syncHeight();
+    vv.addEventListener("resize", syncHeight);
+    vv.addEventListener("scroll", syncHeight);
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
-      vv.removeEventListener("resize", updateViewport);
-      vv.removeEventListener("scroll", updateViewport);
-      window.removeEventListener("orientationchange", updateViewport);
+      vv.removeEventListener("resize", syncHeight);
+      vv.removeEventListener("scroll", syncHeight);
     };
   }, [scrollToBottom]);
 
