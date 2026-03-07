@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Camera, Calendar, ArrowRight, AlertCircle, Target, Eye, X, ArrowLeftRight, Share2, Trash2 } from "lucide-react";
+import { Camera, Calendar, ArrowRight, AlertCircle, Target, Eye, X, ArrowLeftRight, Trash2 } from "lucide-react";
 import { useAllAnalyses, getSignedImageUrl, deleteAnalysisRecord, type Analysis } from "@/hooks/useAnalysis";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
