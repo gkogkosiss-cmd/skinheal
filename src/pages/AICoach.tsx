@@ -25,9 +25,13 @@ const AICoach = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [chatViewportHeight, setChatViewportHeight] = useState<number | null>(null);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const baselineViewportRef = useRef<number>(window.innerHeight);
   const { currentAnalysis: analysis } = useCurrentAnalysis();
   const { user } = useAuth();
 
@@ -55,39 +59,50 @@ const AICoach = () => {
     loadHistory();
   }, [user?.id]);
 
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
+  }, []);
+
   // Scroll to bottom on new messages
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, isTyping]);
-
-  // Mobile keyboard: use visualViewport to keep input visible
+    scrollToBottom(isTyping ? "auto" : "smooth");
+  }, [messages, isTyping, scrollToBottom]);
+  // Mobile keyboard: keep composer anchored above keyboard and preserve visible chat area
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
 
-    const onViewportChange = () => {
-      if (!formRef.current) return;
-      // Calculate how much the viewport shrank (keyboard height)
-      const keyboardHeight = window.innerHeight - vv.height;
-      if (keyboardHeight > 50) {
-        // Keyboard is open — push the input bar up
-        formRef.current.style.transform = `translateY(-${keyboardHeight}px)`;
-      } else {
-        formRef.current.style.transform = "translateY(0)";
-      }
-      // Scroll chat to bottom
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    let rafId = 0;
+
+    const updateViewport = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        baselineViewportRef.current = Math.max(baselineViewportRef.current, vv.height + vv.offsetTop);
+
+        const containerTop = containerRef.current?.getBoundingClientRect().top ?? 0;
+        const nextHeight = Math.max(320, vv.height - containerTop);
+        setChatViewportHeight(nextHeight);
+
+        const rawKeyboardOffset = baselineViewportRef.current - (vv.height + vv.offsetTop);
+        const nextKeyboardOffset = rawKeyboardOffset > 24 ? rawKeyboardOffset : 0;
+        setKeyboardOffset(nextKeyboardOffset);
+
+        scrollToBottom("auto");
       });
     };
 
-    vv.addEventListener("resize", onViewportChange);
-    vv.addEventListener("scroll", onViewportChange);
+    updateViewport();
+    vv.addEventListener("resize", updateViewport);
+    vv.addEventListener("scroll", updateViewport);
+    window.addEventListener("orientationchange", updateViewport);
+
     return () => {
-      vv.removeEventListener("resize", onViewportChange);
-      vv.removeEventListener("scroll", onViewportChange);
+      if (rafId) cancelAnimationFrame(rafId);
+      vv.removeEventListener("resize", updateViewport);
+      vv.removeEventListener("scroll", updateViewport);
+      window.removeEventListener("orientationchange", updateViewport);
     };
-  }, []);
+  }, [scrollToBottom]);
 
   const saveMessage = useCallback(async (role: "user" | "assistant", content: string) => {
     if (!user) return;
@@ -227,7 +242,11 @@ If the user previously asked about something in this conversation, reference it 
   return (
     <Layout>
       <PremiumGate featureName="AI Skin Coach">
-      <div className="flex flex-col min-w-0" style={{ height: "calc(100dvh - 10rem)" }}>
+      <div
+        ref={containerRef}
+        className="flex flex-col min-w-0"
+        style={{ height: chatViewportHeight ? `${chatViewportHeight}px` : "calc(100dvh - 10rem)" }}
+      >
         {/* Header */}
         <div className="mb-3 sm:mb-4 flex items-start justify-between shrink-0">
           <div className="min-w-0">
@@ -265,7 +284,11 @@ If the user previously asked about something in this conversation, reference it 
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 mb-3 pr-1 min-h-0">
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto space-y-4 mb-3 pr-1 min-h-0"
+          style={{ paddingBottom: keyboardOffset ? `${keyboardOffset + 12}px` : "0px" }}
+        >
           {isLoadingHistory ? (
             <div className="flex items-center justify-center h-full">
               <div className="flex gap-1.5">
@@ -333,17 +356,22 @@ If the user previously asked about something in this conversation, reference it 
         </div>
 
         {/* Input — anchored at bottom, moves above keyboard via transform */}
-        <div ref={formRef} className="shrink-0 pb-safe bg-background transition-transform duration-150 will-change-transform">
+        <div
+          ref={formRef}
+          className="shrink-0 pb-safe bg-background transition-transform duration-150 will-change-transform"
+          style={{ transform: `translateY(-${keyboardOffset}px)` }}
+        >
           <div className="flex gap-2 sm:gap-3">
             <input
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onFocus={() => {
-                requestAnimationFrame(() => {
-                  scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-                });
-              }}
+               onFocus={() => {
+                 requestAnimationFrame(() => {
+                   scrollToBottom("auto");
+                 });
+                 setTimeout(() => scrollToBottom("auto"), 120);
+               }}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send(input)}
               placeholder="Ask about your skin, diet, or healing..."
               className="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl bg-card border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 min-w-0"
