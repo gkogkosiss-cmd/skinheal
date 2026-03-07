@@ -108,6 +108,9 @@ const convertImageToJpeg = async (file: File): Promise<Blob> => {
   try {
     const img = await loadImage(sourceUrl);
     const maxDimension = 1600;
+    if (img.width < 64 || img.height < 64) {
+      throw new Error("IMAGE_TOO_SMALL");
+    }
     const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
     const width = Math.max(1, Math.round(img.width * scale));
     const height = Math.max(1, Math.round(img.height * scale));
