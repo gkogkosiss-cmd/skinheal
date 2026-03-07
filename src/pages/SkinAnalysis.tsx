@@ -56,6 +56,7 @@ interface AnalysisResult {
 const MAX_IMAGES = MAX_IMAGE_COUNT;
 const ANALYSIS_READY_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MIN_ANALYSIS_BASE64_LENGTH = 256;
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
 
 type ImageSource = "camera" | "gallery";
 
