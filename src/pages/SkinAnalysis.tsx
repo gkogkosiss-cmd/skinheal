@@ -142,8 +142,8 @@ const SkinAnalysis = () => {
 
   const openInputPicker = useCallback((input: HTMLInputElement | null) => {
     if (!input) {
-      console.error("[SkinAnalysis] input ref is null", { source });
-      setSelectionError(source === "camera" ? "Camera capture failed. Please try again." : "Photo upload failed. Please try again.");
+      console.error("[SkinAnalysis] input ref is null");
+      setSelectionError("Photo upload failed. Please try again.");
       return;
     }
 
