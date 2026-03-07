@@ -743,7 +743,7 @@ const SkinAnalysis = () => {
     setStep("loading");
 
     try {
-      const imagesBase64 = buildAnalysisImagePayload(selectedImages);
+      const imagesBase64 = await buildAnalysisImagePayload(selectedImages);
       console.info("[SkinAnalysis] request started", {
         stage: "full-analysis",
         selectedImagesLength: selectedImages.length,
