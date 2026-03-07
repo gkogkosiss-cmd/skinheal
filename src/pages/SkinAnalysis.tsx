@@ -261,10 +261,12 @@ const SkinAnalysis = () => {
               id: createImageId(),
               file: prepared.file,
               preview: prepared.previewUrl,
+              previewUrl: prepared.previewUrl,
               base64: prepared.base64,
               mimeType: prepared.mimeType,
               fingerprint: rawFingerprint,
               source,
+              uploadedPath: undefined,
             });
             existingFingerprints.add(rawFingerprint);
           } catch (error) {
