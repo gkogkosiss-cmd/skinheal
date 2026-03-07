@@ -155,10 +155,8 @@ const SkinAnalysis = () => {
       const pickerInput = input as HTMLInputElement & { showPicker?: () => void };
       if (typeof pickerInput.showPicker === "function") {
         pickerInput.showPicker();
-        console.info("[SkinAnalysis] gallery picker opened via showPicker", { source });
       } else {
         input.click();
-        console.info("[SkinAnalysis] gallery picker opened via click", { source });
       }
     } catch (error) {
       console.warn("[SkinAnalysis] showPicker failed, falling back to click", { source, error });
