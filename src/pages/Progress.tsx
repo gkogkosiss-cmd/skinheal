@@ -239,7 +239,7 @@ const Progress = () => {
                           </div>
                         </div>
                         {topCondition && (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground break-words">
                             {topCondition.condition} — {topCondition.probability}% likelihood
                           </p>
                         )}
