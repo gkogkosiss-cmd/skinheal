@@ -119,11 +119,7 @@ const convertImageToJpeg = async (file: File): Promise<Blob> => {
 
     context.drawImage(img, 0, 0, width, height);
 
-    const jpegBlob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.85);
-    });
-
-    if (!jpegBlob) throw new Error("Failed to process image.");
+    const jpegBlob = await canvasToJpegBlob(canvas);
 
     return jpegBlob;
   } finally {
