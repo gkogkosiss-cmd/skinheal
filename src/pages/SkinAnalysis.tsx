@@ -403,32 +403,6 @@ const SkinAnalysis = () => {
     openInputPicker(fileInputRef.current);
   }, [openInputPicker]);
 
-  const openCameraPicker = useCallback(() => {
-    console.info("[SkinAnalysis] Take a Photo button clicked");
-    setSelectionError(null);
-
-    const cameraInput = cameraInputRef.current;
-    if (!cameraInput) {
-      console.error("[SkinAnalysis] camera input ref is null");
-      setSelectionError("Camera capture failed. Please try again.");
-      return;
-    }
-
-    try {
-      cameraInput.value = "";
-      cameraInput.accept = "image/*";
-      cameraInput.setAttribute("capture", "environment");
-      console.info("[SkinAnalysis] camera input triggered", {
-        accept: cameraInput.accept,
-        capture: cameraInput.getAttribute("capture"),
-      });
-      cameraInput.click();
-    } catch (error) {
-      console.error("[SkinAnalysis] camera input trigger failed", error);
-      setSelectionError("Camera capture failed. Please try again.");
-      openGalleryPicker();
-    }
-  }, [openGalleryPicker]);
 
   const handleGallerySelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
