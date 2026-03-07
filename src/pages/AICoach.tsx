@@ -241,7 +241,7 @@ If the user previously asked about something in this conversation, reference it 
       <div
         ref={containerRef}
         className="flex flex-col min-w-0"
-        style={{ height: "calc(100dvh - 10rem)" }}
+        style={{ height: chatViewportHeight ? `${chatViewportHeight}px` : "calc(100dvh - 10rem)" }}
       >
         {/* Header */}
         <div className="mb-3 sm:mb-4 flex items-start justify-between shrink-0">
