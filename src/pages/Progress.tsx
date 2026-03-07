@@ -127,16 +127,6 @@ const Progress = () => {
             <ScoreHistoryChart analyses={analyses} />
           )}
 
-          {/* Share Progress */}
-          {canShare && (
-            <button
-              onClick={() => setShowShareCard(true)}
-              className="w-full card-elevated gradient-sage flex items-center justify-center gap-3 py-4 cursor-pointer hover:opacity-90 transition-opacity min-w-0"
-            >
-              <Share2 className="w-5 h-5 text-primary" />
-              <span className="font-medium text-sm">Share Your Progress</span>
-            </button>
-          )}
 
           {/* This Week Focus */}
           {protocol?.thisWeekFocus && (
