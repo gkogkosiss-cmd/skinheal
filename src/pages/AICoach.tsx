@@ -25,13 +25,10 @@ const AICoach = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [chatViewportHeight, setChatViewportHeight] = useState<number | null>(null);
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const baselineViewportRef = useRef<number>(window.innerHeight);
   const { currentAnalysis: analysis } = useCurrentAnalysis();
   const { user } = useAuth();
 
