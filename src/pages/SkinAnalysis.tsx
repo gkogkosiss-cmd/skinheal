@@ -61,10 +61,12 @@ type SelectedImage = {
   id: string;
   file: File;
   preview: string;
+  previewUrl: string;
   base64: string;
   mimeType: string;
   fingerprint: string;
   source: ImageSource;
+  uploadedPath?: string;
 };
 
 const healthQuestions = [
