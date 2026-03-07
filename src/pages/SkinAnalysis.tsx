@@ -207,9 +207,7 @@ const SkinAnalysis = () => {
           });
         }
 
-        if (duplicateCount > 0) {
-          toast({ title: "Duplicate skipped", description: `${duplicateCount} duplicate image${duplicateCount > 1 ? "s were" : " was"} ignored.` });
-        }
+        // duplicates silently ignored
 
         if (errors.length > 0) {
           const message = errors[0];
