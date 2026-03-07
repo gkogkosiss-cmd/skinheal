@@ -25,6 +25,46 @@ const defaultBadFoods: FoodItem[] = [
   { food: "Alcohol", reason: "Can deplete zinc, disrupt sleep, and increase inflammation for many people" },
 ];
 
+/** Splits a meal string like "Greek yogurt with berries and chia seeds" into bullet items */
+const parseMealItems = (meal: string | undefined): string[] => {
+  if (!meal) return [];
+  // Split on common delimiters: commas, "and", "with", semicolons — but keep it readable
+  const items = meal
+    .split(/[,;]|\band\b/gi)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 2);
+  // If we couldn't split meaningfully, return as single item
+  return items.length > 0 ? items : [meal];
+};
+
+const MealCard = ({ label, value, icon }: { label: string; value?: string; icon?: string }) => {
+  if (!value) return null;
+  const items = parseMealItems(value);
+  return (
+    <div className="p-3 rounded-xl bg-muted/40 space-y-1.5">
+      <p className="text-[11px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+        {icon && <span>{icon}</span>}
+        {label}
+      </p>
+      <ul className="space-y-1">
+        {items.map((item, i) => (
+          <li key={i} className="text-xs text-muted-foreground leading-relaxed flex items-start gap-1.5">
+            <span className="text-primary/60 mt-px shrink-0">•</span>
+            <span className="break-words min-w-0">{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+const mealIcons: Record<string, string> = {
+  Breakfast: "🌅",
+  Lunch: "☀️",
+  Dinner: "🌙",
+  Snack: "🍎",
+};
+
 const Nutrition = () => {
   const { currentAnalysis: analysis } = useCurrentAnalysis();
   const protocol = analysis?.healing_protocol;
@@ -79,70 +119,73 @@ const Nutrition = () => {
                 {foodPriorities.map((rule: string, i: number) => (
                   <div key={i} className="flex items-start gap-3 text-sm">
                     <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0 mt-0.5">{i + 1}</span>
-                    <p className="text-muted-foreground">{rule}</p>
+                    <p className="text-muted-foreground break-words min-w-0">{rule}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* 7-Day Meal Plan */}
+          {/* 7-Day Meal Plan — Premium Card Layout */}
           {sevenDayMealPlan.length > 0 && (
             <div className="card-elevated">
-              <div className="flex items-center gap-3 mb-5">
+              <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <CalendarDays className="w-5 h-5 text-primary" />
                 </div>
-                <div>
-                  <h2 className="font-serif text-xl">7-Day Skin Healing Meal Plan</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">Anti-inflammatory, gut-supportive meals tailored to your analysis</p>
+                <div className="min-w-0">
+                  <h2 className="font-serif text-xl">7-Day Meal Plan</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Anti-inflammatory meals tailored to your skin</p>
                 </div>
               </div>
 
               {/* Principles */}
               {mealPlanPrinciples.length > 0 && (
-                <div className="p-4 rounded-xl bg-accent/50 mb-5">
-                  <p className="text-xs font-medium text-primary uppercase tracking-wide mb-2">Key Nutrition Principles</p>
-                  <div className="space-y-1.5">
+                <div className="p-3.5 rounded-xl bg-accent/40 mb-5 mt-4">
+                  <p className="text-[11px] font-semibold text-primary uppercase tracking-wider mb-2">Key Principles</p>
+                  <ul className="space-y-1.5">
                     {mealPlanPrinciples.map((p: string, i: number) => (
-                      <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                        <span className="text-primary font-bold mt-px">-</span>
-                        <span>{p}</span>
-                      </div>
+                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
+                        <span className="text-primary shrink-0 mt-px">•</span>
+                        <span className="break-words min-w-0">{p}</span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
 
               <div className="space-y-2">
                 {sevenDayMealPlan.map((day: MealPlanDay, i: number) => {
                   const isExpanded = expandedDay === i;
+                  const dayLabel = day.day || `Day ${i + 1}`;
                   return (
                     <div key={i} className="rounded-xl border border-border overflow-hidden">
                       <button
                         onClick={() => setExpandedDay(isExpanded ? null : i)}
-                        className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+                        className="w-full flex items-center justify-between p-3.5 sm:p-4 hover:bg-muted/30 transition-colors"
                       >
-                        <span className="font-medium text-sm">{day.day}</span>
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                            {i + 1}
+                          </span>
+                          <span className="font-medium text-sm">{dayLabel}</span>
+                        </div>
                         {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                       </button>
                       {isExpanded && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="px-4 pb-4"
+                          className="px-3.5 sm:px-4 pb-4"
                         >
-                          <div className="grid sm:grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             {[
                               { label: "Breakfast", value: day.breakfast },
                               { label: "Lunch", value: day.lunch },
                               { label: "Dinner", value: day.dinner },
                               { label: "Snack", value: day.snack },
                             ].map((meal) => (
-                              <div key={meal.label} className="p-3 rounded-lg bg-muted/50">
-                                <p className="text-[10px] font-medium text-primary uppercase tracking-wide mb-1">{meal.label}</p>
-                                <p className="text-xs text-muted-foreground leading-relaxed">{meal.value}</p>
-                              </div>
+                              <MealCard key={meal.label} label={meal.label} value={meal.value} icon={mealIcons[meal.label]} />
                             ))}
                           </div>
                         </motion.div>
@@ -168,9 +211,9 @@ const Nutrition = () => {
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                     <Check className="w-3.5 h-3.5 text-primary" />
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">{f.food}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{f.reason}</p>
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm break-words">{f.food}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 break-words">{f.reason}</p>
                   </div>
                 </motion.div>
               ))}
@@ -191,9 +234,9 @@ const Nutrition = () => {
                   <div className="w-6 h-6 rounded-full bg-destructive/10 flex items-center justify-center shrink-0 mt-0.5">
                     <X className="w-3.5 h-3.5 text-destructive" />
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">{f.food}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{f.reason}</p>
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm break-words">{f.food}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 break-words">{f.reason}</p>
                   </div>
                 </motion.div>
               ))}
@@ -209,17 +252,14 @@ const Nutrition = () => {
                 </div>
                 <h2 className="font-serif text-xl">Example Day of Eating</h2>
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { label: "Breakfast", value: mealTemplate.breakfast },
                   { label: "Lunch", value: mealTemplate.lunch },
                   { label: "Dinner", value: mealTemplate.dinner },
                   { label: "Snack", value: mealTemplate.snack },
                 ].map((meal) => (
-                  <div key={meal.label} className="p-4 rounded-xl bg-muted/50">
-                    <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">{meal.label}</p>
-                    <p className="text-sm text-muted-foreground">{meal.value}</p>
-                  </div>
+                  <MealCard key={meal.label} label={meal.label} value={meal.value} icon={mealIcons[meal.label]} />
                 ))}
               </div>
             </div>
@@ -234,7 +274,7 @@ const Nutrition = () => {
                 </div>
                 <h2 className="font-serif text-xl">Hydration</h2>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">{hydration}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed break-words">{hydration}</p>
             </div>
           )}
 
@@ -247,12 +287,12 @@ const Nutrition = () => {
                 </div>
                 <h2 className="font-serif text-xl">Common Triggers to Test</h2>
               </div>
-              <p className="text-xs text-muted-foreground mb-4">These foods commonly affect skin for some people. You can test by removing one at a time for 2-3 weeks, then reintroducing slowly.</p>
-              <div className="space-y-4">
+              <p className="text-xs text-muted-foreground mb-4">Remove one at a time for 2–3 weeks, then reintroduce slowly.</p>
+              <div className="space-y-3">
                 {triggerFoods.map((t: any, i: number) => (
-                  <div key={i} className="p-4 rounded-xl bg-muted/50">
-                    <p className="font-medium text-sm mb-1">{t.food}</p>
-                    <p className="text-xs text-muted-foreground">{t.approach}</p>
+                  <div key={i} className="p-3.5 rounded-xl bg-muted/40">
+                    <p className="font-medium text-sm mb-1 break-words">{t.food}</p>
+                    <p className="text-xs text-muted-foreground break-words">{t.approach}</p>
                   </div>
                 ))}
               </div>

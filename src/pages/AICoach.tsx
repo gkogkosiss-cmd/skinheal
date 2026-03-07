@@ -25,11 +25,9 @@ const AICoach = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [chatViewportHeight, setChatViewportHeight] = useState<number | null>(null);
-  const [isInputFocused, setIsInputFocused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
   const { currentAnalysis: analysis } = useCurrentAnalysis();
   const { user } = useAuth();
 
@@ -62,43 +60,34 @@ const AICoach = () => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Mobile keyboard: lock chat height to the visible viewport so input never hides behind keyboard
+  // Mobile keyboard: use visualViewport to keep input visible
   useEffect(() => {
-    const updateViewportLayout = () => {
-      if (!containerRef.current) return;
-
-      const vv = window.visualViewport;
-      const viewportBottom = vv ? vv.height + vv.offsetTop : window.innerHeight;
-      const top = containerRef.current.getBoundingClientRect().top;
-      const nextHeight = Math.max(320, viewportBottom - top - 8);
-
-      setChatViewportHeight(nextHeight);
-
-      if (isInputFocused) {
-        requestAnimationFrame(() => {
-          scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-        });
-      }
-    };
-
-    updateViewportLayout();
-
     const vv = window.visualViewport;
-    if (!vv) {
-      window.addEventListener("resize", updateViewportLayout);
-      return () => window.removeEventListener("resize", updateViewportLayout);
-    }
+    if (!vv) return;
 
-    vv.addEventListener("resize", updateViewportLayout);
-    vv.addEventListener("scroll", updateViewportLayout);
-    window.addEventListener("orientationchange", updateViewportLayout);
-
-    return () => {
-      vv.removeEventListener("resize", updateViewportLayout);
-      vv.removeEventListener("scroll", updateViewportLayout);
-      window.removeEventListener("orientationchange", updateViewportLayout);
+    const onViewportChange = () => {
+      if (!formRef.current) return;
+      // Calculate how much the viewport shrank (keyboard height)
+      const keyboardHeight = window.innerHeight - vv.height;
+      if (keyboardHeight > 50) {
+        // Keyboard is open — push the input bar up
+        formRef.current.style.transform = `translateY(-${keyboardHeight}px)`;
+      } else {
+        formRef.current.style.transform = "translateY(0)";
+      }
+      // Scroll chat to bottom
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      });
     };
-  }, [isInputFocused]);
+
+    vv.addEventListener("resize", onViewportChange);
+    vv.addEventListener("scroll", onViewportChange);
+    return () => {
+      vv.removeEventListener("resize", onViewportChange);
+      vv.removeEventListener("scroll", onViewportChange);
+    };
+  }, []);
 
   const saveMessage = useCallback(async (role: "user" | "assistant", content: string) => {
     if (!user) return;
@@ -238,11 +227,7 @@ If the user previously asked about something in this conversation, reference it 
   return (
     <Layout>
       <PremiumGate featureName="AI Skin Coach">
-      <div
-        ref={containerRef}
-        className="flex flex-col min-w-0"
-        style={{ height: chatViewportHeight ? `${chatViewportHeight}px` : "calc(100dvh - 10rem)" }}
-      >
+      <div className="flex flex-col min-w-0" style={{ height: "calc(100dvh - 10rem)" }}>
         {/* Header */}
         <div className="mb-3 sm:mb-4 flex items-start justify-between shrink-0">
           <div className="min-w-0">
@@ -347,20 +332,18 @@ If the user previously asked about something in this conversation, reference it 
           )}
         </div>
 
-        {/* Input — stays anchored */}
-        <div className="shrink-0 pb-safe">
+        {/* Input — anchored at bottom, moves above keyboard via transform */}
+        <div ref={formRef} className="shrink-0 pb-safe bg-background transition-transform duration-150 will-change-transform">
           <div className="flex gap-2 sm:gap-3">
             <input
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onFocus={() => {
-                setIsInputFocused(true);
                 requestAnimationFrame(() => {
                   scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
                 });
               }}
-              onBlur={() => setIsInputFocused(false)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send(input)}
               placeholder="Ask about your skin, diet, or healing..."
               className="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl bg-card border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 min-w-0"
