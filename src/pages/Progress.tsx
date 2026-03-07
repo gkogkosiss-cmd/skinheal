@@ -429,7 +429,7 @@ const Progress = () => {
                       onClick={async () => {
                         try {
                           await setAsCurrentPlan(selectedReport.id);
-                          toast({ title: "Updated", description: "This analysis is now your active plan." });
+                          // silently updated
                           setSelectedReport(null);
                         } catch (e: any) {
                           toast({ title: "Error", description: e.message, variant: "destructive" });

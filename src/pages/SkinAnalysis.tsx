@@ -152,7 +152,7 @@ const SkinAnalysis = () => {
             return next;
           });
 
-          toast({ title: "Photo replaced", description: "Your image was updated successfully." });
+          // photo replaced silently
           return;
         }
 
