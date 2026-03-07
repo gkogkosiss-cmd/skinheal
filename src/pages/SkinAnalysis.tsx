@@ -553,7 +553,7 @@ const SkinAnalysis = () => {
                 {images.length > 0 && (
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-medium">{images.length} / {MAX_IMAGES} photos selected</p>
+                      <p className="text-sm font-medium">Photos selected: {images.length} / {MAX_IMAGES}</p>
                       <div className="w-24 bg-muted rounded-full h-1.5">
                         <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${(images.length / MAX_IMAGES) * 100}%` }} />
                       </div>
