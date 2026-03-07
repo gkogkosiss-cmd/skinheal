@@ -226,8 +226,17 @@ const SkinAnalysis = () => {
 
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files ?? []);
+      const fileList = e.target.files;
+      // Reset immediately so the same input can be reused
       e.target.value = "";
+
+      if (!fileList || fileList.length === 0) {
+        console.info("[SkinAnalysis] file input returned no files (user cancelled or error)");
+        return;
+      }
+
+      const files = Array.from(fileList);
+      console.info("[SkinAnalysis] file input returned", { count: files.length, source: e.target === cameraInputRef.current ? "camera" : "gallery" });
       await processIncomingFiles(files, "add");
     },
     [processIncomingFiles]
