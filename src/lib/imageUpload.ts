@@ -79,15 +79,27 @@ const baseName = (name: string) => {
 export const getFileFingerprint = (file: File) => `${file.name}-${file.size}-${file.lastModified}-${file.type}`;
 
 export const validateImageFile = (file: File): string | null => {
+  // Camera-captured files on mobile can have generic names (e.g. "image.jpg") or
+  // unusual MIME types. Be lenient: if it starts with "image/" accept it.
   const extension = getExtension(file.name);
-  const hasSupportedExtension = extension ? SUPPORTED_EXTENSIONS.includes(extension) : true;
+  const isImageMime = file.type ? file.type.startsWith("image/") : false;
+  const hasSupportedExtension = extension ? SUPPORTED_EXTENSIONS.includes(extension) : false;
 
-  const hasSupportedMime = file.type
-    ? file.type.startsWith("image/") && (SUPPORTED_MIME_TYPES.has(file.type) || hasSupportedExtension)
-    : hasSupportedExtension;
-
-  if (!hasSupportedMime || !hasSupportedExtension) {
-    return "Please upload JPG, PNG, WEBP, or HEIC images.";
+  // Accept if MIME says image OR extension is a known image type
+  // Camera captures often have correct MIME but generic filenames
+  if (!isImageMime && !hasSupportedExtension) {
+    // If no MIME and no extension, still reject
+    if (!file.type && !extension) {
+      return "Please upload JPG, PNG, WEBP, or HEIC images.";
+    }
+    // If MIME is set but not image/*
+    if (file.type && !isImageMime) {
+      return "Please upload JPG, PNG, WEBP, or HEIC images.";
+    }
+    // If extension is set but not recognized and no image MIME
+    if (extension && !hasSupportedExtension && !isImageMime) {
+      return "Please upload JPG, PNG, WEBP, or HEIC images.";
+    }
   }
 
   const maxSize = MAX_IMAGE_SIZE_MB * 1024 * 1024;
