@@ -796,24 +796,17 @@ const SkinAnalysis = () => {
                       <Sparkles className="w-4 h-4" />
                       Analyze {images.length} Photo{images.length > 1 ? "s" : ""}
                     </button>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={openCameraPicker}
-                        disabled={images.length >= MAX_IMAGES || isSelecting}
-                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
-                        aria-label="Take another photo"
-                      >
-                        <Camera className="w-5 h-5" />
-                      </button>
+                    {images.length < MAX_IMAGES && (
                       <button
                         onClick={openGalleryPicker}
-                        disabled={images.length >= MAX_IMAGES || isSelecting}
-                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px] min-w-[48px]"
-                        aria-label="Add photos from gallery"
+                        disabled={isSelecting}
+                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border border-border text-sm font-medium active:bg-muted transition-colors disabled:opacity-40 min-h-[48px]"
+                        aria-label="Add more photos"
                       >
                         <ImagePlus className="w-5 h-5" />
+                        <span className="sm:hidden">Add More</span>
                       </button>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
