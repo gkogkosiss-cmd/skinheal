@@ -687,7 +687,7 @@ const SkinAnalysis = () => {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <p className="text-sm text-primary font-medium mb-1">AI Skin Analysis</p>
         <h1 className="font-serif text-3xl md:text-4xl mb-2">Analyze your skin</h1>
-        <p className="text-muted-foreground mb-8">Upload up to 5 clear photos from different angles for the most thorough analysis.</p>
+        <p className="text-muted-foreground mb-8">Upload up to 5 clear photos for a better analysis.</p>
 
         {/* Hidden file inputs */}
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={handleGallerySelect} />
