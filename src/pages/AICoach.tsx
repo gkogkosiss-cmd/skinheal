@@ -372,7 +372,11 @@ If the user previously asked about something in this conversation, reference it 
         </div>
 
         {/* Input — anchored at bottom, moves above keyboard via transform */}
-        <div ref={formRef} className="shrink-0 pb-safe bg-background transition-transform duration-150 will-change-transform">
+        <div
+          ref={formRef}
+          className="shrink-0 pb-safe bg-background transition-transform duration-150 will-change-transform"
+          style={{ transform: `translateY(-${keyboardOffset}px)` }}
+        >
           <div className="flex gap-2 sm:gap-3">
             <input
               ref={inputRef}
