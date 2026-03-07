@@ -27,7 +27,6 @@ const AICoach = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [chatViewportHeight, setChatViewportHeight] = useState<number | null>(null);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
-  const [composerHeight, setComposerHeight] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
