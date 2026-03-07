@@ -593,34 +593,53 @@ const SkinAnalysis = () => {
 
   const saveAnalysis = async (analysisData: AnalysisResult) => {
     if (!user) throw new Error("Please log in before running an analysis.");
-    if (images.length === 0) throw new Error("Please add at least one photo before analysis.");
+
+    const selectedImages = imagesRef.current;
+    if (selectedImages.length === 0) throw new Error("Please add at least one photo before analysis.");
 
     const photoUrls: string[] = [];
 
     try {
-      console.info("[SkinAnalysis] uploading photos", { imageCount: images.length });
+      console.info("[SkinAnalysis] upload started", {
+        imageCount: selectedImages.length,
+        selectedImages: summarizeSelectedImages(selectedImages),
+      });
 
-      for (const [index, img] of images.entries()) {
+      for (const [index, img] of selectedImages.entries()) {
         const path = `${user.id}/${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}.jpg`;
         const { error: uploadError } = await supabase.storage
           .from("skin-photos")
           .upload(path, img.file, { contentType: img.file.type || "image/jpeg" });
 
         if (uploadError) {
-          throw new Error("We couldn’t upload one of your images. Please try again.");
+          console.error("[SkinAnalysis] upload failed", { index, fileName: img.file.name, error: uploadError });
+          throw new Error("Image upload completed, but the analysis request failed.");
         }
 
         photoUrls.push(path);
+        console.info("[SkinAnalysis] upload success", { index, path });
       }
 
       if (photoUrls.length === 0) {
         throw new Error("No image was uploaded. Please select images and retry.");
       }
 
+      setImages((prev) =>
+        prev.map((img, index) => ({
+          ...img,
+          uploadedPath: photoUrls[index] ?? img.uploadedPath,
+        }))
+      );
+
       const normalized = normalizeAnalysisRecordPayload({
         analysis: analysisData,
         answers,
         visualFeatures,
+      });
+
+      console.info("[SkinAnalysis] payload built", {
+        uploadedImageCount: photoUrls.length,
+        hasResults: Array.isArray(normalized.results),
       });
 
       const insertResponse = await supabase
