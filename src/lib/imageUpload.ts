@@ -215,6 +215,11 @@ export const prepareImageForAnalysis = async (file: File): Promise<PreparedImage
       throw new Error("This file is not a supported photo. Please take or upload a JPG or PNG image.");
     }
 
+    if (!ANALYSIS_MIME_TYPES.has(normalizedMimeType)) {
+      URL.revokeObjectURL(previewUrl);
+      throw new Error("We couldn't process that photo. Please retake it using JPG or PNG format.");
+    }
+
     return {
       file,
       base64,
