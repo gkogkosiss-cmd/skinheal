@@ -386,7 +386,7 @@ const SkinAnalysis = () => {
 
     try {
       cameraInput.value = "";
-      cameraInput.accept = "image/*";
+      cameraInput.accept = "image/jpeg,image/png,image/webp";
       cameraInput.setAttribute("capture", "environment");
       console.info("[SkinAnalysis] camera input triggered", {
         accept: cameraInput.accept,
