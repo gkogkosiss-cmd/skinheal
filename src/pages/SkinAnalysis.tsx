@@ -170,7 +170,6 @@ const SkinAnalysis = () => {
     }
   }, []);
 
-  const ANALYSIS_READY_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
   const summarizeSelectedImages = useCallback((selected: SelectedImage[]) => {
     return selected.map((img) => ({
