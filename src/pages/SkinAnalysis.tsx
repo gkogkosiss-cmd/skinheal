@@ -56,6 +56,7 @@ interface AnalysisResult {
 const MAX_IMAGES = MAX_IMAGE_COUNT;
 const ANALYSIS_READY_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MIN_ANALYSIS_BASE64_LENGTH = 256;
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
 
 type ImageSource = "camera" | "gallery";
 
@@ -189,31 +190,75 @@ const SkinAnalysis = () => {
     }));
   }, []);
 
-  const buildAnalysisImagePayload = useCallback((selected: SelectedImage[]) => {
-    const normalized = selected.map((img) => {
-      const mimeType = (img.mimeType || img.file?.type || "image/jpeg").toLowerCase();
-      return {
-        id: img.id,
-        source: img.source,
-        mimeType,
-        base64: typeof img.base64 === "string" ? img.base64.trim() : "",
-      };
-    });
+  const buildAnalysisImagePayload = useCallback(async (selected: SelectedImage[]) => {
+    const normalizeBase64 = (value: string) => {
+      const withoutPrefix = value.replace(/^data:[^;]+;base64,/i, "");
+      const normalized = withoutPrefix.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+      const missingPadding = normalized.length % 4;
+      return missingPadding === 0 ? normalized : normalized.padEnd(normalized.length + (4 - missingPadding), "=");
+    };
 
-    const hasMissingPayload = normalized.some(
-      (img) => img.base64.length < MIN_ANALYSIS_BASE64_LENGTH
+    const normalizeMime = (value: string) => {
+      const mime = (value || "image/jpeg").toLowerCase();
+      return mime === "image/jpg" ? "image/jpeg" : mime;
+    };
+
+    const isReadyBase64 = (value: string) =>
+      value.length >= MIN_ANALYSIS_BASE64_LENGTH && value.length % 4 === 0 && BASE64_PATTERN.test(value);
+
+    const repairedImages: SelectedImage[] = [];
+
+    const payload = await Promise.all(
+      selected.map(async (img, index) => {
+        let nextFile = img.file;
+        let nextMimeType = normalizeMime(img.mimeType || img.file?.type || "image/jpeg");
+        let nextBase64 = normalizeBase64(typeof img.base64 === "string" ? img.base64 : "");
+
+        const needsRebuild = !isReadyBase64(nextBase64) || !ANALYSIS_READY_MIME_TYPES.has(nextMimeType);
+
+        if (needsRebuild && img.file instanceof File) {
+          console.warn("[SkinAnalysis] rebuilding invalid image payload from file", {
+            index,
+            source: img.source,
+            previousMimeType: nextMimeType,
+            previousBase64Length: nextBase64.length,
+          });
+
+          const rebuilt = await prepareImageForAnalysis(img.file);
+          URL.revokeObjectURL(rebuilt.previewUrl);
+
+          nextFile = rebuilt.file;
+          nextMimeType = normalizeMime(rebuilt.mimeType);
+          nextBase64 = normalizeBase64(rebuilt.base64);
+        }
+
+        if (!ANALYSIS_READY_MIME_TYPES.has(nextMimeType)) {
+          throw new Error(`Image ${index + 1} is not in a supported format. Please use JPG or PNG.`);
+        }
+
+        if (!isReadyBase64(nextBase64)) {
+          throw new Error(`Image ${index + 1} is corrupted or incomplete. Please retake or re-upload it.`);
+        }
+
+        repairedImages[index] = {
+          ...img,
+          file: nextFile,
+          base64: nextBase64,
+          mimeType: nextMimeType,
+        };
+
+        return { base64: nextBase64, mimeType: nextMimeType };
+      })
     );
-    if (hasMissingPayload) {
-      throw new Error("Images were selected, but no valid images were sent for analysis.");
-    }
 
-    const unsupported = normalized.filter((img) => !ANALYSIS_READY_MIME_TYPES.has(img.mimeType));
-    if (unsupported.length > 0) {
-      console.error("[SkinAnalysis] unsupported image format in analysis payload", unsupported);
-      throw new Error("We couldn't process that photo. Please retake it using JPG or PNG.");
-    }
+    setImages((prev) =>
+      prev.map((img, index) => {
+        const repaired = repairedImages[index];
+        return repaired ? { ...img, file: repaired.file, base64: repaired.base64, mimeType: repaired.mimeType } : img;
+      })
+    );
 
-    return normalized.map((img) => ({ base64: img.base64, mimeType: img.mimeType }));
+    return payload;
   }, []);
 
   const getErrorMessage = useCallback((error: unknown, fallback: string) => {
@@ -514,7 +559,7 @@ const SkinAnalysis = () => {
     setStep("analyzing-photo");
 
     try {
-      const imagesBase64 = buildAnalysisImagePayload(selectedImages);
+      const imagesBase64 = await buildAnalysisImagePayload(selectedImages);
       console.info("[SkinAnalysis] request started", {
         stage: "dynamic-questions",
         imageCount: imagesBase64.length,
@@ -698,7 +743,7 @@ const SkinAnalysis = () => {
     setStep("loading");
 
     try {
-      const imagesBase64 = buildAnalysisImagePayload(selectedImages);
+      const imagesBase64 = await buildAnalysisImagePayload(selectedImages);
       console.info("[SkinAnalysis] request started", {
         stage: "full-analysis",
         selectedImagesLength: selectedImages.length,
