@@ -541,7 +541,7 @@ const SkinAnalysis = () => {
 
                       {images.length < MAX_IMAGES && (
                         <button
-                          onClick={() => fileInputRef.current?.click()}
+                          onClick={openGalleryPicker}
                           disabled={isSelecting}
                           className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 hover:border-primary/30 transition-colors disabled:opacity-40"
                         >
