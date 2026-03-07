@@ -215,11 +215,11 @@ const Progress = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1 gap-3">
-                          <p className="font-medium text-sm">
+                        <div className="flex flex-wrap items-start justify-between mb-1 gap-2">
+                          <p className="font-medium text-sm break-words">
                             {i === analyses!.length - 1 ? "Initial Analysis" : `Analysis ${analyses!.length - i}`}
                           </p>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-end flex-wrap gap-1.5 min-w-0">
                             {score > 0 && (
                               <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
                                 {score}/100
@@ -235,7 +235,7 @@ const Progress = () => {
                                 Current
                               </span>
                             )}
-                            <span className="text-xs text-muted-foreground">{date.toLocaleDateString()}</span>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">{date.toLocaleDateString()}</span>
                           </div>
                         </div>
                         {topCondition && (
