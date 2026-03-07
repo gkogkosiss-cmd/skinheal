@@ -423,7 +423,7 @@ const SkinAnalysis = () => {
 
       setResults(generated);
       setStep("results");
-      toast({ title: "Saved", description: "Analysis saved and synced across all sections." });
+      // analysis complete, navigating
       console.info("[SkinAnalysis] full analysis completed");
       navigate("/dashboard");
     } catch (err: any) {
