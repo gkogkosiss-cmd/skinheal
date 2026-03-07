@@ -65,9 +65,8 @@ const Profile = () => {
     try {
       await updateProfile.mutateAsync({ name: editName, age_range: editAge || null, skin_concern: editConcern || null });
       setEditing(false);
-      toast({ title: "Profile updated" });
     } catch {
-      toast({ title: "Failed to save", variant: "destructive" });
+      // silent fail
     }
   };
 
