@@ -25,13 +25,10 @@ const AICoach = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [chatViewportHeight, setChatViewportHeight] = useState<number | null>(null);
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const baselineViewportRef = useRef<number>(window.innerHeight);
   const { currentAnalysis: analysis } = useCurrentAnalysis();
   const { user } = useAuth();
 
@@ -67,40 +64,34 @@ const AICoach = () => {
   useEffect(() => {
     scrollToBottom(isTyping ? "auto" : "smooth");
   }, [messages, isTyping, scrollToBottom]);
-  // Mobile keyboard: keep composer anchored above keyboard and preserve visible chat area
+  // Mobile keyboard: resize container to fit visual viewport so input sits right above keyboard
   useEffect(() => {
     const vv = window.visualViewport;
-    if (!vv) return;
+    if (!vv || !containerRef.current) return;
 
     let rafId = 0;
 
-    const updateViewport = () => {
+    const syncHeight = () => {
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
-        baselineViewportRef.current = Math.max(baselineViewportRef.current, vv.height + vv.offsetTop);
-
-        const containerTop = containerRef.current?.getBoundingClientRect().top ?? 0;
-        const nextHeight = Math.max(320, vv.height - containerTop);
-        setChatViewportHeight(nextHeight);
-
-        const rawKeyboardOffset = baselineViewportRef.current - (vv.height + vv.offsetTop);
-        const nextKeyboardOffset = rawKeyboardOffset > 24 ? rawKeyboardOffset : 0;
-        setKeyboardOffset(nextKeyboardOffset);
-
+        if (!containerRef.current) return;
+        // Set the container to exactly fill the visual viewport minus its top offset
+        const topOffset = containerRef.current.getBoundingClientRect().top;
+        const availableHeight = vv.height - topOffset + vv.offsetTop;
+        containerRef.current.style.height = `${Math.max(300, availableHeight)}px`;
+        
         scrollToBottom("auto");
       });
     };
 
-    updateViewport();
-    vv.addEventListener("resize", updateViewport);
-    vv.addEventListener("scroll", updateViewport);
-    window.addEventListener("orientationchange", updateViewport);
+    syncHeight();
+    vv.addEventListener("resize", syncHeight);
+    vv.addEventListener("scroll", syncHeight);
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
-      vv.removeEventListener("resize", updateViewport);
-      vv.removeEventListener("scroll", updateViewport);
-      window.removeEventListener("orientationchange", updateViewport);
+      vv.removeEventListener("resize", syncHeight);
+      vv.removeEventListener("scroll", syncHeight);
     };
   }, [scrollToBottom]);
 
@@ -245,7 +236,7 @@ If the user previously asked about something in this conversation, reference it 
       <div
         ref={containerRef}
         className="flex flex-col min-w-0"
-        style={{ height: chatViewportHeight ? `${chatViewportHeight}px` : "calc(100dvh - 10rem)" }}
+        style={{ height: "calc(100dvh - 10rem)" }}
       >
         {/* Header */}
         <div className="mb-3 sm:mb-4 flex items-start justify-between shrink-0">
@@ -287,7 +278,6 @@ If the user previously asked about something in this conversation, reference it 
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto space-y-4 mb-3 pr-1 min-h-0"
-          style={{ paddingBottom: keyboardOffset ? `${keyboardOffset + 12}px` : "0px" }}
         >
           {isLoadingHistory ? (
             <div className="flex items-center justify-center h-full">
@@ -355,11 +345,10 @@ If the user previously asked about something in this conversation, reference it 
           )}
         </div>
 
-        {/* Input — anchored at bottom, moves above keyboard via transform */}
+        {/* Input — anchored at bottom of flex container */}
         <div
           ref={formRef}
-          className="shrink-0 pb-safe bg-background transition-transform duration-150 will-change-transform"
-          style={{ transform: `translateY(-${keyboardOffset}px)` }}
+          className="shrink-0 pb-safe bg-background"
         >
           <div className="flex gap-2 sm:gap-3">
             <input
