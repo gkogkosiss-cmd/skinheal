@@ -72,7 +72,6 @@ const AICoach = () => {
     if (!user) return;
     await supabase.from("ai_coach_messages").delete().eq("user_id", user.id);
     setMessages([]);
-    toast.success("Chat history cleared");
   };
 
   const suggestedQuestions = analysis
