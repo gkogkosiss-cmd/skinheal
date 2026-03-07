@@ -7,11 +7,23 @@ const corsHeaders = {
 };
 
 const SUPPORTED_ANALYSIS_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MIN_ANALYSIS_BASE64_LENGTH = 256;
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
 
 const normalizeMimeType = (value: string | undefined) => {
   const mime = (value || "image/jpeg").toLowerCase();
   return mime === "image/jpg" ? "image/jpeg" : mime;
 };
+
+const normalizeBase64 = (value: string | undefined) => {
+  const raw = (value || "").replace(/^data:[^;]+;base64,/i, "");
+  const cleaned = raw.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+  const missingPadding = cleaned.length % 4;
+  return missingPadding === 0 ? cleaned : cleaned.padEnd(cleaned.length + (4 - missingPadding), "=");
+};
+
+const isValidBase64 = (value: string) =>
+  value.length >= MIN_ANALYSIS_BASE64_LENGTH && value.length % 4 === 0 && BASE64_PATTERN.test(value);
 
 const extractGatewayErrorMessage = (raw: string) => {
   try {
