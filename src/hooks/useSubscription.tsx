@@ -69,12 +69,29 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       if (!response.ok) throw new Error("Failed to check subscription");
       const data = await response.json();
 
-      setState({
+      const newState = {
         subscribed: data.subscribed || false,
         productId: data.product_id || null,
         subscriptionEnd: data.subscription_end || null,
         isLoading: false,
-      });
+      };
+
+      // Send premium welcome email if user just became premium
+      const wasPremium = state.subscribed && state.productId === PREMIUM_PRODUCT_ID;
+      const isNowPremium = newState.subscribed && newState.productId === PREMIUM_PRODUCT_ID;
+      if (!wasPremium && isNowPremium) {
+        console.log("[Subscription] User became premium, sending premium welcome email");
+        try {
+          const { data: emailData, error: emailError } = await supabase.functions.invoke("send-welcome-email", {
+            body: { type: "premium" },
+          });
+          console.log("[Subscription] premium_email_result", { data: emailData, error: emailError?.message ?? null });
+        } catch (err: any) {
+          console.error("[Subscription] premium_email_failed", { error: err?.message });
+        }
+      }
+
+      setState(newState);
     } catch (err) {
       console.error("Error checking subscription:", err);
       setState(s => ({ ...s, isLoading: false }));
