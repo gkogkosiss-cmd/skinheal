@@ -42,19 +42,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
 
       // Send welcome email on first sign-in (DB flag prevents duplicates)
+      // Deferred to avoid deadlock with onAuthStateChange
       if (event === "SIGNED_IN" && session?.user) {
-        console.log("[AuthDebug] SIGNED_IN, triggering welcome email check", {
-          userId: session.user.id,
-          email: session.user.email,
-        });
-        try {
-          const { data, error } = await supabase.functions.invoke("send-welcome-email", {
-            body: { type: "welcome" },
-          });
-          console.log("[AuthDebug] welcome_email_result", { data, error: error?.message ?? null });
-        } catch (err: any) {
-          console.error("[AuthDebug] welcome_email_failed", { error: err?.message });
-        }
+        const userId = session.user.id;
+        const email = session.user.email;
+        setTimeout(async () => {
+          console.log("[AuthDebug] SIGNED_IN, triggering welcome email check", { userId, email });
+          try {
+            const { data, error } = await supabase.functions.invoke("send-welcome-email", {
+              body: { type: "welcome" },
+            });
+            console.log("[AuthDebug] welcome_email_result", { data, error: error?.message ?? null });
+          } catch (err: any) {
+            console.error("[AuthDebug] welcome_email_failed", { error: err?.message });
+          }
+        }, 2000);
       }
     });
 
