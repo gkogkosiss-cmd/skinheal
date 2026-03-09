@@ -43,16 +43,53 @@ const Auth = () => {
     return () => document.removeEventListener("focusin", handleFocus);
   }, []);
 
+  useEffect(() => {
+    const search = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+
+    const callbackError =
+      search.get("error_description") ||
+      search.get("error") ||
+      hash.get("error_description") ||
+      hash.get("error");
+
+    if (callbackError) {
+      console.error("[AuthDebug] oauth_callback_failed", { callbackError });
+    }
+
+    const hasAccessToken = hash.has("access_token");
+    if (hasAccessToken) {
+      console.log("[AuthDebug] oauth_callback_received_tokens", {
+        hasAccessToken,
+        hasRefreshToken: hash.has("refresh_token"),
+      });
+    }
+  }, []);
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const action = mode === "signup" ? "signup" : mode === "signin" ? "login" : "password_reset";
+    console.log(`[AuthDebug] ${action}_clicked`, { email });
+
     try {
       if (mode === "forgot") {
-        console.log("[Auth] resetPasswordForEmail called for:", email);
+        console.log("[AuthDebug] resetPasswordForEmail_called", {
+          email,
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
-        if (error) throw error;
+
+        if (error) {
+          console.error("[AuthDebug] resetPasswordForEmail_failed", { email, error: error.message });
+          throw error;
+        }
+
+        console.log("[AuthDebug] resetPasswordForEmail_success", { email });
         toast({
           title: "Check your email",
           description: "A password reset link has been sent to your email.",
@@ -61,7 +98,11 @@ const Auth = () => {
       }
 
       if (mode === "signup") {
-        console.log("[Auth] signUp called with email:", email);
+        console.log("[AuthDebug] signUp_called", {
+          email,
+          emailRedirectTo: window.location.origin + redirectTo,
+        });
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -69,13 +110,19 @@ const Auth = () => {
             emailRedirectTo: window.location.origin + redirectTo,
           },
         });
-        console.log("[Auth] signUp result:", {
-          userId: data?.user?.id,
-          hasSession: !!data?.session,
-          identities: data?.user?.identities?.length,
-          error: error?.message,
+
+        if (error) {
+          console.error("[AuthDebug] signUp_failed", { email, error: error.message });
+          throw error;
+        }
+
+        console.log("[AuthDebug] signUp_success", {
+          userId: data?.user?.id ?? null,
+          userEmail: data?.user?.email ?? null,
+          hasSession: Boolean(data?.session),
+          identities: data?.user?.identities?.length ?? 0,
+          provider: data?.user?.app_metadata?.provider ?? null,
         });
-        if (error) throw error;
 
         // Check if the user already exists (identities will be empty)
         if (data?.user?.identities?.length === 0) {
@@ -95,20 +142,31 @@ const Auth = () => {
           });
         }
       } else {
-        console.log("[Auth] signIn called with email:", email);
+        console.log("[AuthDebug] signInWithPassword_called", { email });
+
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        console.log("[Auth] signIn result:", {
-          userId: data?.user?.id,
-          hasSession: !!data?.session,
-          error: error?.message,
+
+        if (error) {
+          console.error("[AuthDebug] signInWithPassword_failed", { email, error: error.message });
+          throw error;
+        }
+
+        console.log("[AuthDebug] signInWithPassword_success", {
+          userId: data?.user?.id ?? null,
+          userEmail: data?.user?.email ?? null,
+          hasSession: Boolean(data?.session),
+          provider: data?.user?.app_metadata?.provider ?? null,
         });
-        if (error) throw error;
       }
     } catch (err: any) {
-      console.error("[Auth] Error:", err.message);
+      console.error("[AuthDebug] auth_action_failed", {
+        action,
+        email,
+        message: err?.message ?? "Unknown error",
+      });
       toast({
         title: "Error",
         description: err.message,
@@ -121,15 +179,29 @@ const Auth = () => {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
-    console.log("[Auth] OAuth started:", provider);
+
+    const oauthRedirectUri = window.location.origin + redirectTo;
+    console.log("[AuthDebug] oauth_clicked", { provider, oauthRedirectUri });
+
     try {
+      console.log("[AuthDebug] signInWithOAuth_called", { provider, oauthRedirectUri });
       const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: window.location.origin + redirectTo,
+        redirect_uri: oauthRedirectUri,
       });
-      console.log("[Auth] OAuth result:", { redirected: result?.redirected, error: result?.error });
+
+      console.log("[AuthDebug] signInWithOAuth_result", {
+        provider,
+        redirected: Boolean(result?.redirected),
+        hasError: Boolean(result?.error),
+        error: result?.error?.message ?? null,
+      });
+
       if (result.error) throw result.error;
     } catch (err: any) {
-      console.error("[Auth] OAuth error:", err.message);
+      console.error("[AuthDebug] signInWithOAuth_failed", {
+        provider,
+        message: err?.message ?? "Unknown error",
+      });
       toast({
         title: "Error",
         description: err.message,

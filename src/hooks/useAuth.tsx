@@ -22,28 +22,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("[Auth] onAuthStateChange:", event, session?.user?.id);
+    console.log("[AuthDebug] runtime_config", {
+      origin: window.location.origin,
+      supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+      projectId: import.meta.env.VITE_SUPABASE_PROJECT_ID,
+      hasAnonKey: Boolean(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
+      anonKeyPrefix: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.slice(0, 16),
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[AuthDebug] auth_callback", {
+        event,
+        userId: session?.user?.id ?? null,
+        email: session?.user?.email ?? null,
+        hasSession: Boolean(session),
+        provider: session?.user?.app_metadata?.provider ?? null,
+      });
+
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-
-      // Send welcome email on first sign-in (covers both email confirm + OAuth)
-      if (event === "SIGNED_IN" && session?.user) {
-        const createdAt = new Date(session.user.created_at).getTime();
-        const now = Date.now();
-        // Only trigger for accounts created in the last 60 seconds
-        if (now - createdAt < 60_000) {
-          console.log("[Auth] New user detected, sending welcome email");
-          supabase.functions.invoke("send-welcome-email").then(({ error }) => {
-            if (error) console.error("[Auth] Welcome email error:", error);
-            else console.log("[Auth] Welcome email sent");
-          });
-        }
-      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("[AuthDebug] getSession_result", {
+        userId: session?.user?.id ?? null,
+        hasSession: Boolean(session),
+      });
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
