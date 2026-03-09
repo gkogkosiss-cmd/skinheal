@@ -16,6 +16,7 @@ import Lifestyle from "./pages/Lifestyle";
 import Progress from "./pages/Progress";
 import AICoach from "./pages/AICoach";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -35,6 +36,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/analysis" element={<SkinAnalysis />} />
                 <Route path="/protocol" element={<HealingProtocol />} />
