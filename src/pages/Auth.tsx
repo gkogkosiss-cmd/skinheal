@@ -43,6 +43,29 @@ const Auth = () => {
     return () => document.removeEventListener("focusin", handleFocus);
   }, []);
 
+  useEffect(() => {
+    const search = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+
+    const callbackError =
+      search.get("error_description") ||
+      search.get("error") ||
+      hash.get("error_description") ||
+      hash.get("error");
+
+    if (callbackError) {
+      console.error("[AuthDebug] oauth_callback_failed", { callbackError });
+    }
+
+    const hasAccessToken = hash.has("access_token");
+    if (hasAccessToken) {
+      console.log("[AuthDebug] oauth_callback_received_tokens", {
+        hasAccessToken,
+        hasRefreshToken: hash.has("refresh_token"),
+      });
+    }
+  }, []);
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
