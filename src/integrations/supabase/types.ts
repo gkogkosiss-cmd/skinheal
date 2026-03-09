@@ -227,30 +227,36 @@ export type Database = {
           created_at: string
           id: string
           name: string | null
+          premium_email_sent: boolean
           profile_photo_url: string | null
           skin_concern: string | null
           updated_at: string
           user_id: string
+          welcome_email_sent: boolean
         }
         Insert: {
           age_range?: string | null
           created_at?: string
           id?: string
           name?: string | null
+          premium_email_sent?: boolean
           profile_photo_url?: string | null
           skin_concern?: string | null
           updated_at?: string
           user_id: string
+          welcome_email_sent?: boolean
         }
         Update: {
           age_range?: string | null
           created_at?: string
           id?: string
           name?: string | null
+          premium_email_sent?: boolean
           profile_photo_url?: string | null
           skin_concern?: string | null
           updated_at?: string
           user_id?: string
+          welcome_email_sent?: boolean
         }
         Relationships: []
       }
