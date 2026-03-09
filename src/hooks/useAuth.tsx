@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       anonKeyPrefix: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.slice(0, 16),
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[AuthDebug] auth_callback", {
         event,
         userId: session?.user?.id ?? null,
@@ -42,6 +42,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Send welcome email for new users (Google OAuth signs in immediately)
+      if (event === "SIGNED_IN" && session?.user) {
+        const createdAt = new Date(session.user.created_at).getTime();
+        const isNewUser = Date.now() - createdAt < 60_000; // created within last 60s
+        if (isNewUser) {
+          console.log("[AuthDebug] new_user_detected, sending welcome email", {
+            userId: session.user.id,
+            email: session.user.email,
+            provider: session.user.app_metadata?.provider,
+          });
+          try {
+            const { data, error } = await supabase.functions.invoke("send-welcome-email");
+            console.log("[AuthDebug] welcome_email_result", { data, error: error?.message ?? null });
+          } catch (err: any) {
+            console.error("[AuthDebug] welcome_email_failed", { error: err?.message });
+          }
+        }
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
