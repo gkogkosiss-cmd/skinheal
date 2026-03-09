@@ -354,7 +354,7 @@ Return the FULL JSON response with ALL fields including bodyArea, skinScore and 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: answers ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash",
         messages,
         response_format: { type: "json_object" },
       }),
