@@ -56,7 +56,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
         return;
       }
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = SUPABASE_PROJECT_URL;
       const response = await fetch(`${supabaseUrl}/functions/v1/check-subscription`, {
         method: "POST",
         headers: {
