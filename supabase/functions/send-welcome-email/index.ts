@@ -126,18 +126,31 @@ serve(async (req) => {
 
     const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "there";
 
+    // Build Resend payload — use template ID if available, otherwise inline HTML
+    const emailPayload: Record<string, unknown> = {
+      from: "SkinHeal AI <hello@skinheal.ai>",
+      to: [user.email],
+    };
+
+    if (template.resendTemplateId) {
+      // Use your Resend template (edit content in Resend dashboard)
+      emailPayload.template_id = template.resendTemplateId;
+      emailPayload.template_data = { name };
+      console.log(`[send-welcome-email] Using Resend template: ${template.resendTemplateId}`);
+    } else {
+      // Fallback to inline HTML
+      emailPayload.subject = template.subject;
+      emailPayload.html = template.html!(name);
+      console.log(`[send-welcome-email] Using inline HTML template`);
+    }
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: "SkinHeal AI <hello@skinheal.ai>",
-        to: [user.email],
-        subject: template.subject,
-        html: template.html(name),
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     const resendResult = await res.json();
