@@ -7,36 +7,15 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const TEMPLATES: Record<string, { subject: string; html: (name: string) => string }> = {
+// Template config: use Resend named templates when available, fall back to inline HTML
+const TEMPLATES: Record<string, {
+  resendTemplateId?: string;        // Resend template slug/ID — preferred
+  subject?: string;                 // only needed for inline fallback
+  html?: (name: string) => string;  // only needed for inline fallback
+}> = {
   welcome: {
-    subject: "Welcome to SkinHeal — Your Skin Healing Journey Starts Now",
-    html: (name: string) => `
-<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:'Helvetica Neue',Arial,sans-serif;">
-  <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
-    <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:24px;color:#2d3a2e;margin:0 0 8px;">Welcome to SkinHeal</h1>
-      <p style="font-size:15px;color:#6b7280;margin:0;">Hi ${name}, we're glad you're here.</p>
-    </div>
-    <div style="background:#f7f6f3;border-radius:16px;padding:24px;margin-bottom:24px;">
-      <h2 style="font-size:18px;color:#2d3a2e;margin:0 0 12px;">What's next?</h2>
-      <ul style="font-size:14px;color:#4b5563;padding-left:20px;margin:0;line-height:1.8;">
-        <li>Upload a photo for your first AI skin analysis</li>
-        <li>Get your personalized healing protocol</li>
-        <li>Track your progress over time</li>
-      </ul>
-    </div>
-    <div style="text-align:center;">
-      <a href="https://skinheal.lovable.app/analysis"
-         style="display:inline-block;background:#4a7c59;color:#ffffff;padding:14px 32px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:600;">
-        Start Your Analysis
-      </a>
-    </div>
-    <p style="font-size:12px;color:#9ca3af;text-align:center;margin-top:32px;">
-      SkinHeal AI — Personalized skin healing guidance.<br>This is an educational tool, not medical advice.
-    </p>
-  </div>
-</body></html>`,
+    // Uses the Resend template you created — edit it in Resend dashboard
+    resendTemplateId: "welcome-to-skinheal",
   },
   premium: {
     subject: "You're now a SkinHeal Premium member 🌿",
