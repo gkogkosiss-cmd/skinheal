@@ -129,7 +129,7 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
       }
 
       // Call comparison edge function — send all images + previous image
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = SUPABASE_PROJECT_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
       const response = await fetch(`${supabaseUrl}/functions/v1/compare-progress`, {
