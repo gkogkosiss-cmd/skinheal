@@ -225,10 +225,12 @@ export type Database = {
         Row: {
           age_range: string | null
           created_at: string
+          email: string | null
           id: string
           name: string | null
           premium_email_sent: boolean
           profile_photo_url: string | null
+          provider: string | null
           skin_concern: string | null
           updated_at: string
           user_id: string
@@ -237,10 +239,12 @@ export type Database = {
         Insert: {
           age_range?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           name?: string | null
           premium_email_sent?: boolean
           profile_photo_url?: string | null
+          provider?: string | null
           skin_concern?: string | null
           updated_at?: string
           user_id: string
@@ -249,10 +253,12 @@ export type Database = {
         Update: {
           age_range?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           name?: string | null
           premium_email_sent?: boolean
           profile_photo_url?: string | null
+          provider?: string | null
           skin_concern?: string | null
           updated_at?: string
           user_id?: string
