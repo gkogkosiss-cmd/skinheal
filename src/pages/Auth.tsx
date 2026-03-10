@@ -145,8 +145,13 @@ const Auth = () => {
 
         if (data?.user && !data?.session) {
           toast({
-            title: "Check your email",
-            description: "A confirmation link has been sent to verify your email address.",
+            title: "Account created — check your email",
+            description: `User ID: ${data.user.id?.slice(0, 8)}… — A confirmation link has been sent to ${email}. Created at: ${data.user.created_at}`,
+          });
+        } else if (data?.user && data?.session) {
+          toast({
+            title: "Account created & signed in",
+            description: `User ID: ${data.user.id?.slice(0, 8)}… — You're signed in as ${email}.`,
           });
         }
       } else {
