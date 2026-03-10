@@ -196,19 +196,21 @@ const Auth = () => {
     console.log("[AuthDebug] oauth_clicked", { provider, oauthRedirectUri });
 
     try {
-      console.log("[AuthDebug] signInWithOAuth_called", { provider, oauthRedirectUri });
-      const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: oauthRedirectUri,
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: oauthRedirectUri,
+        },
       });
 
       console.log("[AuthDebug] signInWithOAuth_result", {
         provider,
-        redirected: Boolean(result?.redirected),
-        hasError: Boolean(result?.error),
-        error: result?.error?.message ?? null,
+        url: data?.url ?? null,
+        hasError: Boolean(error),
+        error: error?.message ?? null,
       });
 
-      if (result.error) throw result.error;
+      if (error) throw error;
     } catch (err: any) {
       console.error("[AuthDebug] signInWithOAuth_failed", {
         provider,
