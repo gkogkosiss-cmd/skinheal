@@ -103,6 +103,7 @@ const Auth = () => {
           emailRedirectTo: window.location.origin + redirectTo,
         });
 
+        console.log("[AuthDebug] signUp_calling", { email, redirectTo: window.location.origin + redirectTo });
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -111,8 +112,13 @@ const Auth = () => {
           },
         });
 
+        console.log("[AuthDebug] signUp_raw_response", {
+          data: JSON.stringify(data),
+          error: error ? { message: error.message, status: error.status, name: error.name } : null,
+        });
+
         if (error) {
-          console.error("[AuthDebug] signUp_failed", { email, error: error.message });
+          console.error("[AuthDebug] signUp_failed", { email, error: error.message, status: error.status });
           throw error;
         }
 
@@ -122,6 +128,8 @@ const Auth = () => {
           hasSession: Boolean(data?.session),
           identities: data?.user?.identities?.length ?? 0,
           provider: data?.user?.app_metadata?.provider ?? null,
+          confirmedAt: data?.user?.confirmed_at ?? null,
+          createdAt: data?.user?.created_at ?? null,
         });
 
         // Check if the user already exists (identities will be empty)
