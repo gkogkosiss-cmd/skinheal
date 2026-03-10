@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_PROJECT_URL } from "@/lib/supabase";
 import { useAuth } from "./useAuth";
 import { useCurrentAnalysis } from "./useCurrentAnalysis";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -129,7 +129,7 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
       }
 
       // Call comparison edge function — send all images + previous image
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = SUPABASE_PROJECT_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
       const response = await fetch(`${supabaseUrl}/functions/v1/compare-progress`, {

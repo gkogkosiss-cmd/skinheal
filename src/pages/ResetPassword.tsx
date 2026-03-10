@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { KeyRound, ArrowRight, Loader2, CheckCircle } from "lucide-react";
 import skinhealLogo from "@/assets/skinheal_logo.png";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 const ResetPassword = () => {

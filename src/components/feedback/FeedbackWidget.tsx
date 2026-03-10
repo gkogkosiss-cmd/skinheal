@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ThumbsUp, ThumbsDown, Send } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 

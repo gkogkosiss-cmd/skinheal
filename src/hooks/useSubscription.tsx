@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_PROJECT_URL } from "@/lib/supabase";
 import { useAuth } from "./useAuth";
 
 const PREMIUM_PRODUCT_ID = "prod_U69eH6djMBf4gA";
@@ -56,7 +56,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
         return;
       }
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = SUPABASE_PROJECT_URL;
       const response = await fetch(`${supabaseUrl}/functions/v1/check-subscription`, {
         method: "POST",
         headers: {
@@ -120,7 +120,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = SUPABASE_PROJECT_URL;
       const response = await fetch(`${supabaseUrl}/functions/v1/create-checkout`, {
         method: "POST",
         headers: {
@@ -145,7 +145,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = SUPABASE_PROJECT_URL;
       const response = await fetch(`${supabaseUrl}/functions/v1/customer-portal`, {
         method: "POST",
         headers: {

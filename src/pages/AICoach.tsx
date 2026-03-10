@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
 import { Send, Bot, User, Sparkles, AlertCircle, Trash2 } from "lucide-react";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_PROJECT_URL } from "@/lib/supabase";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { PremiumGate } from "@/components/premium/PremiumGate";
@@ -194,7 +194,7 @@ If the user previously asked about something in this conversation, reference it 
         content: m.content,
       }));
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = SUPABASE_PROJECT_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
       const response = await fetch(`${supabaseUrl}/functions/v1/ai-coach`, {
