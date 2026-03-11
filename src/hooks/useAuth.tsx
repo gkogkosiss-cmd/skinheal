@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase, invokeEdgeFunction } from "@/lib/supabase";
+import { supabase as lovableSupabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
@@ -104,7 +105,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Bridge: Mirror Lovable Cloud OAuth sessions to the custom supabase client.
+    // lovable.auth.signInWithOAuth sets the session on the Lovable Cloud client,
+    // but the app uses a separate custom client. This listener syncs them.
+    const { data: { subscription: lovableSub } } = lovableSupabase.auth.onAuthStateChange(async (event, cloudSession) => {
+      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && cloudSession) {
+        console.log("[AuthDebug] lovable_cloud_auth_event", { event, email: cloudSession.user?.email });
+        // Check if our custom client already has a session
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        if (!existingSession || existingSession.user?.id !== cloudSession.user?.id) {
+          console.log("[AuthDebug] mirroring_cloud_session_to_custom_client");
+          await supabase.auth.setSession({
+            access_token: cloudSession.access_token,
+            refresh_token: cloudSession.refresh_token,
+          });
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      lovableSub.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

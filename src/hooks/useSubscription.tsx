@@ -154,7 +154,9 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     setIsCheckingOut(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      if (!session) throw new Error("Not authenticated. Please sign in first.");
+
+      console.log("[Checkout] Starting, token present:", Boolean(session.access_token));
 
       const response = await fetch(`${EDGE_FUNCTIONS_URL}/create-checkout`, {
         method: "POST",
@@ -165,13 +167,20 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
         },
       });
 
+      const data = await response.json().catch(() => ({}));
+      console.log("[Checkout] Response:", { status: response.status, data });
+
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData?.error || "Failed to create checkout");
+        const errMsg = data?.error || "Failed to create checkout";
+        if (errMsg.includes("live") || errMsg.includes("activate")) {
+          throw new Error("Payment system is being set up. Please try again later or contact support.");
+        }
+        throw new Error(errMsg);
       }
-      const data = await response.json();
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL received");
       }
     } catch (err: any) {
       console.error("Checkout error:", err);
@@ -183,7 +192,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     } finally {
       setIsCheckingOut(false);
     }
-  }, []);
+  }, [toast]);
 
   const openCustomerPortal = useCallback(async () => {
     try {
