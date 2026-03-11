@@ -5,20 +5,21 @@ import { supabase } from "@/lib/supabase";
 
 const DEFAULT_REDIRECT = "/analysis";
 
+const getSafeRedirect = (value: string | null) =>
+  value && value.startsWith("/") && !value.startsWith("//") ? value : DEFAULT_REDIRECT;
+
 const AuthCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState("Completing your sign-in...");
 
   useEffect(() => {
-    const completeOAuthSignIn = async () => {
-      const requestedRedirect = searchParams.get("redirect");
-      const redirectTo =
-        requestedRedirect && requestedRedirect.startsWith("/") && !requestedRedirect.startsWith("//")
-          ? requestedRedirect
-          : DEFAULT_REDIRECT;
+    let isActive = true;
 
+    const completeOAuthSignIn = async () => {
+      const redirectTo = getSafeRedirect(searchParams.get("redirect"));
       const callbackError = searchParams.get("error_description") || searchParams.get("error");
+
       if (callbackError) {
         console.error("[AuthDebug] oauth_callback_error", { callbackError });
         setStatus("Sign-in failed. Returning to auth...");
@@ -45,12 +46,44 @@ const AuthCallback = () => {
 
         const {
           data: { session },
+          error: sessionError,
         } = await supabase.auth.getSession();
 
-        if (!session) {
-          throw new Error("No OAuth session returned after callback.");
+        if (sessionError) throw sessionError;
+        if (!session?.user) throw new Error("No OAuth session returned after callback.");
+
+        const { data: existingProfile, error: profileFetchError } = await supabase
+          .from("profiles" as any)
+          .select("id")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+        if (profileFetchError) throw profileFetchError;
+
+        if (!existingProfile) {
+          const displayName =
+            session.user.user_metadata?.full_name ||
+            session.user.user_metadata?.name ||
+            session.user.email?.split("@")[0] ||
+            null;
+
+          const provider = typeof session.user.app_metadata?.provider === "string"
+            ? session.user.app_metadata.provider
+            : "google";
+
+          const { error: insertError } = await supabase
+            .from("profiles" as any)
+            .insert({
+              user_id: session.user.id,
+              name: displayName,
+              email: session.user.email ?? null,
+              provider,
+            } as any);
+
+          if (insertError) throw insertError;
         }
 
+        if (!isActive) return;
         navigate(redirectTo, { replace: true });
       } catch (error: any) {
         console.error("[AuthDebug] oauth_callback_exchange_failed", {
@@ -62,6 +95,10 @@ const AuthCallback = () => {
     };
 
     completeOAuthSignIn();
+
+    return () => {
+      isActive = false;
+    };
   }, [navigate, searchParams]);
 
   return (
