@@ -192,11 +192,12 @@ const Auth = () => {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
-    console.log("[AuthDebug] oauth_clicked", { provider, redirect_uri: window.location.origin });
+    const callbackUrl = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+    console.log("[AuthDebug] oauth_clicked", { provider, redirect_uri: callbackUrl });
 
     try {
       const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: window.location.origin,
+        redirect_uri: callbackUrl,
       });
 
       console.log("[AuthDebug] signInWithOAuth_result", {
