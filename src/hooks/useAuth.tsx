@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           console.log("[AuthDebug] SIGNED_IN, checking welcome email flag", { userId, email: freshEmail });
           try {
-            // Check flag on custom project DB (client-side dedup)
+            // Check flag on the app database (client-side dedup)
             const { data: profile } = await supabase
               .from("profiles" as any)
               .select("welcome_email_sent")
