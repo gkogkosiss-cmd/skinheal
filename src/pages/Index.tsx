@@ -94,12 +94,20 @@ const Index = () => {
           <img src={skinhealLogo} alt="SkinHeal" className="w-9 h-9 rounded-xl" />
           <span className="font-serif text-xl text-foreground">SkinHeal</span>
         </div>
-        <button
-          onClick={handleAnalyze}
-          className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-        >
-          Get Started
-        </button>
+        <div className="flex items-center gap-4">
+          <a
+            href="#pricing"
+            className="hidden sm:inline text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Pricing
+          </a>
+          <button
+            onClick={handleAnalyze}
+            className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            Get Started
+          </button>
+        </div>
       </nav>
 
       {/* HERO */}
