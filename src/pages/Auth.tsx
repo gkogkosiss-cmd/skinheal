@@ -22,7 +22,8 @@ const Auth = () => {
   const formRef = useRef<HTMLFormElement>(null);
 
   const redirectTo = searchParams.get("redirect") || "/analysis";
-  const GOOGLE_OAUTH_CALLBACK_URL = "https://skinheal.ai/~oauth/callback";
+  const SITE_ORIGIN = "https://skinheal.ai";
+  const GOOGLE_OAUTH_CALLBACK_URL = `${SITE_ORIGIN}/~oauth/callback`;
 
   useEffect(() => {
     if (user) {
