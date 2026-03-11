@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { supabase, SUPABASE_PROJECT_URL } from "@/lib/supabase";
+import { supabase, EDGE_FUNCTIONS_URL, EDGE_FUNCTIONS_KEY } from "@/lib/supabase";
 import { useAuth } from "./useAuth";
 import { useCurrentAnalysis } from "./useCurrentAnalysis";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
