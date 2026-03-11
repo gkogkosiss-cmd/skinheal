@@ -1,3 +1,4 @@
+import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -53,6 +54,13 @@ const faqs = [
 const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect authenticated users (e.g. after OAuth callback) to dashboard
+  React.useEffect(() => {
+    if (user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleAnalyze = () => {
     if (user) {

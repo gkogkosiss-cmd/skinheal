@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { supabase, EDGE_FUNCTIONS_URL, EDGE_FUNCTIONS_KEY, invokeEdgeFunction } from "@/lib/supabase";
 import { useAuth } from "./useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const PREMIUM_PRODUCT_ID = "prod_U69eH6djMBf4gA";
 
@@ -35,6 +36,7 @@ export const useSubscription = () => useContext(SubscriptionContext);
 
 export const SubscriptionProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [state, setState] = useState<SubscriptionState>({
     subscribed: false,
     productId: null,
@@ -171,8 +173,13 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       if (data.url) {
         window.location.href = data.url;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Checkout error:", err);
+      toast({
+        title: "Checkout failed",
+        description: err?.message || "Could not start checkout. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsCheckingOut(false);
     }
