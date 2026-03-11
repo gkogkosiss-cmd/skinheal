@@ -7,6 +7,7 @@ import {
   ChevronRight, CheckCircle2
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import SkinScoreDemo from "@/components/landing/SkinScoreDemo";
 import skinhealLogo from "@/assets/skinheal_logo.png";
@@ -55,12 +56,26 @@ const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect authenticated users (e.g. after OAuth callback) to dashboard
+  // Redirect authenticated users (e.g. after OAuth callback) to analysis
   React.useEffect(() => {
     if (user) {
       navigate("/analysis", { replace: true });
     }
   }, [user, navigate]);
+
+  React.useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        navigate("/analysis", { replace: true });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   const handleAnalyze = () => {
     if (user) {

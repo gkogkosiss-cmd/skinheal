@@ -96,6 +96,9 @@ const AuthCallback = () => {
         }
 
         if (!isActive) return;
+        setStatus("Sign-in successful. Redirecting...");
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        if (!isActive) return;
         navigate(redirectTo, { replace: true });
       } catch (error: any) {
         console.error("[AuthDebug] oauth_callback_exchange_failed", {
