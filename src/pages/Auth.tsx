@@ -198,41 +198,19 @@ const Auth = () => {
     console.log("[AuthDebug] oauth_clicked", { provider, redirect_uri: callbackUrl });
 
     try {
-      if (provider === "google") {
-        // Use direct Supabase PKCE flow for Google
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: callbackUrl,
-            queryParams: {
-              prompt: "select_account",
-            },
-          },
-        });
+      const result = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: callbackUrl,
+        extraParams: provider === "google" ? { prompt: "select_account" } : undefined,
+      });
 
-        console.log("[AuthDebug] signInWithOAuth_result", {
-          provider,
-          url: data?.url ?? null,
-          hasError: Boolean(error),
-          error: error?.message ?? null,
-        });
+      console.log("[AuthDebug] signInWithOAuth_result", {
+        provider,
+        redirected: (result as any)?.redirected,
+        hasError: Boolean((result as any)?.error),
+        error: (result as any)?.error?.message ?? null,
+      });
 
-        if (error) throw error;
-      } else {
-        // Use Lovable proxy for Apple
-        const result = await lovable.auth.signInWithOAuth(provider, {
-          redirect_uri: callbackUrl,
-        });
-
-        console.log("[AuthDebug] signInWithOAuth_result", {
-          provider,
-          redirected: (result as any)?.redirected,
-          hasError: Boolean((result as any)?.error),
-          error: (result as any)?.error?.message ?? null,
-        });
-
-        if ((result as any)?.error) throw (result as any).error;
-      }
+      if ((result as any)?.error) throw (result as any).error;
     } catch (err: any) {
       console.error("[AuthDebug] signInWithOAuth_failed", {
         provider,
