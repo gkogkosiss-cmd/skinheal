@@ -375,7 +375,7 @@ const Profile = () => {
 const InfoRow = ({ label, value }: { label: string; value: string }) => (
   <div className="flex items-center justify-between py-1.5 gap-3 min-w-0">
     <span className="text-sm text-muted-foreground shrink-0">{label}</span>
-    <span className="text-sm font-medium text-foreground">{value}</span>
+    <span className="text-sm font-medium text-foreground text-right truncate min-w-0">{value}</span>
   </div>
 );
 
