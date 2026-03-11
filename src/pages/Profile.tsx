@@ -185,16 +185,16 @@ const Profile = () => {
               <CardTitle className="text-lg">Billing & Subscription</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-                <div>
-                  <p className="font-medium text-foreground">{isPremium ? "Premium Plan" : "Free Plan"}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+              <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-xl bg-muted/50 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-foreground text-sm">{isPremium ? "Premium Plan" : "Free Plan"}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
                     {isPremium
-                      ? `$9.99/month · Renews ${subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}`
+                      ? `$9.99/mo · Renews ${subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}`
                       : "Basic skin analysis and score"}
                   </p>
                 </div>
-                <span className={`text-xs font-medium px-3 py-1 rounded-full ${isPremium ? "bg-primary/10 text-primary" : "bg-accent text-accent-foreground"}`}>
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${isPremium ? "bg-primary/10 text-primary" : "bg-accent text-accent-foreground"}`}>
                   {isPremium ? "Active" : "Free"}
                 </span>
               </div>
@@ -207,11 +207,11 @@ const Profile = () => {
               ) : (
                 <>
                   <Button className="w-full justify-between gap-2" onClick={startCheckout} disabled={isCheckingOut || isSubLoading}>
-                    <span className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" />
-                      {isCheckingOut ? "Loading..." : "Upgrade to Premium — $9.99/mo"}
+                    <span className="flex items-center gap-2 min-w-0 truncate">
+                      <Sparkles className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{isCheckingOut ? "Loading..." : "Upgrade to Premium — $9.99/mo"}</span>
                     </span>
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4 shrink-0" />
                   </Button>
                   <div className="space-y-2 pt-2">
                     <p className="text-xs font-medium text-foreground">Premium includes:</p>
@@ -375,7 +375,7 @@ const Profile = () => {
 const InfoRow = ({ label, value }: { label: string; value: string }) => (
   <div className="flex items-center justify-between py-1.5 gap-3 min-w-0">
     <span className="text-sm text-muted-foreground shrink-0">{label}</span>
-    <span className="text-sm font-medium text-foreground">{value}</span>
+    <span className="text-sm font-medium text-foreground text-right truncate min-w-0">{value}</span>
   </div>
 );
 
