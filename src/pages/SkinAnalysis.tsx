@@ -658,27 +658,41 @@ const SkinAnalysis = () => {
     }
 
     setStep("loading");
+    setStreamStep(0);
 
     try {
       const imagesBase64 = await buildAnalysisImagePayload(selectedImages);
-      console.info("[SkinAnalysis] request started", {
+      console.info("[SkinAnalysis] streaming request started", {
         stage: "full-analysis",
         selectedImagesLength: selectedImages.length,
-        selectedImages: summarizeSelectedImages(selectedImages),
         payloadImageCount: imagesBase64.length,
         answerCount: Object.keys(answers).length,
       });
 
-      const { data, error } = await invokeEdgeFunction("analyze-skin", { imagesBase64, answers });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      console.info("[SkinAnalysis] request completed", {
-        stage: "full-analysis",
-        hasBodyArea: Boolean(data?.bodyArea),
-        hasConditions: Array.isArray(data?.conditions),
+      const data = await new Promise<any>((resolve, reject) => {
+        streamSkinAnalysis(
+          { imagesBase64, answers },
+          {
+            onProgress: (stepIndex) => {
+              console.info("[SkinAnalysis] stream progress", { stepIndex });
+              setStreamStep(stepIndex);
+            },
+            onComplete: (parsed) => {
+              console.info("[SkinAnalysis] stream complete", {
+                hasConditions: Array.isArray(parsed?.conditions),
+                hasBodyArea: Boolean(parsed?.bodyArea),
+              });
+              resolve(parsed);
+            },
+            onError: (error) => {
+              console.error("[SkinAnalysis] stream error", error);
+              reject(error);
+            },
+          }
+        );
       });
+
+      if (data?.error) throw new Error(data.error);
 
       const generated = data as AnalysisResult;
       if (data?.bodyArea) setBodyArea(data.bodyArea);
@@ -686,6 +700,7 @@ const SkinAnalysis = () => {
       await saveAnalysis(generated);
 
       setResults(generated);
+      setStreamStep(undefined);
       setStep("results");
       console.info("[SkinAnalysis] full analysis completed");
       navigate("/dashboard");
@@ -693,6 +708,7 @@ const SkinAnalysis = () => {
       console.error("[SkinAnalysis] request failed", { stage: "full-analysis", error: err });
       const message = getErrorMessage(err, "Analysis could not be completed due to an internal processing issue.");
       toast({ title: "Analysis failed", description: message, variant: "destructive" });
+      setStreamStep(undefined);
       setStep("upload");
     }
   };
