@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { supabase, invokeEdgeFunction } from "@/lib/supabase";
 
 interface AuthContextType {
   user: User | null;
@@ -49,9 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setTimeout(async () => {
           console.log("[AuthDebug] SIGNED_IN, triggering welcome email check", { userId, email });
           try {
-            const { data, error } = await supabase.functions.invoke("send-welcome-email", {
-              body: { type: "welcome" },
-            });
+            const { data, error } = await invokeEdgeFunction("send-welcome-email", { type: "welcome" });
             console.log("[AuthDebug] welcome_email_result", { data, error: error?.message ?? null });
           } catch (err: any) {
             console.error("[AuthDebug] welcome_email_failed", { error: err?.message });

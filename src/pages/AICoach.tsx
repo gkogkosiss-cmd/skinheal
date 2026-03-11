@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
 import { Send, Bot, User, Sparkles, AlertCircle, Trash2 } from "lucide-react";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
-import { supabase, SUPABASE_PROJECT_URL } from "@/lib/supabase";
+import { supabase, EDGE_FUNCTIONS_URL, EDGE_FUNCTIONS_KEY } from "@/lib/supabase";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { PremiumGate } from "@/components/premium/PremiumGate";
@@ -194,15 +194,12 @@ If the user previously asked about something in this conversation, reference it 
         content: m.content,
       }));
 
-      const supabaseUrl = SUPABASE_PROJECT_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/ai-coach`, {
+      const response = await fetch(`${EDGE_FUNCTIONS_URL}/ai-coach`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${supabaseKey}`,
-          "apikey": supabaseKey,
+          "Authorization": `Bearer ${EDGE_FUNCTIONS_KEY}`,
+          "apikey": EDGE_FUNCTIONS_KEY,
         },
         body: JSON.stringify({ messages: recentMessages, systemContext }),
       });

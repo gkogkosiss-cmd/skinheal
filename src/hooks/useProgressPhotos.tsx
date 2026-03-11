@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { supabase, SUPABASE_PROJECT_URL } from "@/lib/supabase";
+import { supabase, EDGE_FUNCTIONS_URL, EDGE_FUNCTIONS_KEY } from "@/lib/supabase";
 import { useAuth } from "./useAuth";
 import { useCurrentAnalysis } from "./useCurrentAnalysis";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -129,15 +129,12 @@ Root causes: ${Array.isArray(currentAnalysis.root_causes) ? currentAnalysis.root
       }
 
       // Call comparison edge function — send all images + previous image
-      const supabaseUrl = SUPABASE_PROJECT_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/compare-progress`, {
+      const response = await fetch(`${EDGE_FUNCTIONS_URL}/compare-progress`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${supabaseKey}`,
-          apikey: supabaseKey,
+          Authorization: `Bearer ${EDGE_FUNCTIONS_KEY}`,
+          apikey: EDGE_FUNCTIONS_KEY,
         },
         body: JSON.stringify({
           newImageBase64: base64Images.length === 1 ? base64Images[0] : base64Images,

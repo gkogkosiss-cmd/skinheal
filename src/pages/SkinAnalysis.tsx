@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Upload, ChevronRight, AlertCircle, Sparkles, Loader2, X, ImagePlus, RefreshCw } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, invokeEdgeFunction } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -460,9 +460,7 @@ const SkinAnalysis = () => {
         imageCount: imagesBase64.length,
       });
 
-      const { data, error } = await supabase.functions.invoke("analyze-skin", {
-        body: { imagesBase64 },
-      });
+      const { data, error } = await invokeEdgeFunction("analyze-skin", { imagesBase64 });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -647,9 +645,7 @@ const SkinAnalysis = () => {
         answerCount: Object.keys(answers).length,
       });
 
-      const { data, error } = await supabase.functions.invoke("analyze-skin", {
-        body: { imagesBase64, answers },
-      });
+      const { data, error } = await invokeEdgeFunction("analyze-skin", { imagesBase64, answers });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

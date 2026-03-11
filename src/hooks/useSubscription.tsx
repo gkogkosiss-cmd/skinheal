@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
-import { supabase, SUPABASE_PROJECT_URL } from "@/lib/supabase";
+import { supabase, EDGE_FUNCTIONS_URL, EDGE_FUNCTIONS_KEY, invokeEdgeFunction } from "@/lib/supabase";
 import { useAuth } from "./useAuth";
 
 const PREMIUM_PRODUCT_ID = "prod_U69eH6djMBf4gA";
@@ -56,13 +56,12 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
         return;
       }
 
-      const supabaseUrl = SUPABASE_PROJECT_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/check-subscription`, {
+      const response = await fetch(`${EDGE_FUNCTIONS_URL}/check-subscription`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session.access_token}`,
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "apikey": EDGE_FUNCTIONS_KEY,
         },
       });
 
@@ -82,9 +81,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       if (!wasPremium && isNowPremium) {
         console.log("[Subscription] User became premium, sending premium welcome email");
         try {
-          const { data: emailData, error: emailError } = await supabase.functions.invoke("send-welcome-email", {
-            body: { type: "premium" },
-          });
+          const { data: emailData, error: emailError } = await invokeEdgeFunction("send-welcome-email", { type: "premium" });
           console.log("[Subscription] premium_email_result", { data: emailData, error: emailError?.message ?? null });
         } catch (err: any) {
           console.error("[Subscription] premium_email_failed", { error: err?.message });
@@ -120,13 +117,12 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const supabaseUrl = SUPABASE_PROJECT_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/create-checkout`, {
+      const response = await fetch(`${EDGE_FUNCTIONS_URL}/create-checkout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session.access_token}`,
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "apikey": EDGE_FUNCTIONS_KEY,
         },
       });
 
@@ -145,13 +141,12 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const supabaseUrl = SUPABASE_PROJECT_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/customer-portal`, {
+      const response = await fetch(`${EDGE_FUNCTIONS_URL}/customer-portal`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session.access_token}`,
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "apikey": EDGE_FUNCTIONS_KEY,
         },
       });
 
