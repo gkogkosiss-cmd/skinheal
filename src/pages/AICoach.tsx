@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
 import { Send, Bot, User, Sparkles, AlertCircle, Trash2 } from "lucide-react";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
-import { supabase, SUPABASE_PROJECT_URL } from "@/lib/supabase";
+import { supabase, EDGE_FUNCTIONS_URL, EDGE_FUNCTIONS_KEY } from "@/lib/supabase";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { PremiumGate } from "@/components/premium/PremiumGate";
