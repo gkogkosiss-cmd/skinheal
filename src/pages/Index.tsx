@@ -58,7 +58,7 @@ const Index = () => {
   // Redirect authenticated users (e.g. after OAuth callback) to dashboard
   React.useEffect(() => {
     if (user) {
-      navigate("/dashboard", { replace: true });
+      navigate("/analysis", { replace: true });
     }
   }, [user, navigate]);
 
