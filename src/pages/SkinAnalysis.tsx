@@ -988,6 +988,7 @@ const SkinAnalysis = () => {
               <AnalysisLoadingScreen
                 imageCount={images.length}
                 imagePreviews={images.map((img) => img.preview)}
+                streamStep={streamStep}
               />
             </motion.div>
           )}
