@@ -217,10 +217,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* PRICING */}
-      <div id="pricing">
-        <PricingSection />
-      </div>
 
       {/* FEATURES / VALUE PROP */}
       <section className="section-padding">
