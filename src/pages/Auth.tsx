@@ -193,7 +193,10 @@ const Auth = () => {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
-    const callbackUrl = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+    const callbackUrl =
+      provider === "google"
+        ? GOOGLE_OAUTH_CALLBACK_URL
+        : `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
     console.log("[AuthDebug] oauth_clicked", { provider, redirect_uri: callbackUrl });
 
     try {
