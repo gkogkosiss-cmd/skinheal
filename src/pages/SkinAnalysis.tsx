@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import { Upload, ChevronRight, AlertCircle, Sparkles, Loader2, X, ImagePlus, RefreshCw } from "lucide-react";
 import { AnalysisLoadingScreen } from "@/components/analysis/AnalysisLoadingScreen";
 import { supabase, invokeEdgeFunction } from "@/lib/supabase";
+import { streamSkinAnalysis } from "@/lib/streamAnalysis";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
