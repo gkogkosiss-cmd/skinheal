@@ -1,12 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 
-const SUPABASE_URL = "https://wwkkujdrwkxqttsaikll.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3a2t1amRyd2t4cXR0c2Fpa2xsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDU4MjUsImV4cCI6MjA4ODM4MTgyNX0.ZDJx8GsucKHCr-CZECCOWbIgPo-W9FlNuZWSxoAgOrw";
-
-// Lovable Cloud project hosts the edge functions
-const LOVABLE_CLOUD_URL = "https://obevadiyhuvipyzkcoit.supabase.co";
-const LOVABLE_CLOUD_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZXZhZGl5aHV2aXB5emtjb2l0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MDc3OTUsImV4cCI6MjA4ODI4Mzc5NX0.SSpIad0LF7nd4b3O1K_sAYYDvju7HOmdR48iP_bSx6k";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -17,15 +13,11 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
 });
 
 export const SUPABASE_PROJECT_URL = SUPABASE_URL;
-
-/** Base URL for edge functions hosted on Lovable Cloud */
-export const EDGE_FUNCTIONS_URL = `${LOVABLE_CLOUD_URL}/functions/v1`;
-export const EDGE_FUNCTIONS_KEY = LOVABLE_CLOUD_ANON_KEY;
+export const EDGE_FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
+export const EDGE_FUNCTIONS_KEY = SUPABASE_ANON_KEY;
 
 /**
- * Invoke an edge function on Lovable Cloud.
- * Use this instead of supabase.functions.invoke() since functions
- * are deployed on Lovable Cloud, not on the custom project.
+ * Invoke a backend function on Lovable Cloud.
  */
 export const invokeEdgeFunction = async (
   functionName: string,
@@ -35,13 +27,9 @@ export const invokeEdgeFunction = async (
   try {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      "apikey": EDGE_FUNCTIONS_KEY,
+      apikey: EDGE_FUNCTIONS_KEY,
+      Authorization: authToken ? `Bearer ${authToken}` : `Bearer ${EDGE_FUNCTIONS_KEY}`,
     };
-    if (authToken) {
-      headers["Authorization"] = `Bearer ${authToken}`;
-    } else {
-      headers["Authorization"] = `Bearer ${EDGE_FUNCTIONS_KEY}`;
-    }
 
     const response = await fetch(`${EDGE_FUNCTIONS_URL}/${functionName}`, {
       method: "POST",
