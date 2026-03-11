@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Mail, ArrowRight, Loader2, KeyRound } from "lucide-react";
 import skinhealLogo from "@/assets/skinheal_logo.png";
 import { supabase } from "@/lib/supabase";
+import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
