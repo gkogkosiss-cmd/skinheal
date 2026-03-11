@@ -299,41 +299,34 @@ Return ONLY bodyArea, visualFeatures, and dynamicQuestions as JSON. No other tex
         content: [
           {
             type: "text",
-            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos together" : "this skin photo"} along with the user's questionnaire answers. Provide a complete, thorough analysis.
-
-IMPORTANT - BODY AREA DETECTION:
-- First detect which body area is shown in the photos.
-- Adapt ALL your analysis, conditions, and recommendations to that specific body area.
-- Do NOT default to face-only conditions if the photos show another body part.
+            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos together" : "this skin photo"} combined with the user's answers to deliver the most thorough, accurate, and genuinely helpful skin analysis possible.
 
 User's answers: ${JSON.stringify(answers)}
 
-IMPORTANT GUIDELINES FOR YOUR RESPONSE:
-- Use cautious, educational language. Say "may", "often", "commonly" instead of definitive claims.
-- Reference what you actually see in the photos - do not fabricate observations.
-- If multiple photos are provided, note consistency or differences across views.
-- Make the healing protocol highly detailed and practical, adapted to the body area shown.
-- The meal template should be realistic and easy to follow.
-- IMPORTANT: Generate a complete sevenDayMealPlan array with 7 objects, each with day, breakfast, lunch, dinner, snack. Make meals anti-inflammatory, gut-supportive, and practical for everyday life. Each day should be different and varied.
-- Also generate mealPlanPrinciples: 5 key nutrition principles specific to the user's skin condition.
-- The 7-day gut plan should be progressive and gentle.
-- Daily checklist should be 5-8 items max, adapted to the body area.
-- Keep routines minimal - focus on behavior and consistency over products.
-- Include specific safety guidance and red flags.
-- Never use the asterisk symbol in any text.
-- IMPORTANT: Include the skinScore field with overall score and all 5 factor scores with specific explanations that reference the actual images and answers.
-- Skin score explanations MUST reference what you observe, not generic text.
-- IMPORTANT: Include the bodyArea field indicating which body area you detected.
+ANALYSIS REQUIREMENTS:
 
-IMPORTANT OUTPUT ORDER: To provide the fastest user experience, output the JSON fields in this exact order:
+- Detect body area first — ALL analysis, conditions, and recommendations must be specific to that body area
+- Reference actual visual observations throughout — never fabricate findings
+- Provide biological mechanisms for every recommendation — explain the WHY
+- Make the healing protocol feel like it was written personally for this exact person
+- The 7-day meal plan must have 7 complete, varied, anti-inflammatory days
+- The gut plan must be progressive, gentle, and specific to the observed skin pattern
+- Daily checklist: 5-8 items max, ordered by impact, body-area specific
+- Routines: minimal products, maximum behavior and consistency focus
+- Safety guidance: specific red flags, clear thresholds for seeking professional help
+- Never use the asterisk symbol anywhere
+- Skin score explanations MUST reference specific visual observations and user answers — no generic text
+
+OUTPUT ORDER (for optimal streaming experience):
+
 1. bodyArea
-2. skinScore
-3. conditions
-4. rootCauses
-5. biologicalExplanation
-6. healingProtocol (with all sub-fields)
+2. skinScore (with all 5 factors and specific explanations)
+3. conditions (3-5, ranked by probability, with visual evidence)
+4. rootCauses (deep, mechanistic, specific to this case)
+5. biologicalExplanation (revelatory, specific, educational)
+6. healingProtocol (complete, with all sub-fields)
 
-Return the FULL JSON response with ALL fields including bodyArea, skinScore and the expanded healingProtocol.`,
+Return the complete JSON with ALL fields. Make this analysis genuinely life-changing.`,
           },
           ...imageContentParts,
         ],
