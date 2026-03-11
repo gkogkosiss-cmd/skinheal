@@ -52,6 +52,8 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="*" element={<NotFound />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </CurrentAnalysisProvider>
