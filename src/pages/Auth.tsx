@@ -22,7 +22,8 @@ const Auth = () => {
   const formRef = useRef<HTMLFormElement>(null);
 
   const redirectTo = searchParams.get("redirect") || "/analysis";
-  const GOOGLE_OAUTH_CALLBACK_URL = "https://skinheal.ai/~oauth/callback";
+  const SITE_ORIGIN = "https://skinheal.ai";
+  const GOOGLE_OAUTH_CALLBACK_URL = `${SITE_ORIGIN}/~oauth/callback`;
 
   useEffect(() => {
     if (user) {
@@ -78,11 +79,11 @@ const Auth = () => {
       if (mode === "forgot") {
         console.log("[AuthDebug] resetPasswordForEmail_called", {
           email,
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${SITE_ORIGIN}/reset-password`,
         });
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${SITE_ORIGIN}/reset-password`,
         });
 
         if (error) {
@@ -101,15 +102,15 @@ const Auth = () => {
       if (mode === "signup") {
         console.log("[AuthDebug] signUp_called", {
           email,
-          emailRedirectTo: window.location.origin + redirectTo,
+          emailRedirectTo: SITE_ORIGIN + redirectTo,
         });
 
-        console.log("[AuthDebug] signUp_calling", { email, redirectTo: window.location.origin + redirectTo });
+        console.log("[AuthDebug] signUp_calling", { email, redirectTo: SITE_ORIGIN + redirectTo });
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin + redirectTo,
+            emailRedirectTo: SITE_ORIGIN + redirectTo,
           },
         });
 
@@ -196,7 +197,7 @@ const Auth = () => {
     const callbackUrl =
       provider === "google"
         ? GOOGLE_OAUTH_CALLBACK_URL
-        : `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+        : `${SITE_ORIGIN}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
     console.log("[AuthDebug] oauth_clicked", { provider, redirect_uri: callbackUrl });
 
     try {
