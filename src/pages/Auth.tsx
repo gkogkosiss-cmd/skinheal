@@ -192,26 +192,21 @@ const Auth = () => {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
-
-    const oauthRedirectUri = window.location.origin + redirectTo;
-    console.log("[AuthDebug] oauth_clicked", { provider, oauthRedirectUri });
+    console.log("[AuthDebug] oauth_clicked", { provider, redirect_uri: window.location.origin });
 
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: oauthRedirectUri,
-        },
+      const result = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: window.location.origin,
       });
 
       console.log("[AuthDebug] signInWithOAuth_result", {
         provider,
-        url: data?.url ?? null,
-        hasError: Boolean(error),
-        error: error?.message ?? null,
+        redirected: (result as any)?.redirected,
+        hasError: Boolean((result as any)?.error),
+        error: (result as any)?.error?.message ?? null,
       });
 
-      if (error) throw error;
+      if ((result as any)?.error) throw (result as any).error;
     } catch (err: any) {
       console.error("[AuthDebug] signInWithOAuth_failed", {
         provider,
