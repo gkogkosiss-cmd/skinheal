@@ -277,7 +277,15 @@ serve(async (req) => {
         content: [
           {
             type: "text",
-            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos" : "this skin photo"}. FIRST detect which body area is shown (face, neck, back, chest, arms, legs, scalp, hands, etc). Then identify visual features across all images and generate 4-5 highly relevant diagnostic questions based on what you see and the body area. Return ONLY the bodyArea, visualFeatures, and dynamicQuestions fields as JSON.`,
+            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos together" : "this skin photo"} with clinical precision.
+
+STEP 1: Detect the body area shown (face, forehead, cheeks, chin, neck, back, chest, shoulders, arms, legs, scalp, hands, other).
+
+STEP 2: Identify all visible clinical features — morphology, distribution, inflammation level, barrier signs, pigmentation changes.
+
+STEP 3: Generate 4-5 highly targeted diagnostic questions based specifically on what you observe and the body area. Questions must meaningfully improve diagnostic accuracy. Include at minimum: one gut/digestion question, one dietary question, one trigger/pattern question.
+
+Return ONLY bodyArea, visualFeatures, and dynamicQuestions as JSON. No other text.`,
           },
           ...imageContentParts,
         ],
