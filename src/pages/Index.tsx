@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import SkinScoreDemo from "@/components/landing/SkinScoreDemo";
+import PricingSection from "@/components/landing/PricingSection";
 import skinhealLogo from "@/assets/skinheal_logo.png";
 
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -207,6 +208,9 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* PRICING */}
+      <PricingSection />
 
       {/* FEATURES / VALUE PROP */}
       <section className="section-padding">
