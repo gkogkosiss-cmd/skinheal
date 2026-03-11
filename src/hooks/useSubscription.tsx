@@ -36,6 +36,7 @@ export const useSubscription = () => useContext(SubscriptionContext);
 
 export const SubscriptionProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [state, setState] = useState<SubscriptionState>({
     subscribed: false,
     productId: null,
