@@ -15,9 +15,16 @@ const logStep = (step: string, details?: any) => {
 function decodeJwtPayload(token: string): { sub: string; email: string } {
   const parts = token.split(".");
   if (parts.length !== 3) throw new Error("Invalid JWT format");
-  const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-  if (!payload.sub || !payload.email) throw new Error("JWT missing required claims");
-  return { sub: payload.sub, email: payload.email };
+  // Handle both standard and URL-safe base64
+  const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+  const payload = JSON.parse(atob(padded));
+  logStep("JWT payload decoded", { sub: payload.sub, email: payload.email, keys: Object.keys(payload) });
+  const email = payload.email || payload.user_metadata?.email || "";
+  const sub = payload.sub || "";
+  if (!sub) throw new Error("JWT missing 'sub' claim");
+  if (!email) throw new Error("JWT missing email — found keys: " + Object.keys(payload).join(", "));
+  return { sub, email };
 }
 
 serve(async (req) => {
