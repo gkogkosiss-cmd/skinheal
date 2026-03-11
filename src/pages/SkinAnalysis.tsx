@@ -945,19 +945,11 @@ const SkinAnalysis = () => {
 
           {/* STEP 5: Loading */}
           {step === "loading" && (
-            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="card-elevated">
-              <div className="flex flex-col items-center py-20 gap-6">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-                  <Sparkles className="w-6 h-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                </div>
-                <div className="text-center">
-                  <p className="font-serif text-2xl mb-2">Analyzing your skin…</p>
-                  <p className="text-sm text-muted-foreground max-w-sm">
-                    Reviewing {images.length > 1 ? `all ${images.length} photos` : "your photo"}, identifying patterns, inflammation markers, and potential root causes.
-                  </p>
-                </div>
-              </div>
+            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <AnalysisLoadingScreen
+                imageCount={images.length}
+                imagePreviews={images.map((img) => img.preview)}
+              />
             </motion.div>
           )}
 
