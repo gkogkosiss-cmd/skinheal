@@ -173,8 +173,13 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       if (data.url) {
         window.location.href = data.url;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Checkout error:", err);
+      toast({
+        title: "Checkout failed",
+        description: err?.message || "Could not start checkout. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsCheckingOut(false);
     }
