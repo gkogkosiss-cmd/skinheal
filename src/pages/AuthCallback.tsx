@@ -44,12 +44,24 @@ const AuthCallback = () => {
           if (error) throw error;
         }
 
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
+        setStatus("Finalizing sign-in...");
 
-        if (sessionError) throw sessionError;
+        const waitForSession = async (maxAttempts = 20, delayMs = 250) => {
+          for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+            const {
+              data: { session },
+              error,
+            } = await supabase.auth.getSession();
+
+            if (error) throw error;
+            if (session?.user) return session;
+
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+          }
+          return null;
+        };
+
+        const session = await waitForSession();
         if (!session?.user) throw new Error("No OAuth session returned after callback.");
 
         const { data: existingProfile, error: profileFetchError } = await supabase
