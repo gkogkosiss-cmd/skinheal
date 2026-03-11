@@ -207,11 +207,11 @@ const Profile = () => {
               ) : (
                 <>
                   <Button className="w-full justify-between gap-2" onClick={startCheckout} disabled={isCheckingOut || isSubLoading}>
-                    <span className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" />
-                      {isCheckingOut ? "Loading..." : "Upgrade to Premium — $9.99/mo"}
+                    <span className="flex items-center gap-2 min-w-0 truncate">
+                      <Sparkles className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{isCheckingOut ? "Loading..." : "Upgrade to Premium — $9.99/mo"}</span>
                     </span>
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4 shrink-0" />
                   </Button>
                   <div className="space-y-2 pt-2">
                     <p className="text-xs font-medium text-foreground">Premium includes:</p>
