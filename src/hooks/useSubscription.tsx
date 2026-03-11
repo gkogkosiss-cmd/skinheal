@@ -81,9 +81,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       if (!wasPremium && isNowPremium) {
         console.log("[Subscription] User became premium, sending premium welcome email");
         try {
-          const { data: emailData, error: emailError } = await supabase.functions.invoke("send-welcome-email", {
-            body: { type: "premium" },
-          });
+          const { data: emailData, error: emailError } = await invokeEdgeFunction("send-welcome-email", { type: "premium" });
           console.log("[Subscription] premium_email_result", { data: emailData, error: emailError?.message ?? null });
         } catch (err: any) {
           console.error("[Subscription] premium_email_failed", { error: err?.message });
