@@ -48,7 +48,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const email = session.user.email;
         const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email?.split("@")[0] || "there";
         setTimeout(async () => {
-          console.log("[AuthDebug] SIGNED_IN, checking welcome email flag", { userId, email });
+          // Re-read session to get the most up-to-date user info (avoids stale closure)
+          const { data: { session: freshSession } } = await supabase.auth.getSession();
+          const freshEmail = freshSession?.user?.email || email;
+          const freshName = freshSession?.user?.user_metadata?.full_name || freshSession?.user?.user_metadata?.name || name;
+
+          if (!freshEmail) {
+            console.warn("[AuthDebug] welcome_email skipped — email is still undefined after session refresh");
+            return;
+          }
+
+          console.log("[AuthDebug] SIGNED_IN, checking welcome email flag", { userId, email: freshEmail });
           try {
             // Check flag on custom project DB (client-side dedup)
             const { data: profile } = await supabase
@@ -61,11 +71,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               console.log("[AuthDebug] welcome_email already sent, skipping");
               return;
             }
-            // Send email — pass user info directly so edge function doesn't need DB access
-            const { data, error } = await invokeEdgeFunction("send-welcome-email", { type: "welcome", email, name });
-            console.log("[AuthDebug] welcome_email_result", { data, error: error?.message ?? null });
-            if (!error) {
-              // Mark as sent on custom project DB
+
+            // Send email with retry
+            let result = await invokeEdgeFunction("send-welcome-email", { type: "welcome", email: freshEmail, name: freshName });
+            if (result.error) {
+              console.warn("[AuthDebug] welcome_email first attempt failed, retrying in 3s", { error: result.error?.message });
+              await new Promise(r => setTimeout(r, 3000));
+              result = await invokeEdgeFunction("send-welcome-email", { type: "welcome", email: freshEmail, name: freshName });
+            }
+
+            console.log("[AuthDebug] welcome_email_result", { data: result.data, error: result.error?.message ?? null });
+            if (!result.error) {
               await supabase
                 .from("profiles" as any)
                 .update({ welcome_email_sent: true } as any)
