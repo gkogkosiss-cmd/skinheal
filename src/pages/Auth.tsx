@@ -102,15 +102,15 @@ const Auth = () => {
       if (mode === "signup") {
         console.log("[AuthDebug] signUp_called", {
           email,
-          emailRedirectTo: window.location.origin + redirectTo,
+          emailRedirectTo: SITE_ORIGIN + redirectTo,
         });
 
-        console.log("[AuthDebug] signUp_calling", { email, redirectTo: window.location.origin + redirectTo });
+        console.log("[AuthDebug] signUp_calling", { email, redirectTo: SITE_ORIGIN + redirectTo });
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin + redirectTo,
+            emailRedirectTo: SITE_ORIGIN + redirectTo,
           },
         });
 
