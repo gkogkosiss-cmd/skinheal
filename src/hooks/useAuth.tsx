@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase, invokeEdgeFunction } from "@/lib/supabase";
+import { supabase as lovableSupabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
