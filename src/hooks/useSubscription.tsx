@@ -163,9 +163,14 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
         },
       });
 
-      if (!response.ok) throw new Error("Failed to create checkout");
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData?.error || "Failed to create checkout");
+      }
       const data = await response.json();
-      if (data.url) window.open(data.url, "_blank");
+      if (data.url) {
+        window.location.href = data.url;
+      }
     } catch (err) {
       console.error("Checkout error:", err);
     } finally {

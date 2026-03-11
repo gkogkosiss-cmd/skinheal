@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Mail, ArrowRight, Loader2, KeyRound } from "lucide-react";
 import skinhealLogo from "@/assets/skinheal_logo.png";
 import { supabase } from "@/lib/supabase";
+import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -144,13 +145,13 @@ const Auth = () => {
 
         if (data?.user && !data?.session) {
           toast({
-            title: "Account created — check your email",
-            description: `User ID: ${data.user.id?.slice(0, 8)}… — A confirmation link has been sent to ${email}. Created at: ${data.user.created_at}`,
+            title: "Welcome! 🎉",
+            description: "Please check your email to confirm your account.",
           });
         } else if (data?.user && data?.session) {
           toast({
-            title: "Account created & signed in",
-            description: `User ID: ${data.user.id?.slice(0, 8)}… — You're signed in as ${email}.`,
+            title: "Welcome to SkinHeal! 🎉",
+            description: "Your account is ready. Let's start your skin healing journey.",
           });
         }
       } else {
@@ -191,26 +192,21 @@ const Auth = () => {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
-
-    const oauthRedirectUri = window.location.origin + redirectTo;
-    console.log("[AuthDebug] oauth_clicked", { provider, oauthRedirectUri });
+    console.log("[AuthDebug] oauth_clicked", { provider, redirect_uri: window.location.origin });
 
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: oauthRedirectUri,
-        },
+      const result = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: window.location.origin,
       });
 
       console.log("[AuthDebug] signInWithOAuth_result", {
         provider,
-        url: data?.url ?? null,
-        hasError: Boolean(error),
-        error: error?.message ?? null,
+        redirected: (result as any)?.redirected,
+        hasError: Boolean((result as any)?.error),
+        error: (result as any)?.error?.message ?? null,
       });
 
-      if (error) throw error;
+      if ((result as any)?.error) throw (result as any).error;
     } catch (err: any) {
       console.error("[AuthDebug] signInWithOAuth_failed", {
         provider,
