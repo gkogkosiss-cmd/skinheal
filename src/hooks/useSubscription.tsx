@@ -56,13 +56,12 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
         return;
       }
 
-      const supabaseUrl = SUPABASE_PROJECT_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/check-subscription`, {
+      const response = await fetch(`${EDGE_FUNCTIONS_URL}/check-subscription`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session.access_token}`,
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "apikey": EDGE_FUNCTIONS_KEY,
         },
       });
 
