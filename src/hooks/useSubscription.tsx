@@ -79,10 +79,29 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       const wasPremium = state.subscribed && state.productId === PREMIUM_PRODUCT_ID;
       const isNowPremium = newState.subscribed && newState.productId === PREMIUM_PRODUCT_ID;
       if (!wasPremium && isNowPremium) {
-        console.log("[Subscription] User became premium, sending premium welcome email");
+        console.log("[Subscription] User became premium, checking premium email flag");
         try {
-          const { data: emailData, error: emailError } = await invokeEdgeFunction("send-welcome-email", { type: "premium" });
-          console.log("[Subscription] premium_email_result", { data: emailData, error: emailError?.message ?? null });
+          // Client-side dedup: check flag on custom project DB
+          const { data: profile } = await supabase
+            .from("profiles" as any)
+            .select("premium_email_sent")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          const alreadySent = (profile as any)?.premium_email_sent === true;
+          if (!alreadySent) {
+            const email = user.email || "";
+            const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split("@")[0] || "there";
+            const { data: emailData, error: emailError } = await invokeEdgeFunction("send-welcome-email", { type: "premium", email, name });
+            console.log("[Subscription] premium_email_result", { data: emailData, error: emailError?.message ?? null });
+            if (!emailError) {
+              await supabase
+                .from("profiles" as any)
+                .update({ premium_email_sent: true } as any)
+                .eq("user_id", user.id);
+            }
+          } else {
+            console.log("[Subscription] premium_email already sent, skipping");
+          }
         } catch (err: any) {
           console.error("[Subscription] premium_email_failed", { error: err?.message });
         }
