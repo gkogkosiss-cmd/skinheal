@@ -117,13 +117,12 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const supabaseUrl = SUPABASE_PROJECT_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/create-checkout`, {
+      const response = await fetch(`${EDGE_FUNCTIONS_URL}/create-checkout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session.access_token}`,
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "apikey": EDGE_FUNCTIONS_KEY,
         },
       });
 
