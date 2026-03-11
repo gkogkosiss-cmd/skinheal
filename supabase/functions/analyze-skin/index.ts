@@ -196,7 +196,7 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
-    const { imageBase64, imagesBase64, answers } = requestBody ?? {};
+    const { imageBase64, imagesBase64, answers, stream: shouldStream } = requestBody ?? {};
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -206,7 +206,6 @@ serve(async (req) => {
       if (typeof input === "string") {
         const cleanedBase64 = normalizeBase64(input);
         if (!cleanedBase64) return;
-
         images.push({ base64: cleanedBase64, mimeType: "image/jpeg" });
         return;
       }
@@ -219,7 +218,6 @@ serve(async (req) => {
         const candidate = input as { base64: string; mimeType?: string };
         const cleanedBase64 = normalizeBase64(candidate.base64);
         if (!cleanedBase64) return;
-
         images.push({
           base64: cleanedBase64,
           mimeType: normalizeMimeType(candidate.mimeType),
@@ -256,20 +254,14 @@ serve(async (req) => {
         JSON.stringify({
           error: `The backend did not receive usable image data (image ${unusableImageIndex + 1}). Please retake or re-upload in JPG/PNG format.`,
         }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const unsupportedImage = images.find((img) => !SUPPORTED_ANALYSIS_MIME_TYPES.has(img.mimeType));
     if (unsupportedImage) {
       const message = buildUnsupportedFormatMessage(unsupportedImage.mimeType);
-      console.error("[analyze-skin] unsupported mime type", {
-        mimeType: unsupportedImage.mimeType,
-        imageCount: images.length,
-      });
+      console.error("[analyze-skin] unsupported mime type", { mimeType: unsupportedImage.mimeType, imageCount: images.length });
       return new Response(JSON.stringify({ error: message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -279,11 +271,8 @@ serve(async (req) => {
     console.info("[analyze-skin] request received", {
       imageCount: images.length,
       hasAnswers: !!answers,
-      imageMeta: images.map((img, index) => ({
-        index,
-        mimeType: img.mimeType,
-        base64Length: img.base64.length,
-      })),
+      shouldStream: !!shouldStream,
+      imageMeta: images.map((img, index) => ({ index, mimeType: img.mimeType, base64Length: img.base64.length })),
     });
 
     const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
@@ -340,6 +329,14 @@ IMPORTANT GUIDELINES FOR YOUR RESPONSE:
 - Skin score explanations MUST reference what you observe, not generic text.
 - IMPORTANT: Include the bodyArea field indicating which body area you detected.
 
+IMPORTANT OUTPUT ORDER: To provide the fastest user experience, output the JSON fields in this exact order:
+1. bodyArea
+2. skinScore
+3. conditions
+4. rootCauses
+5. biologicalExplanation
+6. healingProtocol (with all sub-fields)
+
 Return the FULL JSON response with ALL fields including bodyArea, skinScore and the expanded healingProtocol.`,
           },
           ...imageContentParts,
@@ -347,6 +344,56 @@ Return the FULL JSON response with ALL fields including bodyArea, skinScore and 
       });
     }
 
+    // For full analysis with answers, use streaming if requested
+    if (answers && shouldStream) {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          messages,
+          stream: true,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "AI usage limit reached. Please try again later." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const rawError = await response.text();
+        const providerMessage = extractGatewayErrorMessage(rawError);
+        console.error("AI gateway error:", response.status, rawError);
+
+        if (response.status === 400 && /unable to process input image|invalid_argument|unsupported/i.test(providerMessage)) {
+          return new Response(
+            JSON.stringify({ error: "The backend did not receive usable image data. Please retake or re-upload in JPG/PNG format.", details: providerMessage }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ error: "Analysis could not be completed due to an internal processing issue.", details: providerMessage }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Forward the SSE stream directly to the client
+      return new Response(response.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+      });
+    }
+
+    // Non-streaming path (questions step, or full analysis without stream flag)
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -378,26 +425,14 @@ Return the FULL JSON response with ALL fields including bodyArea, skinScore and 
 
       if (response.status === 400 && /unable to process input image|invalid_argument|unsupported/i.test(providerMessage)) {
         return new Response(
-          JSON.stringify({
-            error: "The backend did not receive usable image data. Please retake or re-upload in JPG/PNG format.",
-            details: providerMessage,
-          }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          JSON.stringify({ error: "The backend did not receive usable image data. Please retake or re-upload in JPG/PNG format.", details: providerMessage }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       return new Response(
-        JSON.stringify({
-          error: "Analysis could not be completed due to an internal processing issue.",
-          details: providerMessage,
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Analysis could not be completed due to an internal processing issue.", details: providerMessage }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

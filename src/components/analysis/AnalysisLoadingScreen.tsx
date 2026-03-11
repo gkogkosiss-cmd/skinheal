@@ -3,34 +3,41 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ScanFace, Search, HeartPulse, Apple, Leaf, CheckCircle2 } from "lucide-react";
 
 const steps = [
-  { icon: ScanFace, label: "Scanning your photos", detail: "Detecting visual patterns and features" },
-  { icon: Search, label: "Identifying conditions", detail: "Matching against known skin conditions" },
-  { icon: HeartPulse, label: "Finding root causes", detail: "Analyzing inflammation markers and triggers" },
-  { icon: Apple, label: "Building nutrition plan", detail: "Crafting your anti-inflammatory meal plan" },
-  { icon: Leaf, label: "Creating healing protocol", detail: "Designing your personalized daily routine" },
-  { icon: CheckCircle2, label: "Finalizing your report", detail: "Putting everything together for you" },
+  { icon: ScanFace, label: "Detecting skin type", detail: "Identifying body area and visual patterns" },
+  { icon: Search, label: "Calculating skin score", detail: "Evaluating inflammation, barrier health, and more" },
+  { icon: HeartPulse, label: "Analyzing conditions", detail: "Matching against known skin conditions" },
+  { icon: Leaf, label: "Finding root causes", detail: "Analyzing inflammation markers and triggers" },
+  { icon: Apple, label: "Building healing protocol", detail: "Designing your personalized daily routine" },
+  { icon: CheckCircle2, label: "Preparing nutrition plan", detail: "Crafting your anti-inflammatory meal plan" },
 ];
 
 interface Props {
   imageCount: number;
   imagePreviews: string[];
+  /** Current streaming progress step (0-5). When provided, overrides timer-based progress. */
+  streamStep?: number;
 }
 
-export const AnalysisLoadingScreen = ({ imageCount, imagePreviews }: Props) => {
-  const [activeStep, setActiveStep] = useState(0);
+export const AnalysisLoadingScreen = ({ imageCount, imagePreviews, streamStep }: Props) => {
+  const [timerStep, setTimerStep] = useState(0);
 
+  // Timer-based fallback: advance steps on a schedule if no streaming progress
   useEffect(() => {
+    if (streamStep !== undefined) return; // streaming controls progress
+
     const intervals = [3500, 5000, 6500, 8500, 11000, 14000];
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     intervals.forEach((ms, i) => {
       if (i > 0) {
-        timers.push(setTimeout(() => setActiveStep(i), ms));
+        timers.push(setTimeout(() => setTimerStep(i), ms));
       }
     });
 
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [streamStep]);
+
+  const activeStep = streamStep !== undefined ? streamStep : timerStep;
 
   return (
     <div className="card-elevated">
@@ -148,7 +155,7 @@ export const AnalysisLoadingScreen = ({ imageCount, imagePreviews }: Props) => {
 
         {/* Estimated time */}
         <p className="text-[11px] text-muted-foreground/60 mt-2">
-          This usually takes 15–30 seconds
+          {streamStep !== undefined ? "Streaming results in real-time" : "This usually takes 15–30 seconds"}
         </p>
       </div>
     </div>
