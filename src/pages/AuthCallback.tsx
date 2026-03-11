@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { supabase as lovableSupabase } from "@/integrations/supabase/client";
 import { supabase } from "@/lib/supabase";
 
 const DEFAULT_REDIRECT = "/analysis";
@@ -34,10 +33,10 @@ const AuthCallback = () => {
 
       try {
         if (code) {
-          const { error } = await lovableSupabase.auth.exchangeCodeForSession(code);
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
         } else if (accessToken && refreshToken) {
-          const { error } = await lovableSupabase.auth.setSession({
+          const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });
@@ -45,19 +44,12 @@ const AuthCallback = () => {
         }
 
         const {
-          data: { session: cloudSession },
-        } = await lovableSupabase.auth.getSession();
+          data: { session },
+        } = await supabase.auth.getSession();
 
-        if (!cloudSession) {
+        if (!session) {
           throw new Error("No OAuth session returned after callback.");
         }
-
-        const { error: mirrorError } = await supabase.auth.setSession({
-          access_token: cloudSession.access_token,
-          refresh_token: cloudSession.refresh_token,
-        });
-
-        if (mirrorError) throw mirrorError;
 
         navigate(redirectTo, { replace: true });
       } catch (error: any) {
