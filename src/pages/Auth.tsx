@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Mail, ArrowRight, Loader2, KeyRound } from "lucide-react";
 import skinhealLogo from "@/assets/skinheal_logo.png";
 import { supabase } from "@/lib/supabase";
-import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -194,23 +193,18 @@ const Auth = () => {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
-    const callbackUrl = `${SITE_ORIGIN}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
-    console.log("[AuthDebug] oauth_clicked", { provider, redirect_uri: callbackUrl });
+    console.log("[AuthDebug] oauth_clicked", { provider });
 
     try {
-      const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: callbackUrl,
-        extraParams: provider === "google" ? { prompt: "select_account" } : undefined,
-      });
-
-      console.log("[AuthDebug] signInWithOAuth_result", {
+      const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        redirected: (result as any)?.redirected,
-        hasError: Boolean((result as any)?.error),
-        error: (result as any)?.error?.message ?? null,
+        options: {
+          redirectTo: "https://skinheal.ai/auth/callback",
+          queryParams: provider === "google" ? { prompt: "select_account" } : undefined,
+        },
       });
 
-      if ((result as any)?.error) throw (result as any).error;
+      if (error) throw error;
     } catch (err: any) {
       console.error("[AuthDebug] signInWithOAuth_failed", {
         provider,
