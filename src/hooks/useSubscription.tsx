@@ -75,6 +75,24 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
         isLoading: false,
       };
 
+      // Persist subscription status to the subscriptions table
+      try {
+        const upsertPayload: Record<string, unknown> = {
+          user_id: user.id,
+          status: newState.subscribed ? "active" : "inactive",
+          plan: newState.subscribed ? "premium" : "free",
+          updated_at: new Date().toISOString(),
+        };
+        if (newState.subscriptionEnd) {
+          upsertPayload.current_period_end = newState.subscriptionEnd;
+        }
+        await supabase
+          .from("subscriptions" as any)
+          .upsert(upsertPayload as any, { onConflict: "user_id" });
+      } catch (persistErr: any) {
+        console.warn("[Subscription] failed to persist to subscriptions table", persistErr?.message);
+      }
+
       // Send premium welcome email if user just became premium
       const wasPremium = state.subscribed && state.productId === PREMIUM_PRODUCT_ID;
       const isNowPremium = newState.subscribed && newState.productId === PREMIUM_PRODUCT_ID;
