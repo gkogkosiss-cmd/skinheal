@@ -218,7 +218,9 @@ const Index = () => {
       </section>
 
       {/* PRICING */}
-      <PricingSection />
+      <div id="pricing">
+        <PricingSection />
+      </div>
 
       {/* FEATURES / VALUE PROP */}
       <section className="section-padding">
