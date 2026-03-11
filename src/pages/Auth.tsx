@@ -145,13 +145,13 @@ const Auth = () => {
 
         if (data?.user && !data?.session) {
           toast({
-            title: "Account created — check your email",
-            description: `User ID: ${data.user.id?.slice(0, 8)}… — A confirmation link has been sent to ${email}. Created at: ${data.user.created_at}`,
+            title: "Welcome! 🎉",
+            description: "Please check your email to confirm your account.",
           });
         } else if (data?.user && data?.session) {
           toast({
-            title: "Account created & signed in",
-            description: `User ID: ${data.user.id?.slice(0, 8)}… — You're signed in as ${email}.`,
+            title: "Welcome to SkinHeal! 🎉",
+            description: "Your account is ready. Let's start your skin healing journey.",
           });
         }
       } else {
