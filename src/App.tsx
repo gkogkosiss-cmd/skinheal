@@ -21,6 +21,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,8 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="*" element={<NotFound />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </CurrentAnalysisProvider>
