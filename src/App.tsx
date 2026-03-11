@@ -16,6 +16,7 @@ import Lifestyle from "./pages/Lifestyle";
 import Progress from "./pages/Progress";
 import AICoach from "./pages/AICoach";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
