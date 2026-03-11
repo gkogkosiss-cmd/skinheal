@@ -194,25 +194,45 @@ const Auth = () => {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
-    const callbackUrl =
-      provider === "google"
-        ? GOOGLE_OAUTH_CALLBACK_URL
-        : `${SITE_ORIGIN}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+    const callbackUrl = `${SITE_ORIGIN}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
     console.log("[AuthDebug] oauth_clicked", { provider, redirect_uri: callbackUrl });
 
     try {
-      const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: callbackUrl,
-      });
+      if (provider === "google") {
+        // Use direct Supabase PKCE flow for Google
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: callbackUrl,
+            queryParams: {
+              prompt: "select_account",
+            },
+          },
+        });
 
-      console.log("[AuthDebug] signInWithOAuth_result", {
-        provider,
-        redirected: (result as any)?.redirected,
-        hasError: Boolean((result as any)?.error),
-        error: (result as any)?.error?.message ?? null,
-      });
+        console.log("[AuthDebug] signInWithOAuth_result", {
+          provider,
+          url: data?.url ?? null,
+          hasError: Boolean(error),
+          error: error?.message ?? null,
+        });
 
-      if ((result as any)?.error) throw (result as any).error;
+        if (error) throw error;
+      } else {
+        // Use Lovable proxy for Apple
+        const result = await lovable.auth.signInWithOAuth(provider, {
+          redirect_uri: callbackUrl,
+        });
+
+        console.log("[AuthDebug] signInWithOAuth_result", {
+          provider,
+          redirected: (result as any)?.redirected,
+          hasError: Boolean((result as any)?.error),
+          error: (result as any)?.error?.message ?? null,
+        });
+
+        if ((result as any)?.error) throw (result as any).error;
+      }
     } catch (err: any) {
       console.error("[AuthDebug] signInWithOAuth_failed", {
         provider,
