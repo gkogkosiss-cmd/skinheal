@@ -610,6 +610,27 @@ const SkinAnalysis = () => {
         throw new Error("Saved analysis, but failed to set it as current. Please retry.");
       }
 
+      // Save skin score to dedicated history table
+      try {
+        const score = normalized.skin_score as any;
+        if (score && typeof score.overall === "number") {
+          await supabase
+            .from("skin_health_scores" as any)
+            .insert({
+              user_id: user.id,
+              analysis_id: inserted.id,
+              overall_score: score.overall,
+              inflammation_score: score.factors?.inflammation?.score ?? null,
+              barrier_score: score.factors?.skin_barrier?.score ?? null,
+              breakout_score: score.factors?.gut_health?.score ?? null,
+              redness_score: score.factors?.diet_quality?.score ?? null,
+            } as any);
+          console.info("[SkinAnalysis] skin score saved to history", { analysisId: inserted.id, overall: score.overall });
+        }
+      } catch (scoreErr: any) {
+        console.warn("[SkinAnalysis] failed to save skin score to history", scoreErr?.message);
+      }
+
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: latestAnalysisQueryKey(user.id) }),
         queryClient.invalidateQueries({ queryKey: allAnalysesQueryKey(user.id) }),
