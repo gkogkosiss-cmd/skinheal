@@ -95,12 +95,12 @@ const Index = () => {
           <span className="font-serif text-xl text-foreground">SkinHeal</span>
         </div>
         <div className="flex items-center gap-4">
-          <a
-            href="#pricing"
+          <Link
+            to="/pricing"
             className="hidden sm:inline text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Pricing
-          </a>
+          </Link>
           <button
             onClick={handleAnalyze}
             className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
@@ -217,10 +217,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* PRICING */}
-      <div id="pricing">
-        <PricingSection />
-      </div>
 
       {/* FEATURES / VALUE PROP */}
       <section className="section-padding">
