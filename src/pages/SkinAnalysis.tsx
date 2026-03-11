@@ -460,9 +460,7 @@ const SkinAnalysis = () => {
         imageCount: imagesBase64.length,
       });
 
-      const { data, error } = await supabase.functions.invoke("analyze-skin", {
-        body: { imagesBase64 },
-      });
+      const { data, error } = await invokeEdgeFunction("analyze-skin", { imagesBase64 });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
