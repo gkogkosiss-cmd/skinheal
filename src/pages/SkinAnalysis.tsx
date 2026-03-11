@@ -92,6 +92,7 @@ const SkinAnalysis = () => {
   const [currentQ, setCurrentQ] = useState(0);
   const [healthQ, setHealthQ] = useState(0);
   const [results, setResults] = useState<AnalysisResult | null>(null);
+  const [streamStep, setStreamStep] = useState<number | undefined>(undefined);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
