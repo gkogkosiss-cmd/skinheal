@@ -209,6 +209,9 @@ const Index = () => {
         </div>
       </section>
 
+      {/* PRICING */}
+      <PricingSection />
+
       {/* FEATURES / VALUE PROP */}
       <section className="section-padding">
         <div className="max-w-5xl mx-auto">
