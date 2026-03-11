@@ -79,11 +79,11 @@ const Auth = () => {
       if (mode === "forgot") {
         console.log("[AuthDebug] resetPasswordForEmail_called", {
           email,
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${SITE_ORIGIN}/reset-password`,
         });
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${SITE_ORIGIN}/reset-password`,
         });
 
         if (error) {
