@@ -736,6 +736,23 @@ const SkinAnalysis = () => {
           {step === "upload" && (
             <motion.div key="upload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
               <div className="card-elevated">
+                {/* Friendly retry error */}
+                {analysisError && (
+                  <div className="mb-4 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-sm">
+                    <p className="text-foreground font-medium mb-2">{analysisError}</p>
+                    <button
+                      onClick={() => {
+                        setAnalysisError(null);
+                        if (images.length > 0) startAnalysis();
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Try Again
+                    </button>
+                  </div>
+                )}
+
                 {isSelecting && (
                   <div className="mb-4 p-3 rounded-xl bg-secondary text-xs text-muted-foreground flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />

@@ -950,32 +950,30 @@ serve(async (req) => {
       });
     }
 
-    const unusableImageIndex = images.findIndex((img) => !isValidBase64(img.base64));
-    if (unusableImageIndex >= 0) {
-      const unusableImage = images[unusableImageIndex];
-      console.error("[analyze-skin] unusable image payload", {
-        imageCount: images.length,
-        imageIndex: unusableImageIndex,
-        mimeType: unusableImage.mimeType,
-        base64Length: unusableImage.base64?.length ?? 0,
-      });
+    // Gracefully skip bad images instead of failing the whole analysis
+    const validImages = images.filter((img) => {
+      if (!isValidBase64(img.base64)) {
+        console.warn("[analyze-skin] skipping unusable image", { base64Length: img.base64?.length ?? 0, mimeType: img.mimeType });
+        return false;
+      }
+      if (!SUPPORTED_ANALYSIS_MIME_TYPES.has(img.mimeType)) {
+        console.warn("[analyze-skin] skipping unsupported mime type", { mimeType: img.mimeType });
+        return false;
+      }
+      return true;
+    });
+
+    // Only fail if ALL images are bad
+    if (validImages.length === 0) {
       return new Response(
-        JSON.stringify({
-          error: `The backend did not receive usable image data (image ${unusableImageIndex + 1}). Please retake or re-upload in JPG/PNG format.`,
-        }),
+        JSON.stringify({ error: "None of the uploaded images could be processed. Please retake or re-upload in JPG/PNG format." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const unsupportedImage = images.find((img) => !SUPPORTED_ANALYSIS_MIME_TYPES.has(img.mimeType));
-    if (unsupportedImage) {
-      const message = buildUnsupportedFormatMessage(unsupportedImage.mimeType);
-      console.error("[analyze-skin] unsupported mime type", { mimeType: unsupportedImage.mimeType, imageCount: images.length });
-      return new Response(JSON.stringify({ error: message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Replace images with only valid ones
+    images.length = 0;
+    images.push(...validImages);
 
     console.info("[analyze-skin] request received", {
       imageCount: images.length,
