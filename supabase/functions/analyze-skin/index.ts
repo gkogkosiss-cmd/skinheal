@@ -385,24 +385,34 @@ ANALYSIS REQUIREMENTS:
 
 - Detect body area first — ALL analysis, conditions, and recommendations must be specific to that body area
 - Reference actual visual observations throughout — never fabricate findings
-- Provide biological mechanisms for every recommendation — explain the WHY
+- Explain the "why" behind every recommendation in simple, clear language a teenager could understand
 - Make the healing protocol feel like it was written personally for this exact person
-- The 7-day meal plan must have 7 complete, varied, anti-inflammatory days
-- The gut plan must be progressive, gentle, and specific to the observed skin pattern
-- Daily checklist: 5-8 items max, ordered by impact, body-area specific
+- The 7-day meal plan must have 7 complete, varied days labeled "Day 1" through "Day 7" sequentially
+- The gut plan must be progressive with sequential day labels ("Days 1-2", "Days 3-4", "Days 5-6", "Day 7")
+- All numbered lists must be perfectly sequential (1, 2, 3...) with no skips or repeats
+- Morning/evening routines must be numbered "Step 1:", "Step 2:", etc. in strict order
+- Daily checklist: 5-8 items max, ordered by impact, body-area specific, each directly tied to detected conditions
 - Routines: minimal products, maximum behavior and consistency focus
 - Safety guidance: specific red flags, clear thresholds for seeking professional help
-- Never use the asterisk symbol anywhere
+- Never use the asterisk symbol anywhere — use dashes for bullet points
 - Skin score explanations MUST reference specific visual observations and user answers — no generic text
+
+CONSISTENCY CHECK (MANDATORY):
+- The skin score factors must logically align with detected conditions and root causes
+- If inflammation score is high, inflammation must appear in root causes and the protocol must address it
+- If a condition is listed as most probable, the entire healing protocol must primarily target that condition
+- Root causes must explain why the detected conditions are occurring — no unrelated causes
+- Food recommendations must specifically target the detected condition, not generic health advice
+- Every item in the daily checklist must connect to a detected condition or root cause
 
 OUTPUT ORDER (for optimal streaming experience):
 
 1. bodyArea
-2. skinScore (with all 5 factors and specific explanations)
-3. conditions (3-5, ranked by probability, with visual evidence)
-4. rootCauses (deep, mechanistic, specific to this case)
-5. biologicalExplanation (revelatory, specific, educational)
-6. healingProtocol (complete, with all sub-fields)
+2. skinScore (with all 5 factors and specific explanations that reference photos and answers)
+3. conditions (3-5, ranked by probability, with visual evidence described in plain language)
+4. rootCauses (clear, specific to this case, explained simply)
+5. biologicalExplanation (simple, educational, specific to what is visible)
+6. healingProtocol (complete, with all sub-fields, every recommendation tied to detected condition)
 
 Return the complete JSON with ALL fields. Make this analysis genuinely life-changing.`,
           },
