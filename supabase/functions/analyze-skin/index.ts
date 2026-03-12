@@ -572,6 +572,16 @@ const buildGatewayFailureResponse = (status: number, providerMessage: string) =>
 
 const safeString = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
+const repairJson = (raw: string): string => {
+  // Fix common LLM JSON issues
+  let fixed = raw;
+  // Remove trailing commas before } or ]
+  fixed = fixed.replace(/,\s*([}\]])/g, "$1");
+  // Fix unescaped newlines in strings (crude but effective)
+  fixed = fixed.replace(/(?<=:\s*"[^"]*)\n(?=[^"]*")/g, "\\n");
+  return fixed;
+};
+
 const extractJsonCandidate = (content: unknown): Record<string, any> | null => {
   if (content && typeof content === "object") return content as Record<string, any>;
   if (typeof content !== "string") return null;
@@ -579,21 +589,26 @@ const extractJsonCandidate = (content: unknown): Record<string, any> | null => {
   const direct = content.trim();
   if (!direct) return null;
 
+  // Attempt 1: Direct parse
   try {
     return JSON.parse(direct);
   } catch {
     // Continue to fallback extractors
   }
 
+  // Attempt 2: Code fence extraction
   const fenced = direct.match(/```json\s*([\s\S]*?)```/i) || direct.match(/```\s*([\s\S]*?)```/i);
   if (fenced?.[1]) {
     try {
       return JSON.parse(fenced[1].trim());
     } catch {
-      // Continue
+      try {
+        return JSON.parse(repairJson(fenced[1].trim()));
+      } catch { /* Continue */ }
     }
   }
 
+  // Attempt 3: Brace matching
   const firstBrace = direct.indexOf("{");
   const lastBrace = direct.lastIndexOf("}");
   if (firstBrace >= 0 && lastBrace > firstBrace) {
@@ -601,7 +616,12 @@ const extractJsonCandidate = (content: unknown): Record<string, any> | null => {
     try {
       return JSON.parse(sliced);
     } catch {
-      return null;
+      // Attempt 4: Repair then parse
+      try {
+        return JSON.parse(repairJson(sliced));
+      } catch {
+        return null;
+      }
     }
   }
 
