@@ -151,6 +151,184 @@ const createGatewayRequest = async (
   }
 };
 
+const safeString = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+
+const extractJsonCandidate = (content: unknown): Record<string, any> | null => {
+  if (content && typeof content === "object") return content as Record<string, any>;
+  if (typeof content !== "string") return null;
+
+  const direct = content.trim();
+  if (!direct) return null;
+
+  try {
+    return JSON.parse(direct);
+  } catch {
+    // Continue to fallback extractors
+  }
+
+  const fenced = direct.match(/```json\s*([\s\S]*?)```/i) || direct.match(/```\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) {
+    try {
+      return JSON.parse(fenced[1].trim());
+    } catch {
+      // Continue
+    }
+  }
+
+  const firstBrace = direct.indexOf("{");
+  const lastBrace = direct.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    const sliced = direct.slice(firstBrace, lastBrace + 1);
+    try {
+      return JSON.parse(sliced);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+};
+
+const fallbackQuestionsByArea = (bodyArea: string) => {
+  const isTruncal = ["back", "chest", "shoulders"].includes(bodyArea);
+  const areaLabel = bodyArea && bodyArea !== "other" ? bodyArea : "this skin area";
+
+  return [
+    {
+      id: "q1",
+      question: `Do you notice bloating, constipation, or loose stools when your ${areaLabel} flares up?`,
+      options: ["Often", "Sometimes", "Rarely", "Never"],
+    },
+    {
+      id: "q2",
+      question: `How often do you eat sugary foods or dairy in a typical week?`,
+      options: ["Daily", "3-5 times/week", "1-2 times/week", "Rarely"],
+    },
+    {
+      id: "q3",
+      question: `How are your stress and sleep lately?`,
+      options: ["High stress + poor sleep", "High stress but okay sleep", "Low stress but poor sleep", "Low stress + good sleep"],
+    },
+    {
+      id: "q4",
+      question: isTruncal
+        ? "After sweating, how quickly do you shower and change into clean clothing?"
+        : "How gentle and consistent is your current skincare routine?",
+      options: isTruncal
+        ? ["Within 15 minutes", "Within 1 hour", "After several hours", "I often stay in sweaty clothes"]
+        : ["Very gentle and consistent", "Mostly consistent", "Inconsistent", "Harsh or many active products"],
+    },
+    {
+      id: "q5",
+      question: "Do your breakouts or irritation change with your cycle, hormones, or new medications?",
+      options: ["Yes, clear pattern", "Sometimes", "Not sure", "No"],
+    },
+    {
+      id: "q6",
+      question: "Which trigger most clearly makes this worse?",
+      options: ["Stress", "Certain foods", "Sweat/friction", "No clear trigger yet"],
+    },
+    {
+      id: "q7",
+      question: isTruncal
+        ? "What type of clothing usually touches the affected area during the day?"
+        : "How often do you touch, pick, or rub the affected area?",
+      options: isTruncal
+        ? ["Breathable loose fabrics", "Mixed fabrics", "Mostly tight synthetic fabrics", "Not sure"]
+        : ["Very often", "Sometimes", "Rarely", "Never"],
+    },
+  ];
+};
+
+const normalizeDynamicQuestions = (rawQuestions: unknown, bodyArea: string) => {
+  const list = Array.isArray(rawQuestions) ? rawQuestions : [];
+  const unique: Array<{ id: string; question: string; options: string[] }> = [];
+  const seen = new Set<string>();
+
+  for (const entry of list) {
+    if (!entry || typeof entry !== "object") continue;
+    const question = safeString((entry as any).question);
+    if (!question) continue;
+
+    const key = question.toLowerCase().replace(/\s+/g, " ");
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const options = Array.isArray((entry as any).options)
+      ? (entry as any).options.map((option: unknown) => safeString(option)).filter(Boolean).slice(0, 4)
+      : [];
+
+    if (options.length < 3) continue;
+
+    unique.push({
+      id: `q${unique.length + 1}`,
+      question,
+      options,
+    });
+
+    if (unique.length === 7) break;
+  }
+
+  if (unique.length < 7) {
+    const fallback = fallbackQuestionsByArea(bodyArea);
+    for (const item of fallback) {
+      const key = item.question.toLowerCase().replace(/\s+/g, " ");
+      if (seen.has(key)) continue;
+      unique.push({ ...item, id: `q${unique.length + 1}` });
+      if (unique.length === 7) break;
+    }
+  }
+
+  return unique.slice(0, 7).map((q, index) => ({ ...q, id: `q${index + 1}` }));
+};
+
+const normalizeRoutineSteps = (steps: unknown) => {
+  const list = Array.isArray(steps) ? steps : [];
+  return list
+    .map((step) => safeString(step))
+    .filter(Boolean)
+    .slice(0, 8)
+    .map((step, index) => `Step ${index + 1}: ${step.replace(/^step\s*\d+\s*:\s*/i, "").trim()}`);
+};
+
+const normalizeFullAnalysisFormatting = (parsed: Record<string, any>) => {
+  if (!parsed || typeof parsed !== "object") return parsed;
+
+  const healingProtocol = parsed.healingProtocol && typeof parsed.healingProtocol === "object"
+    ? { ...parsed.healingProtocol }
+    : {};
+
+  healingProtocol.morningRoutine = normalizeRoutineSteps(healingProtocol.morningRoutine);
+  healingProtocol.eveningRoutine = normalizeRoutineSteps(healingProtocol.eveningRoutine);
+
+  const mealPlan = Array.isArray(healingProtocol.sevenDayMealPlan) ? healingProtocol.sevenDayMealPlan : [];
+  healingProtocol.sevenDayMealPlan = Array.from({ length: 7 }, (_, index) => {
+    const source = mealPlan[index] && typeof mealPlan[index] === "object" ? mealPlan[index] : {};
+    return {
+      day: `Day ${index + 1}`,
+      breakfast: safeString((source as any).breakfast),
+      lunch: safeString((source as any).lunch),
+      dinner: safeString((source as any).dinner),
+      snack: safeString((source as any).snack),
+    };
+  });
+
+  const gutPlan = Array.isArray(healingProtocol.sevenDayGutPlan) ? healingProtocol.sevenDayGutPlan : [];
+  const gutLabels = ["Days 1-2", "Days 3-4", "Days 5-6", "Day 7"];
+  healingProtocol.sevenDayGutPlan = gutLabels.map((label, index) => {
+    const source = gutPlan[index] && typeof gutPlan[index] === "object" ? gutPlan[index] : {};
+    return {
+      day: label,
+      focus: safeString((source as any).focus),
+    };
+  });
+
+  return {
+    ...parsed,
+    healingProtocol,
+  };
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
