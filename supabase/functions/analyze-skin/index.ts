@@ -466,67 +466,85 @@ const invokeGeminiWithFallback = async (
 ): Promise<GeminiInvokeResult> => {
   const safeModels = models.filter(Boolean);
   const payload = buildGeminiPayload(messages);
+  let lastResult: GeminiInvokeResult | null = null;
 
-  for (const [index, model] of safeModels.entries()) {
-    let response: Response;
+  // Retry loop: try each model, and retry the full chain up to MAX_RETRIES times
+  for (let retry = 0; retry < MAX_RETRIES; retry++) {
+    if (retry > 0) {
+      const delay = RETRY_DELAYS[retry - 1] || 4000;
+      console.info("[analyze-skin] retry attempt", { retry, delayMs: delay });
+      await sleep(delay);
+    }
 
-    try {
-      response = await createGeminiRequest(apiKey, model, payload, stream);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        throw error;
+    for (const [index, model] of safeModels.entries()) {
+      let response: Response;
+
+      try {
+        response = await createGeminiRequest(apiKey, model, payload, stream);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          throw error;
+        }
+
+        const canRetry = index < safeModels.length - 1;
+        if (canRetry) {
+          console.warn("[analyze-skin] Gemini request failed, trying fallback model", {
+            failedModel: model,
+            nextModel: safeModels[index + 1],
+            reason: error instanceof Error ? error.message : String(error),
+          });
+          continue;
+        }
+
+        lastResult = {
+          ok: false,
+          status: 500,
+          providerMessage: error instanceof Error ? error.message : "Gemini request failed",
+          model,
+        };
+        break; // break inner loop, will retry
       }
 
-      const canRetry = index < safeModels.length - 1;
-      if (canRetry) {
-        console.warn("[analyze-skin] Gemini request failed, trying fallback model", {
-          failedModel: model,
+      if (response.ok) {
+        if (index > 0 || retry > 0) {
+          console.info("[analyze-skin] model selected", { model, retry });
+        }
+        return { ok: true, response, model };
+      }
+
+      const rawError = await response.text();
+      const isRetryable = response.status === 429 || response.status >= 500;
+      const canFallback = index < safeModels.length - 1 && isRetryable;
+
+      if (canFallback) {
+        console.warn("[analyze-skin] model attempt failed, trying fallback", {
+          model,
+          status: response.status,
+          rawError: rawError.substring(0, 300),
           nextModel: safeModels[index + 1],
-          reason: error instanceof Error ? error.message : String(error),
         });
         continue;
       }
 
-      return {
+      lastResult = {
         ok: false,
-        status: 500,
-        providerMessage: error instanceof Error ? error.message : "Gemini request failed",
+        status: response.status,
+        providerMessage: rawError,
         model,
       };
+
+      // If it's retryable but no more fallback models, break to outer retry loop
+      if (isRetryable) break;
+
+      // Non-retryable error (400, 401, 403 etc) — stop immediately
+      return lastResult;
     }
-
-    if (response.ok) {
-      if (index > 0) {
-        console.info("[analyze-skin] fallback model selected", { model });
-      }
-      return { ok: true, response, model };
-    }
-
-    const rawError = await response.text();
-    const canRetry = index < safeModels.length - 1 && (response.status === 429 || response.status >= 500);
-
-    if (canRetry) {
-      console.warn("[analyze-skin] model attempt failed, trying fallback", {
-        model,
-        status: response.status,
-        rawError: rawError.substring(0, 300),
-        nextModel: safeModels[index + 1],
-      });
-      continue;
-    }
-
-    return {
-      ok: false,
-      status: response.status,
-      providerMessage: rawError,
-      model,
-    };
   }
 
-  return {
+  return lastResult || {
     ok: false,
     status: 500,
-    providerMessage: "Gemini request failed after trying all fallback models.",
+    providerMessage: "Gemini request failed after all retries and fallback models.",
     model: safeModels[safeModels.length - 1] || "unknown",
   };
 };
