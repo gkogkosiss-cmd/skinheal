@@ -333,18 +333,24 @@ Return the complete JSON with ALL fields. Make this analysis genuinely life-chan
 
     // For full analysis with answers, use streaming if requested
     if (answers && shouldStream) {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      let response: Response;
+      try {
+        response = await createGatewayRequest(LOVABLE_API_KEY, {
           model: "google/gemini-2.5-pro",
           messages,
           stream: true,
-        }),
-      });
+        });
+      } catch (gatewayError) {
+        const timedOut = gatewayError instanceof DOMException && gatewayError.name === "AbortError";
+        return new Response(
+          JSON.stringify({
+            error: timedOut
+              ? "Analysis took too long to start. Please retry with 1-2 clear photos."
+              : "Analysis could not be started due to a temporary backend issue.",
+          }),
+          { status: timedOut ? 504 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       if (!response.ok) {
         if (response.status === 429) {
