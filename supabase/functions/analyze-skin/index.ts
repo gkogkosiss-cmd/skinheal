@@ -1132,7 +1132,9 @@ OUTPUT ORDER for optimal streaming:
 
 6. healingProtocol (complete with every single sub-field fully populated)
 
-Return the complete JSON with ALL fields fully populated. Make this the most valuable skin analysis this person has ever received. Leave nothing generic.`,
+Return the complete JSON with ALL fields fully populated. Make this the most valuable skin analysis this person has ever received. Leave nothing generic.
+
+ABSOLUTE OUTPUT RULE: Your JSON response must contain zero product recommendations anywhere except optionally one single entry in the eveningRoutine array. If you have written any product recommendation outside of eveningRoutine, delete it and replace with a nutrition or gut health recommendation. Count your product mentions before returning — if you find more than one total in the entire JSON, remove all but the last one in eveningRoutine.`,
           },
           ...imageContentParts,
         ],
