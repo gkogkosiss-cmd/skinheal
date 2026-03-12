@@ -25,22 +25,13 @@ const normalizeBase64 = (value: string | undefined) => {
 const isValidBase64 = (value: string) =>
   value.length >= MIN_ANALYSIS_BASE64_LENGTH && value.length % 4 === 0 && BASE64_PATTERN.test(value);
 
-const extractGatewayErrorMessage = (raw: string) => {
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed?.error?.metadata?.raw || parsed?.error?.message || raw;
-  } catch {
-    return raw;
-  }
-};
-
 const buildUnsupportedFormatMessage = (mimeType: string) =>
   `The backend did not receive usable image data. Unsupported image format: ${mimeType}. Please use JPG, PNG, or WEBP.`;
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const GATEWAY_TIMEOUT_MS = 90000;
-const QUESTION_MODELS = ["google/gemini-3-flash-preview", "google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
-const FULL_ANALYSIS_MODELS = ["google/gemini-2.5-pro", "google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
+const QUESTION_MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite"];
+const FULL_ANALYSIS_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash"];
 
 const SYSTEM_PROMPT = `You are SkinHeal AI, an expert skin wellness assistant.
 
@@ -131,24 +122,80 @@ Always return this JSON structure:
   }
 }`;
 
-type GatewayInvokeResult =
+type GeminiInvokeResult =
   | { ok: true; response: Response; model: string }
   | { ok: false; status: number; providerMessage: string; model: string };
 
-const createGatewayRequest = async (
-  LOVABLE_API_KEY: string,
-  payload: Record<string, unknown>
+/**
+ * Build a Gemini API request body from the OpenAI-style messages array.
+ * Converts system message to systemInstruction and user messages to contents with parts.
+ */
+const buildGeminiPayload = (messages: any[]) => {
+  let systemInstruction: any = undefined;
+  const contents: any[] = [];
+
+  for (const msg of messages) {
+    if (msg.role === "system") {
+      systemInstruction = { parts: [{ text: msg.content }] };
+      continue;
+    }
+
+    // User message — can be string or array of parts
+    if (typeof msg.content === "string") {
+      contents.push({
+        role: msg.role === "assistant" ? "model" : "user",
+        parts: [{ text: msg.content }],
+      });
+    } else if (Array.isArray(msg.content)) {
+      const parts: any[] = [];
+      for (const part of msg.content) {
+        if (part.type === "text") {
+          parts.push({ text: part.text });
+        } else if (part.type === "image_url" && part.image_url?.url) {
+          // Extract base64 data from data URI
+          const dataMatch = part.image_url.url.match(/^data:([^;]+);base64,(.+)$/);
+          if (dataMatch) {
+            parts.push({
+              inlineData: {
+                mimeType: dataMatch[1],
+                data: dataMatch[2],
+              },
+            });
+          }
+        }
+      }
+      contents.push({ role: "user", parts });
+    }
+  }
+
+  const payload: any = {
+    contents,
+    generationConfig: {
+      responseMimeType: "application/json",
+    },
+  };
+  if (systemInstruction) {
+    payload.systemInstruction = systemInstruction;
+  }
+  return payload;
+};
+
+const createGeminiRequest = async (
+  apiKey: string,
+  model: string,
+  payload: any,
+  stream: boolean
 ) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), GATEWAY_TIMEOUT_MS);
 
+  const action = stream ? "streamGenerateContent" : "generateContent";
+  const url = `${GEMINI_API_BASE}/${model}:${action}?${stream ? "alt=sse&" : ""}key=${apiKey}`;
+
   try {
-    return await fetch(GATEWAY_URL, {
+    return await fetch(url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
@@ -157,21 +204,20 @@ const createGatewayRequest = async (
   }
 };
 
-const invokeGatewayWithFallback = async (
-  LOVABLE_API_KEY: string,
-  payload: Record<string, unknown>,
-  models: string[]
-): Promise<GatewayInvokeResult> => {
+const invokeGeminiWithFallback = async (
+  apiKey: string,
+  messages: any[],
+  models: string[],
+  stream: boolean = false
+): Promise<GeminiInvokeResult> => {
   const safeModels = models.filter(Boolean);
+  const payload = buildGeminiPayload(messages);
 
   for (const [index, model] of safeModels.entries()) {
     let response: Response;
 
     try {
-      response = await createGatewayRequest(LOVABLE_API_KEY, {
-        ...payload,
-        model,
-      });
+      response = await createGeminiRequest(apiKey, model, payload, stream);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         throw error;
@@ -179,7 +225,7 @@ const invokeGatewayWithFallback = async (
 
       const canRetry = index < safeModels.length - 1;
       if (canRetry) {
-        console.warn("[analyze-skin] gateway request failed, trying fallback model", {
+        console.warn("[analyze-skin] Gemini request failed, trying fallback model", {
           failedModel: model,
           nextModel: safeModels[index + 1],
           reason: error instanceof Error ? error.message : String(error),
@@ -190,7 +236,7 @@ const invokeGatewayWithFallback = async (
       return {
         ok: false,
         status: 500,
-        providerMessage: error instanceof Error ? error.message : "Gateway request failed",
+        providerMessage: error instanceof Error ? error.message : "Gemini request failed",
         model,
       };
     }
@@ -203,14 +249,13 @@ const invokeGatewayWithFallback = async (
     }
 
     const rawError = await response.text();
-    const providerMessage = extractGatewayErrorMessage(rawError);
-    const canRetry = index < safeModels.length - 1 && (response.status === 402 || response.status === 429 || response.status >= 500);
+    const canRetry = index < safeModels.length - 1 && (response.status === 429 || response.status >= 500);
 
     if (canRetry) {
       console.warn("[analyze-skin] model attempt failed, trying fallback", {
         model,
         status: response.status,
-        providerMessage,
+        rawError: rawError.substring(0, 300),
         nextModel: safeModels[index + 1],
       });
       continue;
@@ -219,7 +264,7 @@ const invokeGatewayWithFallback = async (
     return {
       ok: false,
       status: response.status,
-      providerMessage,
+      providerMessage: rawError,
       model,
     };
   }
@@ -227,7 +272,7 @@ const invokeGatewayWithFallback = async (
   return {
     ok: false,
     status: 500,
-    providerMessage: "Gateway request failed after trying all fallback models.",
+    providerMessage: "Gemini request failed after trying all fallback models.",
     model: safeModels[safeModels.length - 1] || "unknown",
   };
 };
@@ -238,19 +283,6 @@ const buildGatewayFailureResponse = (status: number, providerMessage: string) =>
       status: 429,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  }
-
-  if (status === 402) {
-    return new Response(
-      JSON.stringify({
-        error: "Backend AI usage limit reached for this project. This is separate from chat credits.",
-        details: providerMessage,
-      }),
-      {
-        status: 402,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
   }
 
   if (status === 400 && /unable to process input image|invalid_argument|unsupported/i.test(providerMessage)) {
@@ -444,14 +476,94 @@ const normalizeFullAnalysisFormatting = (parsed: Record<string, any>) => {
   };
 };
 
+/**
+ * Convert Gemini SSE stream to OpenAI-compatible SSE stream.
+ * The frontend expects OpenAI format: data: {"choices":[{"delta":{"content":"..."}}]}
+ */
+const convertGeminiStreamToOpenAIStream = (geminiBody: ReadableStream<Uint8Array>) => {
+  const reader = geminiBody.getReader();
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = "";
+
+  return new ReadableStream({
+    async pull(controller) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          // Flush remaining buffer
+          if (buffer.trim()) {
+            processBufferedLines(buffer, controller, encoder);
+          }
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+          return;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete lines
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          const line = buffer.slice(0, newlineIndex).trim();
+          buffer = buffer.slice(newlineIndex + 1);
+
+          if (!line || line.startsWith(":")) continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr || jsonStr === "[DONE]") continue;
+
+          try {
+            const geminiChunk = JSON.parse(jsonStr);
+            const text = geminiChunk?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              const openAIChunk = {
+                choices: [{ delta: { content: text } }],
+              };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(openAIChunk)}\n\n`));
+            }
+          } catch {
+            // Partial JSON, ignore
+          }
+        }
+      }
+    },
+    cancel() {
+      reader.cancel();
+    },
+  });
+};
+
+const processBufferedLines = (
+  buffer: string,
+  controller: ReadableStreamDefaultController,
+  encoder: TextEncoder
+) => {
+  for (const raw of buffer.split("\n")) {
+    const line = raw.trim();
+    if (!line || line.startsWith(":") || !line.startsWith("data: ")) continue;
+    const jsonStr = line.slice(6).trim();
+    if (!jsonStr || jsonStr === "[DONE]") continue;
+    try {
+      const geminiChunk = JSON.parse(jsonStr);
+      const text = geminiChunk?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) {
+        const openAIChunk = { choices: [{ delta: { content: text } }] };
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(openAIChunk)}\n\n`));
+      }
+    } catch { /* ignore */ }
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const requestBody = await req.json();
     const { imageBase64, imagesBase64, answers, stream: shouldStream } = requestBody ?? {};
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
     const images: Array<{ base64: string; mimeType: string }> = [];
 
@@ -528,8 +640,8 @@ serve(async (req) => {
       imageMeta: images.map((img, index) => ({ index, mimeType: img.mimeType, base64Length: img.base64.length })),
     });
 
+    // Build messages in OpenAI-style format (will be converted to Gemini format by buildGeminiPayload)
     const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
-    console.info("[analyze-skin] system prompt length:", SYSTEM_PROMPT.length, "messages constructed");
 
     const imageContentParts = images.map((img) => ({
       type: "image_url",
@@ -612,18 +724,16 @@ Output order:
 
     // For full analysis with answers, use streaming if requested
     if (answers && shouldStream) {
-      let gatewayResult: GatewayInvokeResult;
+      let geminiResult: GeminiInvokeResult;
       try {
-        gatewayResult = await invokeGatewayWithFallback(
-          LOVABLE_API_KEY,
-          {
-            messages,
-            stream: true,
-          },
-          FULL_ANALYSIS_MODELS
+        geminiResult = await invokeGeminiWithFallback(
+          GEMINI_API_KEY,
+          messages,
+          FULL_ANALYSIS_MODELS,
+          true
         );
-      } catch (gatewayError) {
-        const timedOut = gatewayError instanceof DOMException && gatewayError.name === "AbortError";
+      } catch (geminiError) {
+        const timedOut = geminiError instanceof DOMException && geminiError.name === "AbortError";
         return new Response(
           JSON.stringify({
             error: timedOut
@@ -634,12 +744,12 @@ Output order:
         );
       }
 
-      if (!gatewayResult.ok) {
-        return buildGatewayFailureResponse(gatewayResult.status, gatewayResult.providerMessage);
+      if (!geminiResult.ok) {
+        return buildGatewayFailureResponse(geminiResult.status, geminiResult.providerMessage);
       }
 
-      const response = gatewayResult.response;
-      console.info("[analyze-skin] streaming via model", { model: gatewayResult.model, messageCount: messages.length });
+      const response = geminiResult.response;
+      console.info("[analyze-skin] streaming via model", { model: geminiResult.model, messageCount: messages.length });
 
       if (!response.body) {
         return new Response(
@@ -648,27 +758,28 @@ Output order:
         );
       }
 
-      // Forward the SSE stream directly to the client
-      return new Response(response.body, {
+      // Convert Gemini SSE stream to OpenAI-compatible SSE stream for the frontend
+      const openAIStream = convertGeminiStreamToOpenAIStream(response.body);
+
+      return new Response(openAIStream, {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
       });
     }
 
     // Non-streaming path (questions step, or full analysis without stream flag)
     const selectedModels = answers ? FULL_ANALYSIS_MODELS : QUESTION_MODELS;
-    console.info("[analyze-skin] calling AI gateway", { modelCandidates: selectedModels, messageCount: messages.length });
+    console.info("[analyze-skin] calling Gemini API", { modelCandidates: selectedModels, messageCount: messages.length });
 
-    let gatewayResult: GatewayInvokeResult;
+    let geminiResult: GeminiInvokeResult;
     try {
-      gatewayResult = await invokeGatewayWithFallback(
-        LOVABLE_API_KEY,
-        {
-          messages,
-        },
-        selectedModels
+      geminiResult = await invokeGeminiWithFallback(
+        GEMINI_API_KEY,
+        messages,
+        selectedModels,
+        false
       );
-    } catch (gatewayError) {
-      const timedOut = gatewayError instanceof DOMException && gatewayError.name === "AbortError";
+    } catch (geminiError) {
+      const timedOut = geminiError instanceof DOMException && geminiError.name === "AbortError";
       return new Response(
         JSON.stringify({
           error: timedOut
@@ -679,34 +790,34 @@ Output order:
       );
     }
 
-    if (!gatewayResult.ok) {
-      if (!answers && gatewayResult.status === 402) {
+    if (!geminiResult.ok) {
+      if (!answers && (geminiResult.status === 429 || geminiResult.status === 403)) {
         const fallbackBodyArea = "other";
         return new Response(
           JSON.stringify({
             bodyArea: fallbackBodyArea,
             visualFeatures: [],
             dynamicQuestions: normalizeDynamicQuestions([], fallbackBodyArea),
-            warning: "Question fallback mode was used because backend AI usage is temporarily unavailable.",
+            warning: "Question fallback mode was used because Gemini API is temporarily unavailable.",
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      return buildGatewayFailureResponse(gatewayResult.status, gatewayResult.providerMessage);
+      return buildGatewayFailureResponse(geminiResult.status, geminiResult.providerMessage);
     }
 
-    console.info("[analyze-skin] model selected", { model: gatewayResult.model });
-    const data = await gatewayResult.response.json();
+    console.info("[analyze-skin] model selected", { model: geminiResult.model });
+    const data = await geminiResult.response.json();
+
+    // Extract content from Gemini response format
     const content =
-      data?.choices?.[0]?.message?.content ??
-      data?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments ??
-      null;
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
 
     const parsedCandidate = extractJsonCandidate(content);
 
     if (!parsedCandidate) {
-      console.error("[analyze-skin] failed to parse AI response", { raw: content });
+      console.error("[analyze-skin] failed to parse AI response", { raw: typeof content === "string" ? content.substring(0, 500) : content });
 
       if (!answers) {
         const fallbackBodyArea = "other";
