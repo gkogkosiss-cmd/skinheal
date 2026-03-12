@@ -291,7 +291,7 @@ ${baselineContext || "No baseline analysis available. Evaluate conservatively. K
       },
     ];
 
-    let parsed = await callAI(messages, LOVABLE_API_KEY);
+    let parsed = await callAI(messages, GEMINI_API_KEY);
 
     if (parsed?._error === "rate_limit") {
       return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
