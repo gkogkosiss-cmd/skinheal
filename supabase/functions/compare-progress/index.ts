@@ -306,7 +306,7 @@ ${baselineContext || "No baseline analysis available. Evaluate conservatively. K
 
     if (!parsed || parsed._error) {
       console.log("First attempt failed, retrying...");
-      parsed = await callAI(messages, LOVABLE_API_KEY);
+      parsed = await callAI(messages, GEMINI_API_KEY);
       if (parsed?._error) { console.error("Retry also failed"); parsed = null; }
     }
 
