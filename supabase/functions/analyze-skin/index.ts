@@ -243,7 +243,8 @@ const buildGeminiPayload = (messages: any[]) => {
   const payload: any = {
     contents,
     generationConfig: {
-      responseMimeType: "application/json",
+      temperature: 0.7,
+      topP: 0.95,
     },
   };
   if (systemInstruction) {
