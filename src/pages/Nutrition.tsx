@@ -37,11 +37,18 @@ const parseMealItems = (meal: string | undefined): string[] => {
   return items.length > 0 ? items : [meal];
 };
 
+const skinBenefitMap: Record<string, string> = {
+  Breakfast: "Morning nutrients prime your skin barrier and reduce overnight inflammation buildup.",
+  Lunch: "Midday anti-inflammatory compounds help calm active skin flare-ups.",
+  Dinner: "Evening nutrients support overnight skin repair and collagen synthesis.",
+  Snack: "Antioxidant-rich snacks help neutralize free radicals that accelerate skin aging.",
+};
+
 const MealCard = ({ label, value, icon }: { label: string; value?: string; icon?: string }) => {
   if (!value) return null;
   const items = parseMealItems(value);
   return (
-    <div className="p-3 rounded-xl bg-muted/40 space-y-1.5">
+    <div className="p-3.5 rounded-xl bg-muted/40 space-y-2">
       <p className="text-[11px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
         {icon && <span>{icon}</span>}
         {label}
@@ -54,6 +61,10 @@ const MealCard = ({ label, value, icon }: { label: string; value?: string; icon?
           </li>
         ))}
       </ul>
+      <p className="text-[11px] leading-snug pl-1 flex items-start gap-1" style={{ color: "#528164" }}>
+        <span className="shrink-0 mt-px">🌿</span>
+        <span className="italic">Skin benefit: {skinBenefitMap[label] || "Supports overall skin healing through anti-inflammatory nutrition."}</span>
+      </p>
     </div>
   );
 };
