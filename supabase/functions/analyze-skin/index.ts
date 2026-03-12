@@ -327,6 +327,7 @@ serve(async (req) => {
     });
 
     const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
+    console.info("[analyze-skin] system prompt length:", SYSTEM_PROMPT.length, "messages constructed");
 
     const imageContentParts = images.map((img) => ({
       type: "image_url",
