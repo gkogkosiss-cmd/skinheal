@@ -991,56 +991,55 @@ Return ONLY bodyArea, visualFeatures, and dynamicQuestions as JSON. No other tex
         content: [
           {
             type: "text",
-            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos together" : "this skin photo"} combined with the user's diagnostic answers below.
+            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos together" : "this skin photo"} combined with the user's answers to deliver the most thorough, accurate, and genuinely life-changing skin analysis ever created.
 
-User's answers to diagnostic questions: ${JSON.stringify(answers)}
+User's answers: ${JSON.stringify(answers)}
 
-INSTRUCTIONS — follow every single one carefully:
+MANDATORY REQUIREMENTS:
 
-1. BODY AREA: Detect the body area from the photo. All advice must be specific to that area.
+- Detect body area first — every single recommendation must be specific to that body area
 
-2. VISUAL FEATURES: List 4-8 specific observations you can see in the photo (e.g., "scattered red papules on both cheeks", "mild post-inflammatory dark spots on chin"). Be precise and descriptive.
+- Reference actual visual observations in every section — never fabricate or generalize
 
-3. CONDITIONS: Provide 3-5 likely conditions ranked by probability (highest first). Each must include:
-   - condition: the condition name
-   - probability: a realistic percentage (the top condition should typically be 60-85%)
-   - explanation: 2-3 sentences explaining WHY based on what you see in the photo AND the user's answers
+- Provide specific biological mechanisms for every recommendation — name the exact pathway (NF-kB, IGF-1, mTORC1, zonulin, cortisol cascade etc)
 
-4. ROOT CAUSES: Provide 3-5 root causes explaining WHY this is happening. Consider:
-   - Barrier function, inflammation, microbial balance, hormonal patterns
-   - Gut-skin connection (based on q1 answer)
-   - Dietary factors (based on q2 answer)
-   - Lifestyle/stress factors (based on q3 answer)
-   - Skincare routine issues (based on q4 answer)
-   - Hormonal factors (based on q5 answer)
+- The nutrition section must be extremely detailed — specific foods, specific mechanisms, complete 7-day meal plan with varied meals every day
 
-5. BIOLOGICAL EXPLANATION: 2-3 sentences in plain language explaining what is happening biologically.
+- The gut health section must explain leaky gut, dysbiosis, and specific probiotic strains by name
 
-6. SKIN SCORE — THIS IS CRITICAL:
-   - The overall score must be REALISTIC and FAIR based on what you see.
-   - Mild issues (few pimples, minor dryness) = 60-75
-   - Moderate issues (multiple inflamed spots, active breakouts) = 45-60
-   - Severe issues (cystic acne, widespread inflammation) = 25-40
-   - Do NOT give scores below 20 for common conditions like acne or eczema.
-   - Each of the 5 factors (inflammation, gut_health, diet_quality, lifestyle, skin_barrier) must have a realistic score AND a specific explanation.
-   - Factor scores should be based on BOTH the photo AND the user's answers to related questions.
-   - Example: if user reports good sleep and low stress, lifestyle score should be 65-80.
-   - Example: if user reports daily sugar and dairy, diet_quality score should be 35-50.
+- The healing protocol must feel personally written for this exact person based on their photos and answers
 
-7. HEALING PROTOCOL: Generate the COMPLETE healingProtocol object with ALL of these fields filled with specific, actionable content:
-   - whatIsHappening, morningRoutine (4-6 steps), eveningRoutine (4-6 steps)
-   - weeklyTreatments, triggersToAvoid, safetyGuidance, timeline
-   - foodPriorities, foodsToEat (6-8 items), foodsToAvoid (4-6 items)
-   - mealTemplate, sevenDayMealPlan (exactly 7 days), mealPlanPrinciples
-   - commonTriggerFoods, hydrationGuidance
-   - gutExplanation, sevenDayGutPlan (4 entries: "Days 1-2", "Days 3-4", "Days 5-6", "Day 7")
-   - digestiveSupport, gutCautions
-   - sleepPlan, stressPlan, exerciseGuidance, sunlightGuidance
-   - dailyChecklist (6-10 items), thisWeekFocus
+- Skin scores must be realistic — mild-moderate acne scores 50-75, never below 20 for any factor
 
-8. FORMATTING: No asterisks. Sequential numbering. morningRoutine/eveningRoutine use "Step 1:", "Step 2:", etc.
+- Every score explanation must reference specific visual observations and user answers
 
-Return the complete JSON object with ALL fields populated. Do not skip or leave any field empty.`,
+- All 7 root causes must be explored deeply with specific mechanisms
+
+- The sevenDayMealPlan must have 7 complete different days — no repetition
+
+- The sevenDayGutPlan must be progressive and specific
+
+- Daily checklist must be 7 items ordered by highest impact first
+
+- Never use the asterisk symbol anywhere
+
+- Language must be clear and human — explain everything so a 16-year-old understands it
+
+OUTPUT ORDER for optimal streaming:
+
+1. bodyArea
+
+2. skinScore (all 5 factors with specific explanations)
+
+3. conditions (3-5 ranked by probability with visual evidence)
+
+4. rootCauses (all 7 explored deeply)
+
+5. biologicalExplanation (revelatory and specific)
+
+6. healingProtocol (complete with every single sub-field fully populated)
+
+Return the complete JSON with ALL fields fully populated. Make this the most valuable skin analysis this person has ever received. Leave nothing generic.`,
           },
           ...imageContentParts,
         ],
