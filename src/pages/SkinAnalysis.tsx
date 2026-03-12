@@ -444,6 +444,7 @@ const SkinAnalysis = () => {
     });
 
     setStep("analyzing-photo");
+    setAnalysisError(null);
 
     try {
       const imagesBase64 = await buildAnalysisImagePayload(selectedImages);
@@ -479,8 +480,7 @@ const SkinAnalysis = () => {
       setStep("questions");
     } catch (err: any) {
       console.error("[SkinAnalysis] request failed", { stage: "dynamic-questions", error: err });
-      const message = getErrorMessage(err, "Could not start analysis. Please retry.");
-      toast({ title: "Analysis failed", description: message, variant: "destructive" });
+      setAnalysisError("Analysis is taking longer than usual. Please try again.");
       setStep("upload");
     }
   };
