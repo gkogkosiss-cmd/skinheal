@@ -1064,6 +1064,8 @@ STEP 3: Generate exactly 5 diagnostic questions. Each must be HYPER-SPECIFIC to 
 
 Each question MUST make the user think "how did it know to ask that?" — the question should reveal clinical insight about their specific photo. NEVER use generic phrasing like "how is your skin" or "do you have skin concerns".
 
+Additionally, every question must be directly triggered by a specific visual observation from the photo. If jawline/chin lesions are visible → ask about hormonal cycle. If monomorphic small bumps → ask about sweating/gym/tight clothing. If flaking or dry skin → ask about shower temperature and cleanser type. If widespread inflammation → ask about dairy and sugar. If perioral lesions → ask about fluoride toothpaste. If back/chest acne → ask about post-workout showering. If hyperpigmentation → ask about SPF use. If redness/flushing → ask about alcohol and spicy food triggers. Never ask a question that could apply to anyone regardless of what the photo shows.
+
 Return ONLY bodyArea, visualFeatures, and dynamicQuestions as JSON. No other text.`,
           },
           ...imageContentParts,
