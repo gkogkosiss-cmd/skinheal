@@ -256,7 +256,12 @@ const SkinAnalysis = () => {
   }, []);
 
   const getErrorMessage = useCallback((error: unknown, fallback: string) => {
-    const message = error instanceof Error ? error.message : fallback;
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null && "message" in error && typeof (error as { message?: unknown }).message === "string"
+          ? (error as { message: string }).message
+          : fallback;
 
     if (/unable to process input image|invalid_argument|unsupported image format/i.test(message)) {
       return "The backend did not receive usable image data. Please retake or re-upload the photo.";
