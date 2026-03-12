@@ -543,9 +543,61 @@ const normalizeFullAnalysisFormatting = (parsed: Record<string, any>) => {
     };
   });
 
+  // Validate and fix skin scores to prevent unrealistically low values
+  const skinScore = parsed.skinScore && typeof parsed.skinScore === "object" ? { ...parsed.skinScore } : {};
+  
+  if (typeof skinScore.overall === "number") {
+    // Clamp overall score: minimum 15 for any real analysis, cap at 100
+    skinScore.overall = Math.max(15, Math.min(100, Math.round(skinScore.overall)));
+    
+    // If score is suspiciously low (below 25) for what is likely common conditions, adjust up
+    if (skinScore.overall < 25 && Array.isArray(parsed.conditions)) {
+      const hasOnlyCommonConditions = parsed.conditions.every((c: any) => {
+        const name = (c?.condition || "").toLowerCase();
+        return name.includes("acne") || name.includes("eczema") || name.includes("dermatitis") || 
+               name.includes("rosacea") || name.includes("dryness") || name.includes("hyperpigmentation") ||
+               name.includes("folliculitis") || name.includes("keratosis") || name.includes("psoriasis");
+      });
+      if (hasOnlyCommonConditions) {
+        skinScore.overall = Math.max(35, skinScore.overall);
+      }
+    }
+  } else {
+    skinScore.overall = 55; // Safe default
+  }
+
+  // Validate factor scores
+  if (skinScore.factors && typeof skinScore.factors === "object") {
+    const factorKeys = ["inflammation", "gut_health", "diet_quality", "lifestyle", "skin_barrier"];
+    for (const key of factorKeys) {
+      if (skinScore.factors[key] && typeof skinScore.factors[key] === "object") {
+        const factor = skinScore.factors[key];
+        if (typeof factor.score === "number") {
+          factor.score = Math.max(15, Math.min(100, Math.round(factor.score)));
+        } else {
+          factor.score = skinScore.overall; // Default to overall if missing
+        }
+        if (!factor.explanation || typeof factor.explanation !== "string") {
+          factor.explanation = "";
+        }
+      } else {
+        skinScore.factors[key] = { score: skinScore.overall, explanation: "" };
+      }
+    }
+  } else {
+    skinScore.factors = {
+      inflammation: { score: skinScore.overall, explanation: "" },
+      gut_health: { score: skinScore.overall, explanation: "" },
+      diet_quality: { score: skinScore.overall, explanation: "" },
+      lifestyle: { score: skinScore.overall, explanation: "" },
+      skin_barrier: { score: skinScore.overall, explanation: "" },
+    };
+  }
+
   return {
     ...parsed,
     healingProtocol,
+    skinScore,
   };
 };
 
