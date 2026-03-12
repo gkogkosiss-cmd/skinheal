@@ -648,6 +648,9 @@ const SkinAnalysis = () => {
 
     setStep("loading");
     setStreamStep(0);
+    setAnalysisError(null);
+
+    const CLIENT_TIMEOUT_MS = 150000; // 2.5 min client-side timeout
 
     try {
       const imagesBase64 = await buildAnalysisImagePayload(selectedImages);
@@ -658,45 +661,55 @@ const SkinAnalysis = () => {
         answerCount: Object.keys(answers).length,
       });
 
-      const data = await new Promise<any>((resolve, reject) => {
-        streamSkinAnalysis(
-          { imagesBase64, answers },
-          {
-            onProgress: (stepIndex) => {
-              console.info("[SkinAnalysis] stream progress", { stepIndex });
-              setStreamStep(stepIndex);
+      const abortController = new AbortController();
+      const clientTimeout = setTimeout(() => abortController.abort(), CLIENT_TIMEOUT_MS);
+
+      try {
+        const data = await new Promise<any>((resolve, reject) => {
+          streamSkinAnalysis(
+            { imagesBase64, answers },
+            {
+              onProgress: (stepIndex) => {
+                console.info("[SkinAnalysis] stream progress", { stepIndex });
+                setStreamStep(stepIndex);
+              },
+              onComplete: (parsed) => {
+                console.info("[SkinAnalysis] stream complete", {
+                  hasConditions: Array.isArray(parsed?.conditions),
+                  hasBodyArea: Boolean(parsed?.bodyArea),
+                });
+                resolve(parsed);
+              },
+              onError: (error) => {
+                console.error("[SkinAnalysis] stream error", error);
+                reject(error);
+              },
             },
-            onComplete: (parsed) => {
-              console.info("[SkinAnalysis] stream complete", {
-                hasConditions: Array.isArray(parsed?.conditions),
-                hasBodyArea: Boolean(parsed?.bodyArea),
-              });
-              resolve(parsed);
-            },
-            onError: (error) => {
-              console.error("[SkinAnalysis] stream error", error);
-              reject(error);
-            },
-          }
-        );
-      });
+            abortController.signal
+          );
+        });
 
-      if (data?.error) throw new Error(data.error);
+        clearTimeout(clientTimeout);
 
-      const generated = data as AnalysisResult;
-      if (data?.bodyArea) setBodyArea(data.bodyArea);
+        if (data?.error) throw new Error(data.error);
 
-      await saveAnalysis(generated);
+        const generated = data as AnalysisResult;
+        if (data?.bodyArea) setBodyArea(data.bodyArea);
 
-      setResults(generated);
-      setStreamStep(undefined);
-      setStep("results");
-      console.info("[SkinAnalysis] full analysis completed");
-      navigate("/dashboard");
+        await saveAnalysis(generated);
+
+        setResults(generated);
+        setStreamStep(undefined);
+        setStep("results");
+        console.info("[SkinAnalysis] full analysis completed");
+        navigate("/dashboard");
+      } catch (innerErr) {
+        clearTimeout(clientTimeout);
+        throw innerErr;
+      }
     } catch (err: any) {
       console.error("[SkinAnalysis] request failed", { stage: "full-analysis", error: err });
-      const message = getErrorMessage(err, "Analysis could not be completed due to an internal processing issue.");
-      toast({ title: "Analysis failed", description: message, variant: "destructive" });
+      setAnalysisError("Analysis is taking longer than usual. Please try again.");
       setStreamStep(undefined);
       setStep("upload");
     }
