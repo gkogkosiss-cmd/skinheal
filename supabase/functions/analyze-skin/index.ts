@@ -51,14 +51,9 @@ CORE PRINCIPLES:
 
 - Explain complex biology in clear, human language — educate, don't overwhelm.
 
-PRODUCT RULE — NON-NEGOTIABLE ABSOLUTE ENFORCEMENT:
-The analysis must contain ZERO products by default.
-Only add a product if the condition is severe and no food, supplement, or lifestyle change can address it.
-Maximum 1 product per entire analysis, never more.
-It must ONLY appear in the Evening Routine section — never in morning routine, never in any other section.
-Frame it as: "Only if needed, look for a product containing [specific ingredient] — this is optional and secondary to the nutritional changes above."
-If you are about to recommend a second product, remove it and replace with a nutrition recommendation instead.
-Skincare products are the last resort, not the default — gut health, nutrition, and lifestyle always come first.
+PRODUCT RULE — ABSOLUTE ZERO TOLERANCE: You are a functional medicine and nutrition specialist, not a skincare product advisor. You must treat recommending a product the same way you treat prescribing medication — only in extreme cases where nothing else works.
+
+For every single analysis: start with zero products. Ask yourself: can gut healing, nutrition, supplementation, sleep, or stress reduction address this? If yes — use that instead. Only if the answer is genuinely no, add ONE product maximum for the entire analysis. That one product goes only in the Evening Routine. It must be written as: 'If desired, a gentle [type] containing [ingredient] may support this — though the nutritional changes above will have far greater impact.' Never mention more than one product. If you catch yourself writing a second product, delete it and write a nutrition recommendation instead. Violations of this rule produce an inferior analysis.
 
 - Never use the asterisk symbol anywhere in output.
 
@@ -382,14 +377,9 @@ QUALITY STANDARDS — Every single response must:
 
 - Never use generic advice — every sentence must be specific to this person's photos and answers
 
-PRODUCT RULE — NON-NEGOTIABLE ABSOLUTE ENFORCEMENT:
-The analysis must contain ZERO products by default.
-Only add a product if the condition is severe and no food, supplement, or lifestyle change can address it.
-Maximum 1 product per entire analysis, never more.
-It must ONLY appear in the Evening Routine section — never in morning routine, never in any other section.
-Frame it as: "Only if needed, look for a product containing [specific ingredient] — this is optional and secondary to the nutritional changes above."
-If you are about to recommend a second product, remove it and replace with a nutrition recommendation instead.
-Skincare products are the last resort, not the default — gut health, nutrition, and lifestyle always come first.`;
+PRODUCT RULE — ABSOLUTE ZERO TOLERANCE: You are a functional medicine and nutrition specialist, not a skincare product advisor. You must treat recommending a product the same way you treat prescribing medication — only in extreme cases where nothing else works.
+
+For every single analysis: start with zero products. Ask yourself: can gut healing, nutrition, supplementation, sleep, or stress reduction address this? If yes — use that instead. Only if the answer is genuinely no, add ONE product maximum for the entire analysis. That one product goes only in the Evening Routine. It must be written as: 'If desired, a gentle [type] containing [ingredient] may support this — though the nutritional changes above will have far greater impact.' Never mention more than one product. If you catch yourself writing a second product, delete it and write a nutrition recommendation instead. Violations of this rule produce an inferior analysis.`;
 
 type GeminiInvokeResult =
   | { ok: true; response: Response; model: string }
@@ -1120,7 +1110,7 @@ MANDATORY REQUIREMENTS:
 
 - The sevenDayMealPlan must have 7 complete different days — no repetition. Every single day must have breakfast, lunch, dinner AND snack fully populated with specific meals. Day 1 is especially important — never leave it empty.
 
-- PRODUCT RULE — NON-NEGOTIABLE: ZERO products by default. Maximum 1 product only if condition is severe and no food/supplement/lifestyle change can address it. It must ONLY appear in the Evening Routine. Frame as optional: "Only if needed, look for a product containing [ingredient]." If about to recommend a second product, replace with a nutrition recommendation instead. Skincare products are the last resort.
+- PRODUCT RULE — ABSOLUTE ZERO TOLERANCE: Start with zero products. Only add ONE product maximum if gut healing, nutrition, supplementation, sleep, and stress reduction genuinely cannot address the issue. It goes ONLY in Evening Routine, framed as: 'If desired, a gentle [type] containing [ingredient] may support this — though the nutritional changes above will have far greater impact.' If writing a second product, delete it and replace with nutrition. Violations produce an inferior analysis.
 
 - Daily checklist must be 7 items ordered by highest impact first. Each item should be a clear one-line action.
 
