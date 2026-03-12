@@ -616,19 +616,54 @@ Return the complete JSON with ALL fields. Make this analysis genuinely life-chan
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const content =
+      data?.choices?.[0]?.message?.content ??
+      data?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments ??
+      null;
 
-    let parsed;
-    try {
-      parsed = JSON.parse(content);
-      console.info("[analyze-skin] analysis completed", {
-        hasConditions: Array.isArray(parsed?.conditions),
-        hasQuestions: Array.isArray(parsed?.dynamicQuestions),
-      });
-    } catch {
+    const parsedCandidate = extractJsonCandidate(content);
+
+    if (!parsedCandidate) {
       console.error("[analyze-skin] failed to parse AI response", { raw: content });
-      parsed = { error: "Failed to parse AI response", raw: content };
+
+      if (!answers) {
+        const fallbackBodyArea = "other";
+        return new Response(
+          JSON.stringify({
+            bodyArea: fallbackBodyArea,
+            visualFeatures: [],
+            dynamicQuestions: normalizeDynamicQuestions([], fallbackBodyArea),
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ error: "Analysis response format was invalid. Please retry with clearer photos." }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    let parsed: Record<string, any> = parsedCandidate;
+
+    if (!answers) {
+      const normalizedBodyArea = safeString(parsed.bodyArea || "other").toLowerCase() || "other";
+      parsed = {
+        bodyArea: normalizedBodyArea,
+        visualFeatures: Array.isArray(parsed.visualFeatures)
+          ? parsed.visualFeatures.map((item: unknown) => safeString(item)).filter(Boolean)
+          : [],
+        dynamicQuestions: normalizeDynamicQuestions(parsed.dynamicQuestions, normalizedBodyArea),
+      };
+    } else {
+      parsed = normalizeFullAnalysisFormatting(parsed);
+    }
+
+    console.info("[analyze-skin] analysis completed", {
+      hasConditions: Array.isArray(parsed?.conditions),
+      hasQuestions: Array.isArray(parsed?.dynamicQuestions),
+      questionCount: Array.isArray(parsed?.dynamicQuestions) ? parsed.dynamicQuestions.length : 0,
+    });
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
