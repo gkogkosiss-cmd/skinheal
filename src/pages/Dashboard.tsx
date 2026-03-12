@@ -2,13 +2,15 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import {
-  ScanFace, HeartPulse, Apple, Salad, Activity,
-  TrendingUp, MessageCircle, ArrowRight, Sparkles, AlertCircle,
-  AlertTriangle, Target
+  ScanFace, HeartPulse, Apple, MessageCircle, ArrowRight,
+  AlertCircle, AlertTriangle, Target, TrendingUp
 } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { useAllAnalyses } from "@/hooks/useAnalysis";
 import { SkinScoreCard } from "@/components/dashboard/SkinScoreCard";
+import { ConditionsList } from "@/components/dashboard/ConditionsList";
+import { BiologicalExplanation } from "@/components/dashboard/BiologicalExplanation";
+import { RootCausesList } from "@/components/dashboard/RootCausesList";
 import { WeeklyCheckReminder } from "@/components/dashboard/WeeklyCheckReminder";
 import { DailyHealingChecklist } from "@/components/dashboard/DailyHealingChecklist";
 import { DailyProgressIndicator } from "@/components/dashboard/DailyProgressIndicator";
@@ -113,16 +115,24 @@ const Dashboard = () => {
           <WeeklyCheckReminder lastAnalysisDate={analysis?.created_at} />
         </div>
 
-        {/* What's Happening */}
+        {/* Detected Conditions - Visual probability bars */}
+        {hasAnalysis && analysis.conditions?.length > 0 && (
+          <div className="mb-6">
+            <ConditionsList conditions={analysis.conditions} />
+          </div>
+        )}
+
+        {/* What's Happening - Engaging biological story */}
         {hasAnalysis && (protocol?.whatIsHappening || analysis.biological_explanation) && (
-          <div className="card-elevated mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <h3 className="font-serif text-xl">What We Think Is Happening</h3>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {protocol?.whatIsHappening || analysis.biological_explanation}
-            </p>
+          <div className="mb-6">
+            <BiologicalExplanation text={protocol?.whatIsHappening || analysis.biological_explanation || ""} />
+          </div>
+        )}
+
+        {/* Root Causes */}
+        {hasAnalysis && analysis.root_causes?.length > 0 && (
+          <div className="mb-6">
+            <RootCausesList rootCauses={analysis.root_causes} />
           </div>
         )}
 
@@ -165,24 +175,11 @@ const Dashboard = () => {
             </Link>
           </div>
           {hasAnalysis ? (
-            <div className="space-y-3">
-              {analysis.conditions?.slice(0, 2).map((c: any, i: number) => (
-                <div key={i}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="font-medium">{c.condition}</span>
-                    <span className="text-muted-foreground">{c.probability}%</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-1.5">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${c.probability}%` }}
-                      transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }}
-                      className="bg-primary h-1.5 rounded-full"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {analysis.conditions?.length > 0
+                ? `Tracking ${analysis.conditions.length} condition${analysis.conditions.length > 1 ? "s" : ""}. Follow your protocol consistently for the best results.`
+                : "Complete your first analysis to start tracking progress."}
+            </p>
           ) : (
             <p className="text-sm text-muted-foreground">Complete your first analysis to start tracking progress.</p>
           )}
