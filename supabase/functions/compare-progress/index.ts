@@ -149,8 +149,8 @@ serve(async (req) => {
 
   try {
     const { newImageBase64, previousImageBase64, baselineContext, previousScore, progressAnswers, bodyArea } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
     if (!newImageBase64) throw new Error("New progress photo is required");
 
     const prevScore = typeof previousScore === "number" ? previousScore : 50;
