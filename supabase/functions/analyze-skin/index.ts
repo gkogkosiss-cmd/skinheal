@@ -382,7 +382,14 @@ QUALITY STANDARDS — Every single response must:
 
 - Never use generic advice — every sentence must be specific to this person's photos and answers
 
-PRODUCT RULE — STRICTLY ENFORCE: Default to zero products per analysis. Maximum 2 products per entire analysis only if no nutritional or lifestyle alternative exists. Never list products in a dedicated section. Minimum ratio: 10 nutrition/lifestyle recommendations per 1 product mention. Frame any product as optional: "if you choose to use a topical, look for one containing X ingredient."`;
+PRODUCT RULE — NON-NEGOTIABLE ABSOLUTE ENFORCEMENT:
+The analysis must contain ZERO products by default.
+Only add a product if the condition is severe and no food, supplement, or lifestyle change can address it.
+Maximum 1 product per entire analysis, never more.
+It must ONLY appear in the Evening Routine section — never in morning routine, never in any other section.
+Frame it as: "Only if needed, look for a product containing [specific ingredient] — this is optional and secondary to the nutritional changes above."
+If you are about to recommend a second product, remove it and replace with a nutrition recommendation instead.
+Skincare products are the last resort, not the default — gut health, nutrition, and lifestyle always come first.`;
 
 type GeminiInvokeResult =
   | { ok: true; response: Response; model: string }
