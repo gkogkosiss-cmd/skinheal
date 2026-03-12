@@ -71,32 +71,77 @@ function validateAndRepair(parsed: any): any {
   return result;
 }
 
-async function callAI(messages: any[], apiKey: string): Promise<any> {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages,
-      response_format: { type: "json_object" },
-    }),
-  });
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
 
-  if (!response.ok) {
-    const t = await response.text();
-    console.error("AI gateway error:", response.status, t);
-    if (response.status === 429) return { _error: "rate_limit", status: 429 };
-    if (response.status === 402) return { _error: "usage_limit", status: 402 };
-    return { _error: "api_error", status: response.status };
+function buildGeminiPayload(messages: any[]) {
+  let systemInstruction: any = undefined;
+  const contents: any[] = [];
+
+  for (const msg of messages) {
+    if (msg.role === "system") {
+      systemInstruction = { parts: [{ text: msg.content }] };
+      continue;
+    }
+    if (typeof msg.content === "string") {
+      contents.push({ role: "user", parts: [{ text: msg.content }] });
+    } else if (Array.isArray(msg.content)) {
+      const parts: any[] = [];
+      for (const part of msg.content) {
+        if (part.type === "text") {
+          parts.push({ text: part.text });
+        } else if (part.type === "image_url" && part.image_url?.url) {
+          const dataMatch = part.image_url.url.match(/^data:([^;]+);base64,(.+)$/);
+          if (dataMatch) {
+            parts.push({ inlineData: { mimeType: dataMatch[1], data: dataMatch[2] } });
+          }
+        }
+      }
+      contents.push({ role: "user", parts });
+    }
   }
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) return null;
-  return extractJSON(content);
+  const payload: any = { contents, generationConfig: { temperature: 0.4, topP: 0.95 } };
+  if (systemInstruction) payload.systemInstruction = systemInstruction;
+  return payload;
+}
+
+async function callAI(messages: any[], apiKey: string): Promise<any> {
+  const payload = buildGeminiPayload(messages);
+
+  for (const [index, model] of MODELS.entries()) {
+    try {
+      const response = await fetch(
+        `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error(`Gemini ${model} error:`, response.status, t.substring(0, 300));
+        if (response.status === 429) return { _error: "rate_limit", status: 429 };
+        if (index < MODELS.length - 1) continue;
+        return { _error: "api_error", status: response.status };
+      }
+
+      const data = await response.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!content) {
+        if (index < MODELS.length - 1) continue;
+        return null;
+      }
+      return extractJSON(content);
+    } catch (err) {
+      console.error(`Gemini ${model} request failed:`, err);
+      if (index < MODELS.length - 1) continue;
+      return { _error: "api_error", status: 500 };
+    }
+  }
+  return null;
 }
 
 serve(async (req) => {
@@ -104,8 +149,8 @@ serve(async (req) => {
 
   try {
     const { newImageBase64, previousImageBase64, baselineContext, previousScore, progressAnswers, bodyArea } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
     if (!newImageBase64) throw new Error("New progress photo is required");
 
     const prevScore = typeof previousScore === "number" ? previousScore : 50;
@@ -246,7 +291,7 @@ ${baselineContext || "No baseline analysis available. Evaluate conservatively. K
       },
     ];
 
-    let parsed = await callAI(messages, LOVABLE_API_KEY);
+    let parsed = await callAI(messages, GEMINI_API_KEY);
 
     if (parsed?._error === "rate_limit") {
       return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
@@ -261,7 +306,7 @@ ${baselineContext || "No baseline analysis available. Evaluate conservatively. K
 
     if (!parsed || parsed._error) {
       console.log("First attempt failed, retrying...");
-      parsed = await callAI(messages, LOVABLE_API_KEY);
+      parsed = await callAI(messages, GEMINI_API_KEY);
       if (parsed?._error) { console.error("Retry also failed"); parsed = null; }
     }
 
