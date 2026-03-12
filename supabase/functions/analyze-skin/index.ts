@@ -327,6 +327,7 @@ serve(async (req) => {
     });
 
     const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
+    console.info("[analyze-skin] system prompt length:", SYSTEM_PROMPT.length, "messages constructed");
 
     const imageContentParts = images.map((img) => ({
       type: "image_url",
@@ -471,6 +472,7 @@ Return the complete JSON with ALL fields. Make this analysis genuinely life-chan
     }
 
     // Non-streaming path (questions step, or full analysis without stream flag)
+    console.info("[analyze-skin] calling AI gateway", { model: answers ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash", messageCount: messages.length });
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
