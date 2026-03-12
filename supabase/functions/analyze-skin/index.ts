@@ -373,7 +373,9 @@ QUALITY STANDARDS — Every single response must:
 
 - Provide 3-5 conditions ranked by probability with specific visual evidence for each
 
-- Never use generic advice — every sentence must be specific to this person's photos and answers`;
+- Never use generic advice — every sentence must be specific to this person's photos and answers
+
+PRODUCT RULE — STRICTLY ENFORCE: Default to zero products per analysis. Maximum 2 products per entire analysis only if no nutritional or lifestyle alternative exists. Never list products in a dedicated section. Minimum ratio: 10 nutrition/lifestyle recommendations per 1 product mention. Frame any product as optional: "if you choose to use a topical, look for one containing X ingredient."`;
 
 type GeminiInvokeResult =
   | { ok: true; response: Response; model: string }
@@ -1061,6 +1063,8 @@ STEP 3: Generate exactly 5 diagnostic questions. Each must be HYPER-SPECIFIC to 
 - Question 5 (Lifestyle): Ask about the ONE lifestyle factor most likely contributing to this specific presentation. Monomorphic bumps on trunk — ask about sweating in tight synthetic clothing. Perioral pattern — ask about fluoride toothpaste and mask wearing. Forehead comedones — ask about hat wearing and hair product use.
 
 Each question MUST make the user think "how did it know to ask that?" — the question should reveal clinical insight about their specific photo. NEVER use generic phrasing like "how is your skin" or "do you have skin concerns".
+
+Additionally, every question must be directly triggered by a specific visual observation from the photo. If jawline/chin lesions are visible → ask about hormonal cycle. If monomorphic small bumps → ask about sweating/gym/tight clothing. If flaking or dry skin → ask about shower temperature and cleanser type. If widespread inflammation → ask about dairy and sugar. If perioral lesions → ask about fluoride toothpaste. If back/chest acne → ask about post-workout showering. If hyperpigmentation → ask about SPF use. If redness/flushing → ask about alcohol and spicy food triggers. Never ask a question that could apply to anyone regardless of what the photo shows.
 
 Return ONLY bodyArea, visualFeatures, and dynamicQuestions as JSON. No other text.`,
           },
