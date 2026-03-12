@@ -957,30 +957,27 @@ serve(async (req) => {
         content: [
           {
             type: "text",
-            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos together" : "this skin photo"}.
+            text: `Analyze ${images.length > 1 ? "these " + images.length + " skin photos together" : "this skin photo"} with clinical precision.
 
-Return JSON only with exactly these fields:
-- bodyArea
-- visualFeatures
-- dynamicQuestions
+STEP 1: Detect the exact body area shown (face, forehead, cheeks, chin, neck, back, chest, shoulders, arms, legs, scalp, hands, other).
 
-Rules:
-- Detect body area first.
-- Write visual features in plain language.
-- Generate exactly 7 unique dynamic questions with ids q1-q7.
-- Use one category per question, in this order:
-  q1 gut/digestion
-  q2 diet/nutrition
-  q3 lifestyle/stress
-  q4 skincare routine (area-specific)
-  q5 hormonal/cyclical
-  q6 triggers/patterns
-  q7 environment/habits
-- No overlapping topics.
-- Each question must have 3-4 answer options.
-- Questions must match what is visible and the detected body area.
+STEP 2: Identify all visible clinical features — exact morphology type, distribution pattern, inflammation level, barrier integrity signs, pigmentation changes, sebaceous activity, scarring if present.
 
-Do not include any extra keys or text outside JSON.`,
+STEP 3: Generate exactly 5 diagnostic questions. Each must cover a completely different category with zero overlap:
+
+- Question 1: gut/digestion (bloating, bowel regularity, digestive symptoms)
+
+- Question 2: dietary pattern (dairy, sugar, processed food frequency)
+
+- Question 3: hormonal or stress pattern (cycle, stress, cortisol signs)
+
+- Question 4: current skincare routine (products, cleansing frequency, actives used)
+
+- Question 5: lifestyle trigger specific to what is visible (sweating, friction, sleep, environment)
+
+Each question must feel like it was written by a dermatologist who personally examined the photo. Never ask generic questions.
+
+Return ONLY bodyArea, visualFeatures, and dynamicQuestions as JSON. No other text.`,
           },
           ...imageContentParts,
         ],
