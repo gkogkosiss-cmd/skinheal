@@ -37,11 +37,18 @@ const parseMealItems = (meal: string | undefined): string[] => {
   return items.length > 0 ? items : [meal];
 };
 
+const skinBenefitMap: Record<string, string> = {
+  Breakfast: "Morning nutrients prime your skin barrier and reduce overnight inflammation buildup.",
+  Lunch: "Midday anti-inflammatory compounds help calm active skin flare-ups.",
+  Dinner: "Evening nutrients support overnight skin repair and collagen synthesis.",
+  Snack: "Antioxidant-rich snacks help neutralize free radicals that accelerate skin aging.",
+};
+
 const MealCard = ({ label, value, icon }: { label: string; value?: string; icon?: string }) => {
   if (!value) return null;
   const items = parseMealItems(value);
   return (
-    <div className="p-3 rounded-xl bg-muted/40 space-y-1.5">
+    <div className="p-3.5 rounded-xl bg-muted/40 space-y-2">
       <p className="text-[11px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
         {icon && <span>{icon}</span>}
         {label}
@@ -54,6 +61,10 @@ const MealCard = ({ label, value, icon }: { label: string; value?: string; icon?
           </li>
         ))}
       </ul>
+      <p className="text-[11px] leading-snug pl-1 flex items-start gap-1" style={{ color: "#528164" }}>
+        <span className="shrink-0 mt-px">🌿</span>
+        <span className="italic">Skin benefit: {skinBenefitMap[label] || "Supports overall skin healing through anti-inflammatory nutrition."}</span>
+      </p>
     </div>
   );
 };
@@ -178,14 +189,17 @@ const Nutrition = () => {
                           animate={{ opacity: 1, height: "auto" }}
                           className="px-3.5 sm:px-4 pb-4"
                         >
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div className="flex flex-col gap-0">
                             {[
                               { label: "Breakfast", value: day.breakfast },
                               { label: "Lunch", value: day.lunch },
                               { label: "Dinner", value: day.dinner },
                               { label: "Snack", value: day.snack },
-                            ].map((meal) => (
-                              <MealCard key={meal.label} label={meal.label} value={meal.value} icon={mealIcons[meal.label]} />
+                            ].map((meal, mi, arr) => (
+                              <div key={meal.label}>
+                                <MealCard label={meal.label} value={meal.value} icon={mealIcons[meal.label]} />
+                                {mi < arr.length - 1 && <div className="border-t border-border/40 my-2 mx-2" />}
+                              </div>
                             ))}
                           </div>
                         </motion.div>
