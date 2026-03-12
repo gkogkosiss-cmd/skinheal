@@ -1100,11 +1100,11 @@ MANDATORY REQUIREMENTS:
 
 - All 7 root causes must be explored deeply with specific mechanisms
 
-- The sevenDayMealPlan must have 7 complete different days — no repetition
+- The sevenDayMealPlan must have 7 complete different days — no repetition. Every single day must have breakfast, lunch, dinner AND snack fully populated with specific meals. Day 1 is especially important — never leave it empty.
 
-- The sevenDayGutPlan must be progressive and specific
+- STRICT PRODUCT RULE: Maximum 1-2 products in the entire analysis. Only mention a product when NO nutritional or lifestyle change can achieve the same result. Every product must specify exact key ingredients (e.g. "a gentle cleanser with ceramides and no sulfates"). Products must always appear AFTER at least 3 nutrition/lifestyle recommendations. This must feel like a functional medicine consultation, not a skincare shopping list.
 
-- Daily checklist must be 7 items ordered by highest impact first
+- Daily checklist must be 7 items ordered by highest impact first. Each item should be a clear one-line action.
 
 - Never use the asterisk symbol anywhere
 
