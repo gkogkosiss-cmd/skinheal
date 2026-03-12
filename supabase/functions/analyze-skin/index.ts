@@ -1048,19 +1048,19 @@ STEP 1: Detect the exact body area shown (face, forehead, cheeks, chin, neck, ba
 
 STEP 2: Identify all visible clinical features — exact morphology type, distribution pattern, inflammation level, barrier integrity signs, pigmentation changes, sebaceous activity, scarring if present.
 
-STEP 3: Generate exactly 5 diagnostic questions. Each must cover a completely different category with zero overlap:
+STEP 3: Generate exactly 5 diagnostic questions. Each must be HYPER-SPECIFIC to the visual findings in this exact photo. Follow these rules:
 
-- Question 1: gut/digestion (bloating, bowel regularity, digestive symptoms)
+- Question 1 (Gut/Digestion): Ask about gut symptoms that are DIRECTLY linked to the specific condition pattern you see. If you see inflammatory papules, ask about post-meal bloating specifically. If you see widespread redness, ask about food-triggered flushing episodes.
 
-- Question 2: dietary pattern (dairy, sugar, processed food frequency)
+- Question 2 (Diet): Ask about the specific dietary triggers most associated with the detected morphology. If you see comedonal acne, ask about dairy and high-glycemic food frequency. If you see eczema-like patches, ask about gluten and nightshade consumption.
 
-- Question 3: hormonal or stress pattern (cycle, stress, cortisol signs)
+- Question 3 (Hormonal/Stress): Tailor to the distribution pattern. Jawline/chin concentration — ask about menstrual cycle flare patterns and specific cycle days. Forehead — ask about stress-eating and sleep disruption. Widespread — ask about cortisol and anxiety levels.
 
-- Question 4: current skincare routine (products, cleansing frequency, actives used)
+- Question 4 (Skincare): Ask about behaviors that could CAUSE what you see. If barrier damage is visible (flaking, tightness, redness) — ask about hot shower temperature and foaming cleansers. If fungal-pattern bumps — ask about occlusive products. If PIH/PIE — ask about picking habits.
 
-- Question 5: lifestyle trigger specific to what is visible (sweating, friction, sleep, environment)
+- Question 5 (Lifestyle): Ask about the ONE lifestyle factor most likely contributing to this specific presentation. Monomorphic bumps on trunk — ask about sweating in tight synthetic clothing. Perioral pattern — ask about fluoride toothpaste and mask wearing. Forehead comedones — ask about hat wearing and hair product use.
 
-Each question must feel like it was written by a dermatologist who personally examined the photo. Never ask generic questions.
+Each question MUST make the user think "how did it know to ask that?" — the question should reveal clinical insight about their specific photo. NEVER use generic phrasing like "how is your skin" or "do you have skin concerns".
 
 Return ONLY bodyArea, visualFeatures, and dynamicQuestions as JSON. No other text.`,
           },
