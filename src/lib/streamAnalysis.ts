@@ -19,6 +19,40 @@ export interface StreamCallbacks {
   onError: (error: Error) => void;
 }
 
+/** Repair common LLM JSON issues (trailing commas, etc.) */
+const repairJson = (raw: string): string => {
+  let fixed = raw;
+  fixed = fixed.replace(/,\s*([}\]])/g, "$1");
+  return fixed;
+};
+
+/** Multi-strategy JSON extraction */
+const extractJson = (content: string): any | null => {
+  let cleaned = content.trim();
+
+  // Strip markdown code fences
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+  }
+
+  // Attempt 1: Direct
+  try { return JSON.parse(cleaned); } catch { /* continue */ }
+
+  // Attempt 2: Repair then parse
+  try { return JSON.parse(repairJson(cleaned)); } catch { /* continue */ }
+
+  // Attempt 3: Brace matching
+  const startIdx = content.indexOf("{");
+  const endIdx = content.lastIndexOf("}");
+  if (startIdx !== -1 && endIdx > startIdx) {
+    const sliced = content.slice(startIdx, endIdx + 1);
+    try { return JSON.parse(sliced); } catch { /* continue */ }
+    try { return JSON.parse(repairJson(sliced)); } catch { /* continue */ }
+  }
+
+  return null;
+};
+
 /**
  * Stream the full skin analysis from the edge function via SSE.
  * Accumulates JSON text and fires progress callbacks as sections are detected.
@@ -42,7 +76,7 @@ export async function streamSkinAnalysis(
   // Check for non-streaming error responses
   const contentType = resp.headers.get("content-type") || "";
   if (!resp.ok || !contentType.includes("text/event-stream")) {
-    let errorMsg = "Analysis failed";
+    let errorMsg = "Analysis is taking longer than usual. Please try again.";
     try {
       const errData = await resp.json();
       errorMsg = errData?.error || errorMsg;
@@ -54,7 +88,7 @@ export async function streamSkinAnalysis(
   }
 
   if (!resp.body) {
-    callbacks.onError(new Error("No response body"));
+    callbacks.onError(new Error("Analysis is taking longer than usual. Please try again."));
     return;
   }
 
@@ -68,9 +102,15 @@ export async function streamSkinAnalysis(
   // Fire initial progress
   callbacks.onProgress(0);
 
+  // Stall detection: if no data for 45s, consider it stalled
+  let lastDataTime = Date.now();
+  const STALL_TIMEOUT = 45000;
+
   while (!streamDone) {
     const { done, value } = await reader.read();
     if (done) break;
+
+    lastDataTime = Date.now();
     textBuffer += decoder.decode(value, { stream: true });
 
     let newlineIndex: number;
@@ -108,6 +148,12 @@ export async function streamSkinAnalysis(
         break;
       }
     }
+
+    // Stall check
+    if (Date.now() - lastDataTime > STALL_TIMEOUT) {
+      console.warn("[streamAnalysis] stream stalled, attempting to parse accumulated content");
+      break;
+    }
   }
 
   // Final flush
@@ -127,27 +173,11 @@ export async function streamSkinAnalysis(
     }
   }
 
-  // Parse the accumulated JSON
-  try {
-    // Strip markdown code fences if present
-    let cleaned = fullContent.trim();
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
-    }
-
-    const result = JSON.parse(cleaned);
+  // Parse the accumulated JSON with robust extraction
+  const result = extractJson(fullContent);
+  if (result && typeof result === "object") {
     callbacks.onComplete(result);
-  } catch {
-    // Try extracting JSON with brace matching
-    const startIdx = fullContent.indexOf("{");
-    const endIdx = fullContent.lastIndexOf("}");
-    if (startIdx !== -1 && endIdx > startIdx) {
-      try {
-        const result = JSON.parse(fullContent.slice(startIdx, endIdx + 1));
-        callbacks.onComplete(result);
-        return;
-      } catch { /* fall through */ }
-    }
-    callbacks.onError(new Error("Failed to parse analysis results. Please try again."));
+  } else {
+    callbacks.onError(new Error("Analysis is taking longer than usual. Please try again."));
   }
 }

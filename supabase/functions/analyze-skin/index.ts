@@ -29,9 +29,13 @@ const buildUnsupportedFormatMessage = (mimeType: string) =>
   `The backend did not receive usable image data. Unsupported image format: ${mimeType}. Please use JPG, PNG, or WEBP.`;
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-const GATEWAY_TIMEOUT_MS = 90000;
+const GATEWAY_TIMEOUT_MS = 120000;
 const QUESTION_MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite"];
 const FULL_ANALYSIS_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash"];
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [1000, 2000, 4000]; // exponential backoff
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const SYSTEM_PROMPT = `You are SkinHeal AI — the world's most advanced skin wellness intelligence system, combining the expertise of a board-certified dermatologist, functional medicine doctor, clinical nutritionist, gut-health researcher, and skin microbiome specialist with 20+ years of combined clinical experience.
 
@@ -462,67 +466,85 @@ const invokeGeminiWithFallback = async (
 ): Promise<GeminiInvokeResult> => {
   const safeModels = models.filter(Boolean);
   const payload = buildGeminiPayload(messages);
+  let lastResult: GeminiInvokeResult | null = null;
 
-  for (const [index, model] of safeModels.entries()) {
-    let response: Response;
+  // Retry loop: try each model, and retry the full chain up to MAX_RETRIES times
+  for (let retry = 0; retry < MAX_RETRIES; retry++) {
+    if (retry > 0) {
+      const delay = RETRY_DELAYS[retry - 1] || 4000;
+      console.info("[analyze-skin] retry attempt", { retry, delayMs: delay });
+      await sleep(delay);
+    }
 
-    try {
-      response = await createGeminiRequest(apiKey, model, payload, stream);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        throw error;
+    for (const [index, model] of safeModels.entries()) {
+      let response: Response;
+
+      try {
+        response = await createGeminiRequest(apiKey, model, payload, stream);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          throw error;
+        }
+
+        const canRetry = index < safeModels.length - 1;
+        if (canRetry) {
+          console.warn("[analyze-skin] Gemini request failed, trying fallback model", {
+            failedModel: model,
+            nextModel: safeModels[index + 1],
+            reason: error instanceof Error ? error.message : String(error),
+          });
+          continue;
+        }
+
+        lastResult = {
+          ok: false,
+          status: 500,
+          providerMessage: error instanceof Error ? error.message : "Gemini request failed",
+          model,
+        };
+        break; // break inner loop, will retry
       }
 
-      const canRetry = index < safeModels.length - 1;
-      if (canRetry) {
-        console.warn("[analyze-skin] Gemini request failed, trying fallback model", {
-          failedModel: model,
+      if (response.ok) {
+        if (index > 0 || retry > 0) {
+          console.info("[analyze-skin] model selected", { model, retry });
+        }
+        return { ok: true, response, model };
+      }
+
+      const rawError = await response.text();
+      const isRetryable = response.status === 429 || response.status >= 500;
+      const canFallback = index < safeModels.length - 1 && isRetryable;
+
+      if (canFallback) {
+        console.warn("[analyze-skin] model attempt failed, trying fallback", {
+          model,
+          status: response.status,
+          rawError: rawError.substring(0, 300),
           nextModel: safeModels[index + 1],
-          reason: error instanceof Error ? error.message : String(error),
         });
         continue;
       }
 
-      return {
+      lastResult = {
         ok: false,
-        status: 500,
-        providerMessage: error instanceof Error ? error.message : "Gemini request failed",
+        status: response.status,
+        providerMessage: rawError,
         model,
       };
+
+      // If it's retryable but no more fallback models, break to outer retry loop
+      if (isRetryable) break;
+
+      // Non-retryable error (400, 401, 403 etc) — stop immediately
+      return lastResult;
     }
-
-    if (response.ok) {
-      if (index > 0) {
-        console.info("[analyze-skin] fallback model selected", { model });
-      }
-      return { ok: true, response, model };
-    }
-
-    const rawError = await response.text();
-    const canRetry = index < safeModels.length - 1 && (response.status === 429 || response.status >= 500);
-
-    if (canRetry) {
-      console.warn("[analyze-skin] model attempt failed, trying fallback", {
-        model,
-        status: response.status,
-        rawError: rawError.substring(0, 300),
-        nextModel: safeModels[index + 1],
-      });
-      continue;
-    }
-
-    return {
-      ok: false,
-      status: response.status,
-      providerMessage: rawError,
-      model,
-    };
   }
 
-  return {
+  return lastResult || {
     ok: false,
     status: 500,
-    providerMessage: "Gemini request failed after trying all fallback models.",
+    providerMessage: "Gemini request failed after all retries and fallback models.",
     model: safeModels[safeModels.length - 1] || "unknown",
   };
 };
@@ -550,6 +572,16 @@ const buildGatewayFailureResponse = (status: number, providerMessage: string) =>
 
 const safeString = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
+const repairJson = (raw: string): string => {
+  // Fix common LLM JSON issues
+  let fixed = raw;
+  // Remove trailing commas before } or ]
+  fixed = fixed.replace(/,\s*([}\]])/g, "$1");
+  // Fix unescaped newlines in strings (crude but effective)
+  fixed = fixed.replace(/(?<=:\s*"[^"]*)\n(?=[^"]*")/g, "\\n");
+  return fixed;
+};
+
 const extractJsonCandidate = (content: unknown): Record<string, any> | null => {
   if (content && typeof content === "object") return content as Record<string, any>;
   if (typeof content !== "string") return null;
@@ -557,21 +589,26 @@ const extractJsonCandidate = (content: unknown): Record<string, any> | null => {
   const direct = content.trim();
   if (!direct) return null;
 
+  // Attempt 1: Direct parse
   try {
     return JSON.parse(direct);
   } catch {
     // Continue to fallback extractors
   }
 
+  // Attempt 2: Code fence extraction
   const fenced = direct.match(/```json\s*([\s\S]*?)```/i) || direct.match(/```\s*([\s\S]*?)```/i);
   if (fenced?.[1]) {
     try {
       return JSON.parse(fenced[1].trim());
     } catch {
-      // Continue
+      try {
+        return JSON.parse(repairJson(fenced[1].trim()));
+      } catch { /* Continue */ }
     }
   }
 
+  // Attempt 3: Brace matching
   const firstBrace = direct.indexOf("{");
   const lastBrace = direct.lastIndexOf("}");
   if (firstBrace >= 0 && lastBrace > firstBrace) {
@@ -579,7 +616,12 @@ const extractJsonCandidate = (content: unknown): Record<string, any> | null => {
     try {
       return JSON.parse(sliced);
     } catch {
-      return null;
+      // Attempt 4: Repair then parse
+      try {
+        return JSON.parse(repairJson(sliced));
+      } catch {
+        return null;
+      }
     }
   }
 
@@ -908,32 +950,30 @@ serve(async (req) => {
       });
     }
 
-    const unusableImageIndex = images.findIndex((img) => !isValidBase64(img.base64));
-    if (unusableImageIndex >= 0) {
-      const unusableImage = images[unusableImageIndex];
-      console.error("[analyze-skin] unusable image payload", {
-        imageCount: images.length,
-        imageIndex: unusableImageIndex,
-        mimeType: unusableImage.mimeType,
-        base64Length: unusableImage.base64?.length ?? 0,
-      });
+    // Gracefully skip bad images instead of failing the whole analysis
+    const validImages = images.filter((img) => {
+      if (!isValidBase64(img.base64)) {
+        console.warn("[analyze-skin] skipping unusable image", { base64Length: img.base64?.length ?? 0, mimeType: img.mimeType });
+        return false;
+      }
+      if (!SUPPORTED_ANALYSIS_MIME_TYPES.has(img.mimeType)) {
+        console.warn("[analyze-skin] skipping unsupported mime type", { mimeType: img.mimeType });
+        return false;
+      }
+      return true;
+    });
+
+    // Only fail if ALL images are bad
+    if (validImages.length === 0) {
       return new Response(
-        JSON.stringify({
-          error: `The backend did not receive usable image data (image ${unusableImageIndex + 1}). Please retake or re-upload in JPG/PNG format.`,
-        }),
+        JSON.stringify({ error: "None of the uploaded images could be processed. Please retake or re-upload in JPG/PNG format." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const unsupportedImage = images.find((img) => !SUPPORTED_ANALYSIS_MIME_TYPES.has(img.mimeType));
-    if (unsupportedImage) {
-      const message = buildUnsupportedFormatMessage(unsupportedImage.mimeType);
-      console.error("[analyze-skin] unsupported mime type", { mimeType: unsupportedImage.mimeType, imageCount: images.length });
-      return new Response(JSON.stringify({ error: message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Replace images with only valid ones
+    images.length = 0;
+    images.push(...validImages);
 
     console.info("[analyze-skin] request received", {
       imageCount: images.length,

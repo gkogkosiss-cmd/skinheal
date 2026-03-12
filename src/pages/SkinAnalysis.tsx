@@ -255,27 +255,11 @@ const SkinAnalysis = () => {
     return payload;
   }, []);
 
-  const getErrorMessage = useCallback((error: unknown, fallback: string) => {
-    const message =
-      error instanceof Error
-        ? error.message
-        : typeof error === "object" && error !== null && "message" in error && typeof (error as { message?: unknown }).message === "string"
-          ? (error as { message: string }).message
-          : fallback;
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
-    if (/unable to process input image|invalid_argument|unsupported image format/i.test(message)) {
-      return "The backend did not receive usable image data. Please retake or re-upload the photo.";
-    }
-
-    if (/images were selected, but no valid images/i.test(message)) {
-      return "Images were selected, but no valid images were sent for analysis.";
-    }
-
-    if (/upload/i.test(message) && /failed/i.test(message)) {
-      return "Image upload completed, but the analysis request failed.";
-    }
-
-    return message || fallback;
+  const getErrorMessage = useCallback((_error: unknown, _fallback: string) => {
+    // Always return a friendly, non-technical message
+    return "Analysis is taking longer than usual. Please try again.";
   }, []);
 
   const processIncomingFiles = useCallback(
@@ -460,6 +444,7 @@ const SkinAnalysis = () => {
     });
 
     setStep("analyzing-photo");
+    setAnalysisError(null);
 
     try {
       const imagesBase64 = await buildAnalysisImagePayload(selectedImages);
@@ -495,8 +480,7 @@ const SkinAnalysis = () => {
       setStep("questions");
     } catch (err: any) {
       console.error("[SkinAnalysis] request failed", { stage: "dynamic-questions", error: err });
-      const message = getErrorMessage(err, "Could not start analysis. Please retry.");
-      toast({ title: "Analysis failed", description: message, variant: "destructive" });
+      setAnalysisError("Analysis is taking longer than usual. Please try again.");
       setStep("upload");
     }
   };
@@ -664,6 +648,9 @@ const SkinAnalysis = () => {
 
     setStep("loading");
     setStreamStep(0);
+    setAnalysisError(null);
+
+    const CLIENT_TIMEOUT_MS = 150000; // 2.5 min client-side timeout
 
     try {
       const imagesBase64 = await buildAnalysisImagePayload(selectedImages);
@@ -674,45 +661,55 @@ const SkinAnalysis = () => {
         answerCount: Object.keys(answers).length,
       });
 
-      const data = await new Promise<any>((resolve, reject) => {
-        streamSkinAnalysis(
-          { imagesBase64, answers },
-          {
-            onProgress: (stepIndex) => {
-              console.info("[SkinAnalysis] stream progress", { stepIndex });
-              setStreamStep(stepIndex);
+      const abortController = new AbortController();
+      const clientTimeout = setTimeout(() => abortController.abort(), CLIENT_TIMEOUT_MS);
+
+      try {
+        const data = await new Promise<any>((resolve, reject) => {
+          streamSkinAnalysis(
+            { imagesBase64, answers },
+            {
+              onProgress: (stepIndex) => {
+                console.info("[SkinAnalysis] stream progress", { stepIndex });
+                setStreamStep(stepIndex);
+              },
+              onComplete: (parsed) => {
+                console.info("[SkinAnalysis] stream complete", {
+                  hasConditions: Array.isArray(parsed?.conditions),
+                  hasBodyArea: Boolean(parsed?.bodyArea),
+                });
+                resolve(parsed);
+              },
+              onError: (error) => {
+                console.error("[SkinAnalysis] stream error", error);
+                reject(error);
+              },
             },
-            onComplete: (parsed) => {
-              console.info("[SkinAnalysis] stream complete", {
-                hasConditions: Array.isArray(parsed?.conditions),
-                hasBodyArea: Boolean(parsed?.bodyArea),
-              });
-              resolve(parsed);
-            },
-            onError: (error) => {
-              console.error("[SkinAnalysis] stream error", error);
-              reject(error);
-            },
-          }
-        );
-      });
+            abortController.signal
+          );
+        });
 
-      if (data?.error) throw new Error(data.error);
+        clearTimeout(clientTimeout);
 
-      const generated = data as AnalysisResult;
-      if (data?.bodyArea) setBodyArea(data.bodyArea);
+        if (data?.error) throw new Error(data.error);
 
-      await saveAnalysis(generated);
+        const generated = data as AnalysisResult;
+        if (data?.bodyArea) setBodyArea(data.bodyArea);
 
-      setResults(generated);
-      setStreamStep(undefined);
-      setStep("results");
-      console.info("[SkinAnalysis] full analysis completed");
-      navigate("/dashboard");
+        await saveAnalysis(generated);
+
+        setResults(generated);
+        setStreamStep(undefined);
+        setStep("results");
+        console.info("[SkinAnalysis] full analysis completed");
+        navigate("/dashboard");
+      } catch (innerErr) {
+        clearTimeout(clientTimeout);
+        throw innerErr;
+      }
     } catch (err: any) {
       console.error("[SkinAnalysis] request failed", { stage: "full-analysis", error: err });
-      const message = getErrorMessage(err, "Analysis could not be completed due to an internal processing issue.");
-      toast({ title: "Analysis failed", description: message, variant: "destructive" });
+      setAnalysisError("Analysis is taking longer than usual. Please try again.");
       setStreamStep(undefined);
       setStep("upload");
     }
@@ -739,6 +736,23 @@ const SkinAnalysis = () => {
           {step === "upload" && (
             <motion.div key="upload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
               <div className="card-elevated">
+                {/* Friendly retry error */}
+                {analysisError && (
+                  <div className="mb-4 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-sm">
+                    <p className="text-foreground font-medium mb-2">{analysisError}</p>
+                    <button
+                      onClick={() => {
+                        setAnalysisError(null);
+                        if (images.length > 0) startAnalysis();
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Try Again
+                    </button>
+                  </div>
+                )}
+
                 {isSelecting && (
                   <div className="mb-4 p-3 rounded-xl bg-secondary text-xs text-muted-foreground flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
