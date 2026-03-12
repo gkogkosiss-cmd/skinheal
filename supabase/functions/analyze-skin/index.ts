@@ -612,13 +612,16 @@ Output order:
 
     // For full analysis with answers, use streaming if requested
     if (answers && shouldStream) {
-      let response: Response;
+      let gatewayResult: GatewayInvokeResult;
       try {
-        response = await createGatewayRequest(LOVABLE_API_KEY, {
-          model: "google/gemini-2.5-pro",
-          messages,
-          stream: true,
-        });
+        gatewayResult = await invokeGatewayWithFallback(
+          LOVABLE_API_KEY,
+          {
+            messages,
+            stream: true,
+          },
+          FULL_ANALYSIS_MODELS
+        );
       } catch (gatewayError) {
         const timedOut = gatewayError instanceof DOMException && gatewayError.name === "AbortError";
         return new Response(
@@ -631,31 +634,17 @@ Output order:
         );
       }
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "AI usage limit reached. Please try again later." }), {
-            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        const rawError = await response.text();
-        const providerMessage = extractGatewayErrorMessage(rawError);
-        console.error("AI gateway error:", response.status, rawError);
+      if (!gatewayResult.ok) {
+        return buildGatewayFailureResponse(gatewayResult.status, gatewayResult.providerMessage);
+      }
 
-        if (response.status === 400 && /unable to process input image|invalid_argument|unsupported/i.test(providerMessage)) {
-          return new Response(
-            JSON.stringify({ error: "The backend did not receive usable image data. Please retake or re-upload in JPG/PNG format.", details: providerMessage }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      const response = gatewayResult.response;
+      console.info("[analyze-skin] streaming via model", { model: gatewayResult.model, messageCount: messages.length });
 
+      if (!response.body) {
         return new Response(
-          JSON.stringify({ error: "Analysis could not be completed due to an internal processing issue.", details: providerMessage }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "Analysis stream could not be opened. Please retry." }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -666,15 +655,18 @@ Output order:
     }
 
     // Non-streaming path (questions step, or full analysis without stream flag)
-    const selectedModel = answers ? "google/gemini-2.5-pro" : "google/gemini-3-flash-preview";
-    console.info("[analyze-skin] calling AI gateway", { model: selectedModel, messageCount: messages.length });
+    const selectedModels = answers ? FULL_ANALYSIS_MODELS : QUESTION_MODELS;
+    console.info("[analyze-skin] calling AI gateway", { modelCandidates: selectedModels, messageCount: messages.length });
 
-    let response: Response;
+    let gatewayResult: GatewayInvokeResult;
     try {
-      response = await createGatewayRequest(LOVABLE_API_KEY, {
-        model: selectedModel,
-        messages,
-      });
+      gatewayResult = await invokeGatewayWithFallback(
+        LOVABLE_API_KEY,
+        {
+          messages,
+        },
+        selectedModels
+      );
     } catch (gatewayError) {
       const timedOut = gatewayError instanceof DOMException && gatewayError.name === "AbortError";
       return new Response(
@@ -687,36 +679,25 @@ Output order:
       );
     }
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI usage limit reached. Please try again later." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const rawError = await response.text();
-      const providerMessage = extractGatewayErrorMessage(rawError);
-      console.error("AI gateway error:", response.status, rawError);
-
-      if (response.status === 400 && /unable to process input image|invalid_argument|unsupported/i.test(providerMessage)) {
+    if (!gatewayResult.ok) {
+      if (!answers && gatewayResult.status === 402) {
+        const fallbackBodyArea = "other";
         return new Response(
-          JSON.stringify({ error: "The backend did not receive usable image data. Please retake or re-upload in JPG/PNG format.", details: providerMessage }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            bodyArea: fallbackBodyArea,
+            visualFeatures: [],
+            dynamicQuestions: normalizeDynamicQuestions([], fallbackBodyArea),
+            warning: "Question fallback mode was used because backend AI usage is temporarily unavailable.",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      return new Response(
-        JSON.stringify({ error: "Analysis could not be completed due to an internal processing issue.", details: providerMessage }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return buildGatewayFailureResponse(gatewayResult.status, gatewayResult.providerMessage);
     }
 
-    const data = await response.json();
+    console.info("[analyze-skin] model selected", { model: gatewayResult.model });
+    const data = await gatewayResult.response.json();
     const content =
       data?.choices?.[0]?.message?.content ??
       data?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments ??
