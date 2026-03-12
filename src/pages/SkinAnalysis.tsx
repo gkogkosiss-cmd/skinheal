@@ -255,27 +255,11 @@ const SkinAnalysis = () => {
     return payload;
   }, []);
 
-  const getErrorMessage = useCallback((error: unknown, fallback: string) => {
-    const message =
-      error instanceof Error
-        ? error.message
-        : typeof error === "object" && error !== null && "message" in error && typeof (error as { message?: unknown }).message === "string"
-          ? (error as { message: string }).message
-          : fallback;
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
-    if (/unable to process input image|invalid_argument|unsupported image format/i.test(message)) {
-      return "The backend did not receive usable image data. Please retake or re-upload the photo.";
-    }
-
-    if (/images were selected, but no valid images/i.test(message)) {
-      return "Images were selected, but no valid images were sent for analysis.";
-    }
-
-    if (/upload/i.test(message) && /failed/i.test(message)) {
-      return "Image upload completed, but the analysis request failed.";
-    }
-
-    return message || fallback;
+  const getErrorMessage = useCallback((_error: unknown, _fallback: string) => {
+    // Always return a friendly, non-technical message
+    return "Analysis is taking longer than usual. Please try again.";
   }, []);
 
   const processIncomingFiles = useCallback(
