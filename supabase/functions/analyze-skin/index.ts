@@ -189,8 +189,8 @@ const createGeminiRequest = async (
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), GATEWAY_TIMEOUT_MS);
 
-  const action = stream ? "streamGenerateContent?alt=sse" : "generateContent";
-  const url = `${GEMINI_API_BASE}/${model}:${action}&key=${apiKey}`;
+  const action = stream ? "streamGenerateContent" : "generateContent";
+  const url = `${GEMINI_API_BASE}/${model}:${action}?${stream ? "alt=sse&" : ""}key=${apiKey}`;
 
   try {
     return await fetch(url, {
