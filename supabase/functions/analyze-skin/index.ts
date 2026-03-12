@@ -344,9 +344,24 @@ serve(async (req) => {
 
 STEP 1: Detect the body area shown (face, forehead, cheeks, chin, neck, back, chest, shoulders, arms, legs, scalp, hands, other).
 
-STEP 2: Identify all visible clinical features — morphology, distribution, inflammation level, barrier signs, pigmentation changes.
+STEP 2: Identify all visible clinical features — morphology, distribution, inflammation level, barrier signs, pigmentation changes. Describe each feature in simple, plain language.
 
-STEP 3: Generate 4-5 highly targeted diagnostic questions based specifically on what you observe and the body area. Questions must meaningfully improve diagnostic accuracy. Include at minimum: one gut/digestion question, one dietary question, one trigger/pattern question.
+STEP 3: Generate exactly 7 dynamic questions, each from a DIFFERENT mandatory category:
+  - Question 1 (q1): GUT/DIGESTION — digestive symptoms, bloating, bowel habits, food reactions
+  - Question 2 (q2): DIET/NUTRITION — eating patterns, sugar, dairy, processed food intake
+  - Question 3 (q3): LIFESTYLE/STRESS — stress levels, sleep quality, daily habits
+  - Question 4 (q4): SKINCARE ROUTINE — current products, washing frequency, moisturizing habits
+  - Question 5 (q5): HORMONAL/CYCLICAL — hormonal changes, menstrual cycle, medications
+  - Question 6 (q6): TRIGGERS/PATTERNS — when it started, what makes it better or worse, seasonal changes
+  - Question 7 (q7): ENVIRONMENT/HABITS — exercise, showering habits, fabric choices, sun exposure, water intake
+
+CRITICAL RULES FOR QUESTIONS:
+- Every question MUST be specific to the detected body area and what is visible in the photo.
+- If showing back/chest/shoulders: ask about showering after exercise, clothing fabrics, backpack use — NOT face-specific questions.
+- If showing face: ask about facial products, pillowcase habits, touching face — NOT body-specific questions.
+- No two questions may overlap in topic. Each must cover completely different ground.
+- Each question must have 3-4 specific, actionable answer options.
+- Questions must feel smart and personalized, like a real specialist is asking them.
 
 Return ONLY bodyArea, visualFeatures, and dynamicQuestions as JSON. No other text.`,
           },
