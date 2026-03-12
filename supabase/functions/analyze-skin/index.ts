@@ -1120,7 +1120,7 @@ MANDATORY REQUIREMENTS:
 
 - The sevenDayMealPlan must have 7 complete different days — no repetition. Every single day must have breakfast, lunch, dinner AND snack fully populated with specific meals. Day 1 is especially important — never leave it empty.
 
-- STRICT PRODUCT RULE: Maximum 1-2 products in the entire analysis. Only mention a product when NO nutritional or lifestyle change can achieve the same result. Every product must specify exact key ingredients (e.g. "a gentle cleanser with ceramides and no sulfates"). Products must always appear AFTER at least 3 nutrition/lifestyle recommendations. This must feel like a functional medicine consultation, not a skincare shopping list.
+- PRODUCT RULE — NON-NEGOTIABLE: ZERO products by default. Maximum 1 product only if condition is severe and no food/supplement/lifestyle change can address it. It must ONLY appear in the Evening Routine. Frame as optional: "Only if needed, look for a product containing [ingredient]." If about to recommend a second product, replace with a nutrition recommendation instead. Skincare products are the last resort.
 
 - Daily checklist must be 7 items ordered by highest impact first. Each item should be a clear one-line action.
 
