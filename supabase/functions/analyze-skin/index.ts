@@ -29,9 +29,13 @@ const buildUnsupportedFormatMessage = (mimeType: string) =>
   `The backend did not receive usable image data. Unsupported image format: ${mimeType}. Please use JPG, PNG, or WEBP.`;
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-const GATEWAY_TIMEOUT_MS = 90000;
+const GATEWAY_TIMEOUT_MS = 120000;
 const QUESTION_MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite"];
 const FULL_ANALYSIS_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash"];
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [1000, 2000, 4000]; // exponential backoff
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const SYSTEM_PROMPT = `You are SkinHeal AI — the world's most advanced skin wellness intelligence system, combining the expertise of a board-certified dermatologist, functional medicine doctor, clinical nutritionist, gut-health researcher, and skin microbiome specialist with 20+ years of combined clinical experience.
 
