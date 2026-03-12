@@ -11,8 +11,8 @@ serve(async (req) => {
 
   try {
     const { messages, systemContext } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
     const systemPrompt = `You are the "SkinHeal AI Coach" — a world-class skin healing mentor who combines the expertise of a top dermatologist, functional medicine doctor, clinical nutritionist, gut-health researcher, and skin microbiome specialist.
 
@@ -69,48 +69,58 @@ Focus areas (prioritize in this order):
 Only recommend skincare products when truly useful and necessary. Always lead with food, gut health, and lifestyle first. When recommending products, explain WHY they work for this specific situation.
 
 ${systemContext || ""}`;
-    const apiMessages = [
-      { role: "system", content: systemPrompt },
-      ...messages.slice(-20),
-    ];
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: apiMessages,
-      }),
-    });
+    // Build Gemini API payload
+    const contents: any[] = [];
+    const recentMessages = messages.slice(-20);
+    for (const msg of recentMessages) {
+      contents.push({
+        role: msg.role === "assistant" ? "model" : "user",
+        parts: [{ text: msg.content }],
+      });
+    }
 
-    if (!response.ok) {
+    const geminiPayload = {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents,
+      generationConfig: { temperature: 0.7, topP: 0.95 },
+    };
+
+    const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
+    let lastError = "";
+
+    for (const model of MODELS) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(geminiPayload),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        let reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response.";
+        reply = reply.replace(/\*/g, "");
+
+        return new Response(JSON.stringify({ reply }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      lastError = await response.text();
+      
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI usage limit reached." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI response failed");
+
+      console.warn(`[ai-coach] ${model} failed (${response.status}), trying next...`);
     }
 
-    const data = await response.json();
-    let reply = data.choices?.[0]?.message?.content || "I couldn't generate a response.";
-    
-    // Strip any asterisks that may have slipped through
-    reply = reply.replace(/\*/g, "");
-
-    return new Response(JSON.stringify({ reply }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("[ai-coach] all models failed:", lastError.substring(0, 300));
+    throw new Error("AI response failed");
   } catch (e) {
     console.error("ai-coach error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
