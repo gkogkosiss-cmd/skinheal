@@ -387,19 +387,26 @@ Return the complete JSON with ALL fields. Make this analysis genuinely life-chan
     }
 
     // Non-streaming path (questions step, or full analysis without stream flag)
-    console.info("[analyze-skin] calling AI gateway", { model: answers ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash", messageCount: messages.length });
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: answers ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash",
+    const selectedModel = answers ? "google/gemini-2.5-pro" : "google/gemini-3-flash-preview";
+    console.info("[analyze-skin] calling AI gateway", { model: selectedModel, messageCount: messages.length });
+
+    let response: Response;
+    try {
+      response = await createGatewayRequest(LOVABLE_API_KEY, {
+        model: selectedModel,
         messages,
-        response_format: { type: "json_object" },
-      }),
-    });
+      });
+    } catch (gatewayError) {
+      const timedOut = gatewayError instanceof DOMException && gatewayError.name === "AbortError";
+      return new Response(
+        JSON.stringify({
+          error: timedOut
+            ? "Analysis took too long to start. Please retry with 1-2 clear photos."
+            : "Analysis could not be started due to a temporary backend issue.",
+        }),
+        { status: timedOut ? 504 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!response.ok) {
       if (response.status === 429) {
