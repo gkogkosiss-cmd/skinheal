@@ -51,7 +51,7 @@ CORE PRINCIPLES:
 
 - Explain complex biology in clear, human language — educate, don't overwhelm.
 
-- Minimize product recommendations. Prioritize nutrition, gut health, sleep, and lifestyle first.
+- STRICT PRODUCT RULE: Only mention a product if there is absolutely NO nutritional or lifestyle alternative that achieves the same result. Maximum 1-2 products in the ENTIRE analysis. Every product must specify exact key ingredients to look for (e.g. "a gentle cleanser with ceramides and no sulfates"). Products must always appear AFTER at least 3 nutrition or lifestyle recommendations. The analysis must feel like a functional medicine consultation, not a skincare shopping list.
 
 - Never use the asterisk symbol anywhere in output.
 
@@ -740,16 +740,61 @@ const normalizeFullAnalysisFormatting = (parsed: Record<string, any>) => {
   healingProtocol.morningRoutine = normalizeRoutineSteps(healingProtocol.morningRoutine);
   healingProtocol.eveningRoutine = normalizeRoutineSteps(healingProtocol.eveningRoutine);
 
+  const DEFAULT_MEALS: Record<string, { breakfast: string; lunch: string; dinner: string; snack: string }> = {
+    "Day 1": {
+      breakfast: "Anti-inflammatory smoothie bowl with frozen wild blueberries, spinach, ground flaxseed, walnuts, and unsweetened almond milk — rich in anthocyanins and omega-3s that calm NF-kB driven inflammation",
+      lunch: "Grilled wild salmon over mixed greens with avocado, cucumber, cherry tomatoes, pumpkin seeds, and extra-virgin olive oil — EPA/DHA directly suppress pro-inflammatory cytokines",
+      dinner: "Bone broth soup with turmeric, ginger, garlic, zucchini, and shredded organic chicken — glutamine and collagen peptides support intestinal barrier repair",
+      snack: "Handful of raw almonds with a small green apple — vitamin E protects skin cell membranes from oxidative damage",
+    },
+    "Day 2": {
+      breakfast: "Overnight oats with chia seeds, cinnamon, sliced banana, and a drizzle of raw honey — soluble fiber feeds beneficial Bifidobacterium strains",
+      lunch: "Turkey and avocado lettuce wraps with shredded carrot, red cabbage, and tahini dressing — zinc from turkey supports immune regulation",
+      dinner: "Baked cod with roasted sweet potato, steamed broccoli, and lemon-herb dressing — beta-carotene from sweet potato converts to retinol for skin cell turnover",
+      snack: "Celery sticks with almond butter — prebiotic fiber supports gut microbiome diversity",
+    },
+    "Day 3": {
+      breakfast: "Scrambled eggs with sauteed spinach, mushrooms, and a quarter avocado on gluten-free toast — choline from eggs supports liver detoxification pathways",
+      lunch: "Quinoa bowl with roasted chickpeas, roasted red pepper, kale, and lemon-tahini dressing — complete amino acid profile for collagen synthesis",
+      dinner: "Grass-fed beef stir-fry with bok choy, snap peas, ginger, garlic, and coconut aminos over cauliflower rice — bioavailable zinc and iron for skin repair",
+      snack: "Fresh berries with a small handful of walnuts — ellagic acid from berries protects against UV-induced collagen breakdown",
+    },
+    "Day 4": {
+      breakfast: "Green smoothie with kale, frozen mango, ginger, turmeric, coconut water, and a scoop of collagen peptides — curcumin inhibits NF-kB and reduces systemic inflammation",
+      lunch: "Sardines on gluten-free crackers with arugula, cherry tomatoes, and olive oil — one of the richest sources of anti-inflammatory omega-3s",
+      dinner: "Slow-cooked chicken thighs with roasted root vegetables (parsnips, carrots, beets) and fresh rosemary — diverse polyphenols support gut lining integrity",
+      snack: "Sliced cucumber with hummus — silica from cucumber supports connective tissue and skin elasticity",
+    },
+    "Day 5": {
+      breakfast: "Buckwheat pancakes topped with fresh strawberries, a drizzle of pure maple syrup, and hemp seeds — rutin from buckwheat strengthens capillaries and reduces redness",
+      lunch: "Large mixed salad with grilled chicken, walnuts, dried cranberries, fennel, and apple cider vinegar dressing — ACV supports stomach acid production for better nutrient absorption",
+      dinner: "Wild-caught shrimp with zucchini noodles, cherry tomatoes, basil, and garlic in olive oil — astaxanthin from shrimp is a potent antioxidant that reduces UV damage",
+      snack: "A small portion of dark chocolate (85%+) with a few Brazil nuts — selenium from Brazil nuts supports glutathione production",
+    },
+    "Day 6": {
+      breakfast: "Savory oatmeal bowl with a poached egg, sauteed kale, nutritional yeast, and pumpkin seeds — B vitamins from nutritional yeast support skin cell metabolism",
+      lunch: "Lentil soup with carrots, celery, turmeric, and a side of fermented sauerkraut — prebiotic fiber from lentils feeds beneficial gut bacteria",
+      dinner: "Baked salmon with asparagus, roasted garlic, and a side of kimchi — probiotic-rich fermented foods restore microbial diversity in the gut-skin axis",
+      snack: "Frozen grapes with a small handful of macadamia nuts — resveratrol from grapes activates SIRT1 pathway for cellular repair",
+    },
+    "Day 7": {
+      breakfast: "Coconut yogurt parfait with granola, mixed berries, ground flaxseed, and a drizzle of manuka honey — lauric acid from coconut has antimicrobial properties",
+      lunch: "Mediterranean bowl with falafel, tabbouleh, hummus, cucumber, and olives over mixed greens — polyphenols from olive oil reduce oxidative stress markers",
+      dinner: "Herb-crusted chicken breast with roasted Brussels sprouts, sweet potato mash, and bone broth gravy — sulforaphane from Brussels sprouts activates Nrf2 detoxification pathway",
+      snack: "Rice cakes with mashed avocado and everything bagel seasoning — monounsaturated fats from avocado support skin barrier lipid production",
+    },
+  };
+
   const mealPlan = Array.isArray(healingProtocol.sevenDayMealPlan) ? healingProtocol.sevenDayMealPlan : [];
   healingProtocol.sevenDayMealPlan = Array.from({ length: 7 }, (_, index) => {
+    const dayLabel = `Day ${index + 1}`;
     const source = mealPlan[index] && typeof mealPlan[index] === "object" ? mealPlan[index] : {};
-    return {
-      day: `Day ${index + 1}`,
-      breakfast: safeString((source as any).breakfast),
-      lunch: safeString((source as any).lunch),
-      dinner: safeString((source as any).dinner),
-      snack: safeString((source as any).snack),
-    };
+    const defaults = DEFAULT_MEALS[dayLabel] || DEFAULT_MEALS["Day 1"];
+    const breakfast = safeString((source as any).breakfast) || defaults.breakfast;
+    const lunch = safeString((source as any).lunch) || defaults.lunch;
+    const dinner = safeString((source as any).dinner) || defaults.dinner;
+    const snack = safeString((source as any).snack) || defaults.snack;
+    return { day: dayLabel, breakfast, lunch, dinner, snack };
   });
 
   const gutPlan = Array.isArray(healingProtocol.sevenDayGutPlan) ? healingProtocol.sevenDayGutPlan : [];
@@ -1003,19 +1048,19 @@ STEP 1: Detect the exact body area shown (face, forehead, cheeks, chin, neck, ba
 
 STEP 2: Identify all visible clinical features — exact morphology type, distribution pattern, inflammation level, barrier integrity signs, pigmentation changes, sebaceous activity, scarring if present.
 
-STEP 3: Generate exactly 5 diagnostic questions. Each must cover a completely different category with zero overlap:
+STEP 3: Generate exactly 5 diagnostic questions. Each must be HYPER-SPECIFIC to the visual findings in this exact photo. Follow these rules:
 
-- Question 1: gut/digestion (bloating, bowel regularity, digestive symptoms)
+- Question 1 (Gut/Digestion): Ask about gut symptoms that are DIRECTLY linked to the specific condition pattern you see. If you see inflammatory papules, ask about post-meal bloating specifically. If you see widespread redness, ask about food-triggered flushing episodes.
 
-- Question 2: dietary pattern (dairy, sugar, processed food frequency)
+- Question 2 (Diet): Ask about the specific dietary triggers most associated with the detected morphology. If you see comedonal acne, ask about dairy and high-glycemic food frequency. If you see eczema-like patches, ask about gluten and nightshade consumption.
 
-- Question 3: hormonal or stress pattern (cycle, stress, cortisol signs)
+- Question 3 (Hormonal/Stress): Tailor to the distribution pattern. Jawline/chin concentration — ask about menstrual cycle flare patterns and specific cycle days. Forehead — ask about stress-eating and sleep disruption. Widespread — ask about cortisol and anxiety levels.
 
-- Question 4: current skincare routine (products, cleansing frequency, actives used)
+- Question 4 (Skincare): Ask about behaviors that could CAUSE what you see. If barrier damage is visible (flaking, tightness, redness) — ask about hot shower temperature and foaming cleansers. If fungal-pattern bumps — ask about occlusive products. If PIH/PIE — ask about picking habits.
 
-- Question 5: lifestyle trigger specific to what is visible (sweating, friction, sleep, environment)
+- Question 5 (Lifestyle): Ask about the ONE lifestyle factor most likely contributing to this specific presentation. Monomorphic bumps on trunk — ask about sweating in tight synthetic clothing. Perioral pattern — ask about fluoride toothpaste and mask wearing. Forehead comedones — ask about hat wearing and hair product use.
 
-Each question must feel like it was written by a dermatologist who personally examined the photo. Never ask generic questions.
+Each question MUST make the user think "how did it know to ask that?" — the question should reveal clinical insight about their specific photo. NEVER use generic phrasing like "how is your skin" or "do you have skin concerns".
 
 Return ONLY bodyArea, visualFeatures, and dynamicQuestions as JSON. No other text.`,
           },
@@ -1055,11 +1100,11 @@ MANDATORY REQUIREMENTS:
 
 - All 7 root causes must be explored deeply with specific mechanisms
 
-- The sevenDayMealPlan must have 7 complete different days — no repetition
+- The sevenDayMealPlan must have 7 complete different days — no repetition. Every single day must have breakfast, lunch, dinner AND snack fully populated with specific meals. Day 1 is especially important — never leave it empty.
 
-- The sevenDayGutPlan must be progressive and specific
+- STRICT PRODUCT RULE: Maximum 1-2 products in the entire analysis. Only mention a product when NO nutritional or lifestyle change can achieve the same result. Every product must specify exact key ingredients (e.g. "a gentle cleanser with ceramides and no sulfates"). Products must always appear AFTER at least 3 nutrition/lifestyle recommendations. This must feel like a functional medicine consultation, not a skincare shopping list.
 
-- Daily checklist must be 7 items ordered by highest impact first
+- Daily checklist must be 7 items ordered by highest impact first. Each item should be a clear one-line action.
 
 - Never use the asterisk symbol anywhere
 
