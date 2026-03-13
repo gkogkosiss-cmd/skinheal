@@ -12,6 +12,7 @@ const sections = [
       "Keep a consistent bedtime each night — even weekends. It regulates melatonin and speeds skin repair.",
       "Dark, cool room — no screens 1hr before bed. Blue light disrupts deep sleep cycles.",
     ],
+    proTip: "Pro tip: Magnesium glycinate before bed deepens sleep and supports skin repair.",
   },
   {
     icon: Brain,
@@ -21,6 +22,7 @@ const sections = [
       "Box breathe: 4 in, 4 hold, 6 out. Do it for 2 minutes to instantly lower cortisol.",
       "10-minute outdoor walk daily — nature and movement together drop stress hormones fast.",
     ],
+    proTip: "Pro tip: Chronic stress raises cortisol, which directly triggers breakouts and flares.",
   },
   {
     icon: Dumbbell,
@@ -30,6 +32,7 @@ const sections = [
       "20–30 min moderate movement most days. Boosts circulation, delivering nutrients directly to skin cells.",
       "Shower soon after sweating to prevent clogged pores and bacterial buildup on skin.",
     ],
+    proTip: "Pro tip: Sweating helps flush toxins through the skin — hydrate well after.",
   },
   {
     icon: Sun,
@@ -39,6 +42,7 @@ const sections = [
       "10–15 min morning sun for vitamin D — essential for skin barrier repair and immune balance.",
       "Mineral SPF 30+ on affected areas daily. UV exposure worsens inflammation and post-acne marks.",
     ],
+    proTip: "Pro tip: Morning light before 10am also regulates cortisol and improves mood.",
   },
 ];
 
@@ -74,6 +78,7 @@ const Lifestyle = () => {
                     </li>
                   ))}
                 </ul>
+                <p className="mt-3 text-xs italic text-primary/60">{s.proTip}</p>
               </motion.div>
             ))}
           </div>
