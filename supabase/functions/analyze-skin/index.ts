@@ -30,8 +30,8 @@ const buildUnsupportedFormatMessage = (mimeType: string) =>
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const GATEWAY_TIMEOUT_MS = 120000;
-const QUESTION_MODELS = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"];
-const FULL_ANALYSIS_MODELS = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"];
+const QUESTION_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+const FULL_ANALYSIS_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // exponential backoff
 
@@ -488,24 +488,27 @@ const invokeGeminiWithFallback = async (
       try {
         response = await createGeminiRequest(apiKey, model, payload, stream);
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          throw error;
-        }
+        const isTimeoutAbort = error instanceof DOMException && error.name === "AbortError";
+        const reason = isTimeoutAbort
+          ? `Request timed out after ${GATEWAY_TIMEOUT_MS}ms`
+          : error instanceof Error
+            ? error.message
+            : String(error);
 
-        const canRetry = index < safeModels.length - 1;
-        if (canRetry) {
+        const canFallback = index < safeModels.length - 1;
+        if (canFallback) {
           console.warn("[analyze-skin] Gemini request failed, trying fallback model", {
             failedModel: model,
             nextModel: safeModels[index + 1],
-            reason: error instanceof Error ? error.message : String(error),
+            reason,
           });
           continue;
         }
 
         lastResult = {
           ok: false,
-          status: 500,
-          providerMessage: error instanceof Error ? error.message : "Gemini request failed",
+          status: isTimeoutAbort ? 504 : 500,
+          providerMessage: reason,
           model,
         };
         break; // break inner loop, will retry
@@ -556,11 +559,23 @@ const invokeGeminiWithFallback = async (
 };
 
 const buildGatewayFailureResponse = (status: number, providerMessage: string) => {
+  console.error("[analyze-skin] gateway failure", {
+    status,
+    providerMessage: providerMessage?.substring(0, 500),
+  });
+
   if (status === 429) {
     return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
       status: 429,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  if (status === 504) {
+    return new Response(
+      JSON.stringify({ error: "Analysis timed out while generating results. Please retry with 1-2 clear photos." }),
+      { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   if (status === 400 && /unable to process input image|invalid_argument|unsupported/i.test(providerMessage)) {
@@ -572,7 +587,7 @@ const buildGatewayFailureResponse = (status: number, providerMessage: string) =>
 
   return new Response(
     JSON.stringify({ error: "Analysis could not be completed due to an internal processing issue.", details: providerMessage }),
-    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    { status: status >= 400 && status < 600 ? status : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
 };
 
