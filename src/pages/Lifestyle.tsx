@@ -52,10 +52,10 @@ const Lifestyle = () => {
       <PremiumGate featureName="Lifestyle Guidance">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <p className="text-sm text-primary font-medium mb-1">Lifestyle</p>
-          <h1 className="font-serif text-3xl md:text-4xl mb-2">Lifestyle Factors</h1>
-          <p className="text-muted-foreground mb-10">Daily habits that support skin healing.</p>
+          <h1 className="font-serif mb-2">Lifestyle Factors</h1>
+          <p className="text-muted-foreground mb-8 sm:mb-10">Daily habits that support skin healing.</p>
 
-          <div className="grid sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             {sections.map((s, i) => (
               <motion.div
                 key={s.title}
@@ -70,11 +70,11 @@ const Lifestyle = () => {
                 </div>
                 <h3 className="font-serif text-lg mb-0.5">{s.title}</h3>
                 <p className="text-xs text-muted-foreground mb-4">{s.subtitle}</p>
-                <ul className="space-y-2">
+                <ul className="space-y-2.5">
                   {s.points.map((p, j) => (
-                    <li key={j} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                    <li key={j} className="flex items-start gap-2.5 text-sm text-muted-foreground leading-relaxed">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                      {p}
+                      <span className="min-w-0">{p}</span>
                     </li>
                   ))}
                 </ul>
@@ -83,7 +83,7 @@ const Lifestyle = () => {
             ))}
           </div>
 
-          <div className="flex items-start gap-2 mt-10 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
+          <div className="flex items-start gap-2 mt-8 sm:mt-10 p-4 rounded-xl bg-secondary text-xs text-muted-foreground">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <p>Educational information, not medical advice.</p>
           </div>
