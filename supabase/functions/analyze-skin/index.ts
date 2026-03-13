@@ -103,7 +103,46 @@ OUTPUT JSON — return exactly this structure:
     "foodsToEat": [{"food": "Name", "reason": "Mechanism"}],
     "foodsToAvoid": [{"food": "Name", "reason": "Mechanism"}],
     "mealTemplate": {"breakfast": "meal", "lunch": "meal", "dinner": "meal", "snack": "snack"},
-    "sevenDayMealPlan": [{"day": "Day 1", "breakfast": "meal", "lunch": "meal", "dinner": "meal", "snack": "snack"}],
+    "sevenDayMealPlan": [
+      {
+        "day": "Day 1",
+        "breakfast": {
+          "name": "Anti-Inflammatory Smoothie Bowl",
+          "description": "Antioxidant-rich blend to reduce morning inflammation",
+          "ingredients": [
+            {"name": "Wild Blueberries", "amount": "1 cup", "benefit": "Anthocyanins inhibit NF-kB inflammatory pathway"},
+            {"name": "Spinach", "amount": "2 handfuls", "benefit": "Folate and iron support skin cell turnover"},
+            {"name": "Flaxseed", "amount": "1 tbsp", "benefit": "ALA omega-3 reduces inflammatory eicosanoids"}
+          ]
+        },
+        "lunch": {
+          "name": "Grilled Salmon Power Bowl",
+          "description": "Omega-3 rich meal to calm active skin inflammation",
+          "ingredients": [
+            {"name": "Wild Salmon", "amount": "150g", "benefit": "EPA/DHA suppress IL-1β and TNF-α cytokines"},
+            {"name": "Brown Rice", "amount": "1 cup", "benefit": "Low-GI carb prevents insulin spikes that trigger sebum"},
+            {"name": "Avocado", "amount": "1/2", "benefit": "Oleic acid strengthens skin lipid barrier"}
+          ]
+        },
+        "dinner": {
+          "name": "Turmeric Bone Broth Soup",
+          "description": "Gut-healing evening meal for overnight skin repair",
+          "ingredients": [
+            {"name": "Bone Broth", "amount": "2 cups", "benefit": "Collagen peptides and glycine support skin matrix repair"},
+            {"name": "Turmeric", "amount": "1 tsp", "benefit": "Curcumin inhibits COX-2 inflammatory enzyme"},
+            {"name": "Ginger", "amount": "1 inch", "benefit": "Gingerols reduce oxidative stress in dermal tissue"}
+          ]
+        },
+        "snack": {
+          "name": "Omega Trail Mix",
+          "description": "Anti-inflammatory fats for sustained skin nourishment",
+          "ingredients": [
+            {"name": "Raw Almonds", "amount": "1/4 cup", "benefit": "Vitamin E protects cell membranes from UV oxidation"},
+            {"name": "Green Apple", "amount": "1 small", "benefit": "Quercetin stabilizes mast cells that trigger histamine"}
+          ]
+        }
+      }
+    ],
     "mealPlanPrinciples": ["principle"],
     "commonTriggerFoods": [{"food": "Name", "approach": "Protocol"}],
     "hydrationGuidance": "Strategy",

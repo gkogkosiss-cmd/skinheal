@@ -35,12 +35,24 @@ export interface GutDayPlan {
   focus: string;
 }
 
+export interface MealIngredient {
+  name: string;
+  amount: string;
+  benefit: string;
+}
+
+export interface MealDetail {
+  name: string;
+  description: string;
+  ingredients: MealIngredient[];
+}
+
 export interface MealPlanDay {
   day: string;
-  breakfast: string;
-  lunch: string;
-  dinner: string;
-  snack: string;
+  breakfast: string | MealDetail;
+  lunch: string | MealDetail;
+  dinner: string | MealDetail;
+  snack: string | MealDetail;
 }
 
 export interface HealingProtocolData {
