@@ -31,9 +31,9 @@ const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models
 const PER_MODEL_TIMEOUT_MS = 15000;
 const GATEWAY_TIMEOUT_MS = 120000;
 
-// Flash-first model chains for speed
-const QUESTION_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
-const FULL_ANALYSIS_MODELS = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite"];
+// Pro-first model chains for quality, flash as fallback
+const QUESTION_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+const FULL_ANALYSIS_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
 
 const MAX_RETRIES = 2;
 const RETRY_DELAYS = [1000, 2000];
