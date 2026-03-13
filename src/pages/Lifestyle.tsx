@@ -27,8 +27,8 @@ const sections = [
     title: "Exercise",
     subtitle: "Simple, realistic movement",
     points: [
-      "20–30 min moderate movement most days",
-      "Shower soon after sweating",
+      "20–30 min moderate movement most days. Boosts circulation, delivering nutrients directly to skin cells.",
+      "Shower soon after sweating to prevent clogged pores and bacterial buildup on skin.",
     ],
   },
   {
