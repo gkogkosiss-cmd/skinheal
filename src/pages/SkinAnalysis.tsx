@@ -693,8 +693,8 @@ const SkinAnalysis = () => {
     }
   };
 
-  const totalQuestions = dynamicQuestions.length + healthQuestions.length;
-  const currentTotal = step === "questions" ? currentQ : step === "health-questions" ? dynamicQuestions.length + healthQ : 0;
+  const totalQuestions = dynamicQuestions.length;
+  const currentTotal = step === "questions" ? currentQ : 0;
 
   const easeSmooth = [0.22, 1, 0.36, 1] as const;
 
