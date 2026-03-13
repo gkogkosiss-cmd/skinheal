@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
-import { type MealPlanDay } from "@/hooks/useAnalysis";
+import { type MealPlanDay, type MealDetail } from "@/hooks/useAnalysis";
 
 const mealIcons: Record<string, string> = {
   Breakfast: "🌅",
@@ -10,79 +10,90 @@ const mealIcons: Record<string, string> = {
   Snack: "🍎",
 };
 
-/** Extract a short meal name and ingredient tags from a meal string */
-const parseMeal = (meal: string | undefined): { name: string; ingredients: string[] } => {
-  if (!meal) return { name: "", ingredients: [] };
+/** Check if a meal value is the new structured format */
+const isStructured = (meal: string | MealDetail | undefined): meal is MealDetail =>
+  typeof meal === "object" && meal !== null && "name" in meal;
 
-  // Try to split on " with " or " — " or ": " to get name vs ingredients
-  const separators = [" with ", " — ", ": ", " - topped with ", " topped with "];
-  let name = meal;
-  let rest = "";
-
+/** For legacy string meals, extract a name */
+const legacyParseName = (meal: string): string => {
+  const separators = [" with ", " — ", ": "];
   for (const sep of separators) {
     const idx = meal.toLowerCase().indexOf(sep.toLowerCase());
-    if (idx > 0) {
-      name = meal.slice(0, idx).trim();
-      rest = meal.slice(idx + sep.length).trim();
-      break;
-    }
+    if (idx > 0) return meal.slice(0, idx).trim();
   }
-
-  // Parse ingredients from the rest, or from the full string if no separator found
-  const ingredientSource = rest || meal;
-  const ingredients = ingredientSource
-    .split(/[,;]|\band\b/gi)
-    .map((s) => s.trim().replace(/^(with|on|in|over|served)\s+/i, ""))
-    .filter((s) => s.length > 1 && s.length < 40)
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1));
-
-  // If name equals the full meal and we got ingredients, use first ingredient-ish as name
-  if (name === meal && ingredients.length > 1) {
-    name = ingredients[0];
-    return { name, ingredients: ingredients.slice(1) };
-  }
-
-  return { name, ingredients: rest ? ingredients : [] };
+  return meal.length > 35 ? meal.slice(0, 35) + "…" : meal;
 };
 
-/** Generate a short preview string from a day's meals */
+/** Generate preview text for collapsed day card */
 const getDayPreview = (day: MealPlanDay): string => {
   const meals = [day.breakfast, day.lunch, day.dinner].filter(Boolean);
-  const names = meals.map((m) => {
-    const { name } = parseMeal(m);
-    // Truncate long names
-    return name.length > 20 ? name.slice(0, 20) + "…" : name;
-  });
-  return names.join(" · ");
+  return meals
+    .map((m) => {
+      if (isStructured(m)) return m.name;
+      if (typeof m === "string") return legacyParseName(m);
+      return "";
+    })
+    .filter(Boolean)
+    .map((n) => (n.length > 22 ? n.slice(0, 22) + "…" : n))
+    .join(" · ");
 };
 
-const IngredientPill = ({ label }: { label: string }) => (
-  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#528164]/10 text-[#528164] whitespace-nowrap">
-    {label}
-  </span>
+const IngredientRow = ({ name, amount, benefit }: { name: string; amount: string; benefit: string }) => (
+  <div className="py-2.5 first:pt-0">
+    <div className="flex items-baseline gap-2 flex-wrap">
+      <span className="font-semibold text-sm text-foreground">{name}</span>
+      {amount && (
+        <span className="text-xs text-muted-foreground/70">· {amount}</span>
+      )}
+    </div>
+    {benefit && (
+      <p className="text-[11px] italic leading-relaxed mt-0.5" style={{ color: "#528164" }}>
+        {benefit}
+      </p>
+    )}
+  </div>
 );
 
-const MealSection = ({ type, value }: { type: string; value?: string }) => {
+const MealSection = ({ type, value }: { type: string; value?: string | MealDetail }) => {
   if (!value) return null;
-  const { name, ingredients } = parseMeal(value);
   const icon = mealIcons[type] || "🍽️";
 
+  if (isStructured(value)) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-base leading-none">{icon}</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#528164" }}>
+            {type}
+          </span>
+        </div>
+        <div className="pl-7">
+          <p className="font-semibold text-sm text-foreground">{value.name}</p>
+          {value.description && (
+            <p className="text-xs italic text-muted-foreground mt-0.5">{value.description}</p>
+          )}
+          {value.ingredients.length > 0 && (
+            <div className="mt-3 divide-y divide-border/50">
+              {value.ingredients.map((ing, i) => (
+                <IngredientRow key={i} name={ing.name} amount={ing.amount} benefit={ing.benefit} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Legacy string format fallback
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <span className="text-base leading-none">{icon}</span>
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#528164]">
+        <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#528164" }}>
           {type}
         </span>
       </div>
-      <p className="font-medium text-sm text-foreground pl-7">{name}</p>
-      {ingredients.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 pl-7">
-          {ingredients.map((ing, i) => (
-            <IngredientPill key={i} label={ing} />
-          ))}
-        </div>
-      )}
+      <p className="text-sm text-foreground pl-7">{value}</p>
     </div>
   );
 };
@@ -101,7 +112,7 @@ export const SevenDayMealPlan = ({ mealPlan, principles }: Props) => {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#528164]/10 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "rgba(82, 129, 100, 0.1)" }}>
           <span className="text-lg">📅</span>
         </div>
         <div>
@@ -114,17 +125,14 @@ export const SevenDayMealPlan = ({ mealPlan, principles }: Props) => {
 
       {/* Principles */}
       {principles && principles.length > 0 && (
-        <div className="p-4 rounded-xl bg-[#528164]/5 border border-[#528164]/10">
-          <p className="text-[11px] font-semibold text-[#528164] uppercase tracking-wider mb-2">
+        <div className="p-4 rounded-xl border" style={{ backgroundColor: "rgba(82, 129, 100, 0.04)", borderColor: "rgba(82, 129, 100, 0.1)" }}>
+          <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#528164" }}>
             Key Principles
           </p>
           <ul className="space-y-1.5">
             {principles.map((p, i) => (
-              <li
-                key={i}
-                className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed"
-              >
-                <span className="text-[#528164] shrink-0 mt-px">•</span>
+              <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
+                <span className="shrink-0 mt-px" style={{ color: "#528164" }}>•</span>
                 <span>{p}</span>
               </li>
             ))}
@@ -142,24 +150,32 @@ export const SevenDayMealPlan = ({ mealPlan, principles }: Props) => {
           return (
             <div
               key={i}
-              className={`rounded-2xl bg-card shadow-[0_1px_8px_-2px_hsl(30_10%_15%/0.06)] overflow-hidden transition-all duration-300 ${
+              className={`rounded-2xl bg-card overflow-hidden transition-all duration-300 ${
                 isExpanded
-                  ? "border-l-[3px] border-l-[#528164] border-t border-r border-b border-border"
+                  ? "border-t border-r border-b border-border"
                   : "border border-border"
               }`}
+              style={{
+                boxShadow: "0 1px 8px -2px hsl(30 10% 15% / 0.05)",
+                borderLeftWidth: isExpanded ? "3px" : undefined,
+                borderLeftColor: isExpanded ? "#528164" : undefined,
+              }}
             >
               <button
                 onClick={() => setExpandedDay(isExpanded ? null : i)}
                 className="w-full flex items-center justify-between p-4 sm:p-5 hover:bg-muted/20 transition-colors text-left"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="w-8 h-8 rounded-lg bg-[#528164]/10 flex items-center justify-center text-xs font-bold text-[#528164] shrink-0">
+                  <span
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
+                    style={{ backgroundColor: "rgba(82, 129, 100, 0.1)", color: "#528164" }}
+                  >
                     {i + 1}
                   </span>
                   <div className="min-w-0">
                     <span className="font-medium text-sm block">{dayLabel}</span>
                     {!isExpanded && preview && (
-                      <span className="text-[11px] text-muted-foreground block truncate mt-0.5 max-w-[260px] sm:max-w-[400px]">
+                      <span className="text-[11px] text-muted-foreground block truncate mt-0.5 max-w-[240px] sm:max-w-[400px]">
                         {preview}
                       </span>
                     )}
@@ -181,7 +197,7 @@ export const SevenDayMealPlan = ({ mealPlan, principles }: Props) => {
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="px-4 sm:px-5 pb-5 space-y-5">
+                    <div className="px-4 sm:px-5 pb-5 space-y-6">
                       <div className="h-px bg-border" />
                       <MealSection type="Breakfast" value={day.breakfast} />
                       <MealSection type="Lunch" value={day.lunch} />

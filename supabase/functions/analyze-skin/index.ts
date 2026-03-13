@@ -103,7 +103,46 @@ OUTPUT JSON — return exactly this structure:
     "foodsToEat": [{"food": "Name", "reason": "Mechanism"}],
     "foodsToAvoid": [{"food": "Name", "reason": "Mechanism"}],
     "mealTemplate": {"breakfast": "meal", "lunch": "meal", "dinner": "meal", "snack": "snack"},
-    "sevenDayMealPlan": [{"day": "Day 1", "breakfast": "meal", "lunch": "meal", "dinner": "meal", "snack": "snack"}],
+    "sevenDayMealPlan": [
+      {
+        "day": "Day 1",
+        "breakfast": {
+          "name": "Anti-Inflammatory Smoothie Bowl",
+          "description": "Antioxidant-rich blend to reduce morning inflammation",
+          "ingredients": [
+            {"name": "Wild Blueberries", "amount": "1 cup", "benefit": "Anthocyanins inhibit NF-kB inflammatory pathway"},
+            {"name": "Spinach", "amount": "2 handfuls", "benefit": "Folate and iron support skin cell turnover"},
+            {"name": "Flaxseed", "amount": "1 tbsp", "benefit": "ALA omega-3 reduces inflammatory eicosanoids"}
+          ]
+        },
+        "lunch": {
+          "name": "Grilled Salmon Power Bowl",
+          "description": "Omega-3 rich meal to calm active skin inflammation",
+          "ingredients": [
+            {"name": "Wild Salmon", "amount": "150g", "benefit": "EPA/DHA suppress IL-1β and TNF-α cytokines"},
+            {"name": "Brown Rice", "amount": "1 cup", "benefit": "Low-GI carb prevents insulin spikes that trigger sebum"},
+            {"name": "Avocado", "amount": "1/2", "benefit": "Oleic acid strengthens skin lipid barrier"}
+          ]
+        },
+        "dinner": {
+          "name": "Turmeric Bone Broth Soup",
+          "description": "Gut-healing evening meal for overnight skin repair",
+          "ingredients": [
+            {"name": "Bone Broth", "amount": "2 cups", "benefit": "Collagen peptides and glycine support skin matrix repair"},
+            {"name": "Turmeric", "amount": "1 tsp", "benefit": "Curcumin inhibits COX-2 inflammatory enzyme"},
+            {"name": "Ginger", "amount": "1 inch", "benefit": "Gingerols reduce oxidative stress in dermal tissue"}
+          ]
+        },
+        "snack": {
+          "name": "Omega Trail Mix",
+          "description": "Anti-inflammatory fats for sustained skin nourishment",
+          "ingredients": [
+            {"name": "Raw Almonds", "amount": "1/4 cup", "benefit": "Vitamin E protects cell membranes from UV oxidation"},
+            {"name": "Green Apple", "amount": "1 small", "benefit": "Quercetin stabilizes mast cells that trigger histamine"}
+          ]
+        }
+      }
+    ],
     "mealPlanPrinciples": ["principle"],
     "commonTriggerFoods": [{"food": "Name", "approach": "Protocol"}],
     "hydrationGuidance": "Strategy",
@@ -442,49 +481,219 @@ const normalizeFullAnalysisFormatting = (parsed: Record<string, any>) => {
   healingProtocol.morningRoutine = normalizeRoutineSteps(healingProtocol.morningRoutine);
   healingProtocol.eveningRoutine = normalizeRoutineSteps(healingProtocol.eveningRoutine);
 
-  const DEFAULT_MEALS: Record<string, { breakfast: string; lunch: string; dinner: string; snack: string }> = {
+  const buildMeal = (name: string, desc: string, ings: [string, string, string][]) => ({
+    name,
+    description: desc,
+    ingredients: ings.map(([n, a, b]) => ({ name: n, amount: a, benefit: b })),
+  });
+
+  const DEFAULT_MEALS: Record<string, Record<string, any>> = {
     "Day 1": {
-      breakfast: "Anti-inflammatory smoothie with blueberries, spinach, flaxseed, walnuts, and almond milk",
-      lunch: "Grilled wild salmon over greens with avocado, cucumber, pumpkin seeds, olive oil",
-      dinner: "Bone broth soup with turmeric, ginger, garlic, zucchini, and chicken",
-      snack: "Raw almonds with a green apple",
+      breakfast: buildMeal("Anti-Inflammatory Smoothie Bowl", "Antioxidant-rich blend to reduce morning inflammation", [
+        ["Wild Blueberries", "1 cup", "Anthocyanins inhibit NF-kB inflammatory pathway"],
+        ["Spinach", "2 handfuls", "Folate and iron support skin cell turnover and oxygenation"],
+        ["Flaxseed", "1 tbsp", "ALA omega-3 reduces inflammatory eicosanoids"],
+        ["Walnuts", "2 tbsp", "Ellagic acid protects collagen from UV-induced breakdown"],
+        ["Almond Milk", "1 cup", "Dairy-free base avoids IGF-1 driven sebum production"],
+      ]),
+      lunch: buildMeal("Grilled Salmon Power Bowl", "Omega-3 rich meal to calm active skin inflammation", [
+        ["Wild Salmon", "150g", "EPA/DHA suppress IL-1β and TNF-α inflammatory cytokines"],
+        ["Mixed Greens", "2 cups", "Chlorophyll supports detoxification and reduces oxidative stress"],
+        ["Avocado", "1/2", "Oleic acid strengthens the skin lipid barrier"],
+        ["Pumpkin Seeds", "2 tbsp", "Zinc accelerates wound healing and regulates sebum"],
+        ["Olive Oil", "1 tbsp", "Oleocanthal mimics ibuprofen — natural anti-inflammatory"],
+      ]),
+      dinner: buildMeal("Turmeric Bone Broth Soup", "Gut-healing evening meal for overnight skin repair", [
+        ["Bone Broth", "2 cups", "Collagen peptides and glycine support dermal matrix repair"],
+        ["Turmeric", "1 tsp", "Curcumin inhibits COX-2 inflammatory enzyme activity"],
+        ["Ginger", "1 inch", "Gingerols reduce oxidative stress in dermal tissue"],
+        ["Garlic", "3 cloves", "Allicin has antimicrobial and anti-inflammatory properties"],
+        ["Zucchini", "1 medium", "Vitamin C and manganese support collagen synthesis"],
+      ]),
+      snack: buildMeal("Omega Trail Mix", "Anti-inflammatory fats for sustained skin nourishment", [
+        ["Raw Almonds", "1/4 cup", "Vitamin E protects cell membranes from UV oxidation"],
+        ["Green Apple", "1 small", "Quercetin stabilizes mast cells that trigger histamine release"],
+      ]),
     },
     "Day 2": {
-      breakfast: "Overnight oats with chia seeds, cinnamon, banana, raw honey",
-      lunch: "Turkey avocado lettuce wraps with carrot, cabbage, tahini",
-      dinner: "Baked cod with sweet potato, steamed broccoli, lemon dressing",
-      snack: "Celery sticks with almond butter",
+      breakfast: buildMeal("Overnight Oats with Cinnamon", "Slow-release energy with blood sugar stabilizing spices", [
+        ["Gluten-Free Oats", "1/2 cup", "Beta-glucan fiber feeds beneficial gut bacteria"],
+        ["Chia Seeds", "1 tbsp", "Omega-3 ALA and fiber reduce systemic inflammation"],
+        ["Cinnamon", "1 tsp", "Improves insulin sensitivity — reduces sugar-driven breakouts"],
+        ["Banana", "1 small", "Prebiotic fiber supports gut microbiome diversity"],
+        ["Raw Honey", "1 tsp", "Antimicrobial and humectant properties benefit skin"],
+      ]),
+      lunch: buildMeal("Turkey Avocado Lettuce Wraps", "Lean protein with skin-barrier supporting fats", [
+        ["Turkey Breast", "120g", "Lean protein provides amino acids for keratin production"],
+        ["Avocado", "1/2", "Monounsaturated fats hydrate skin from within"],
+        ["Red Cabbage", "1/2 cup", "Anthocyanins and vitamin C boost collagen synthesis"],
+        ["Carrot", "1 medium", "Beta-carotene converts to retinol for cell turnover"],
+        ["Tahini", "1 tbsp", "Sesame lignans have antioxidant and anti-inflammatory effects"],
+      ]),
+      dinner: buildMeal("Baked Cod with Sweet Potato", "Low-inflammation dinner rich in vitamins A and D", [
+        ["Wild Cod", "150g", "Vitamin D3 modulates immune response and reduces flares"],
+        ["Sweet Potato", "1 medium", "Beta-carotene protects against UV damage and supports barrier"],
+        ["Steamed Broccoli", "1 cup", "Sulforaphane activates Nrf2 antioxidant defense pathway"],
+        ["Lemon Juice", "1 squeeze", "Vitamin C boosts collagen synthesis and brightens PIH marks"],
+      ]),
+      snack: buildMeal("Celery with Almond Butter", "Hydrating crunch with skin-nourishing fats", [
+        ["Celery Sticks", "3 stalks", "Luteolin flavonoid reduces inflammatory mediators"],
+        ["Almond Butter", "2 tbsp", "Vitamin E and biotin support skin barrier integrity"],
+      ]),
     },
     "Day 3": {
-      breakfast: "Scrambled eggs with spinach, mushrooms, avocado on gluten-free toast",
-      lunch: "Quinoa bowl with chickpeas, roasted pepper, kale, lemon-tahini",
-      dinner: "Grass-fed beef stir-fry with bok choy, snap peas, ginger, cauliflower rice",
-      snack: "Fresh berries with walnuts",
+      breakfast: buildMeal("Spinach Mushroom Scramble", "Protein-rich start with barrier-building nutrients", [
+        ["Eggs", "2 large", "Complete protein with biotin for skin cell integrity"],
+        ["Spinach", "2 cups", "Iron and folate support cellular repair and oxygenation"],
+        ["Mushrooms", "1/2 cup", "Beta-glucans modulate immune system and reduce inflammation"],
+        ["Avocado", "1/2", "Healthy fats improve absorption of fat-soluble vitamins"],
+        ["GF Toast", "1 slice", "Gluten-free to avoid potential zonulin-driven permeability"],
+      ]),
+      lunch: buildMeal("Quinoa Chickpea Bowl", "Plant protein with anti-inflammatory Mediterranean flavors", [
+        ["Quinoa", "1 cup", "Complete plant protein with all essential amino acids"],
+        ["Chickpeas", "1/2 cup", "Zinc and folate support skin healing and cell division"],
+        ["Roasted Peppers", "1/2 cup", "Vitamin C and beta-carotene protect against free radicals"],
+        ["Kale", "1 cup", "Vitamin K supports wound healing and reduces dark circles"],
+        ["Lemon-Tahini", "2 tbsp", "Sesame calcium supports skin structural proteins"],
+      ]),
+      dinner: buildMeal("Grass-Fed Beef Stir-Fry", "Iron-rich dinner for skin oxygenation and repair", [
+        ["Grass-Fed Beef", "120g", "Heme iron and B12 support healthy blood flow to skin"],
+        ["Bok Choy", "1 cup", "Vitamin A and C duo supports barrier and collagen"],
+        ["Snap Peas", "1/2 cup", "Vitamin C and fiber support detox and skin clarity"],
+        ["Ginger", "1 tsp grated", "Anti-inflammatory gingerols calm reactive skin"],
+        ["Cauliflower Rice", "1 cup", "Low-GI base prevents insulin-driven sebum spikes"],
+      ]),
+      snack: buildMeal("Berry Walnut Bowl", "Antioxidant burst to neutralize skin-aging free radicals", [
+        ["Mixed Berries", "1 cup", "Polyphenols protect against UV-induced oxidative damage"],
+        ["Walnuts", "2 tbsp", "ALA omega-3 and ellagic acid reduce inflammation"],
+      ]),
     },
     "Day 4": {
-      breakfast: "Green smoothie with kale, mango, ginger, turmeric, collagen peptides",
-      lunch: "Sardines on gluten-free crackers with arugula, tomatoes, olive oil",
-      dinner: "Slow-cooked chicken with roasted root vegetables and rosemary",
-      snack: "Cucumber slices with hummus",
+      breakfast: buildMeal("Green Detox Smoothie", "Chlorophyll-rich blend to support skin detoxification", [
+        ["Kale", "2 cups", "Chlorophyll aids liver detoxification reducing skin burden"],
+        ["Mango", "1/2 cup", "Vitamin A and enzymes support gentle skin exfoliation"],
+        ["Ginger", "1/2 inch", "Gingerols improve circulation to skin tissue"],
+        ["Turmeric", "1/2 tsp", "Curcumin reduces melanin clustering in hyperpigmentation"],
+        ["Collagen Peptides", "1 scoop", "Type I/III collagen supports dermal elasticity"],
+      ]),
+      lunch: buildMeal("Sardine Mediterranean Plate", "Omega-3 powerhouse with gut-supporting ferments", [
+        ["Sardines", "1 tin", "Concentrated EPA/DHA plus calcium and vitamin D"],
+        ["GF Crackers", "6 pieces", "Gluten-free to minimize gut permeability triggers"],
+        ["Arugula", "2 cups", "Glucosinolates support phase II liver detox"],
+        ["Tomatoes", "1 medium", "Lycopene provides natural photoprotection for skin"],
+        ["Olive Oil", "1 tbsp", "Polyphenols reduce UV-induced MMP enzyme activity"],
+      ]),
+      dinner: buildMeal("Slow-Cooked Herb Chicken", "Gentle protein for overnight tissue repair", [
+        ["Chicken Thighs", "150g", "Glycine-rich protein supports collagen production"],
+        ["Root Vegetables", "1.5 cups", "Diverse fiber feeds anti-inflammatory gut bacteria"],
+        ["Rosemary", "1 sprig", "Carnosic acid protects skin cells from oxidative stress"],
+        ["Garlic", "3 cloves", "Allicin supports antimicrobial defense in skin"],
+      ]),
+      snack: buildMeal("Cucumber Hummus Bites", "Hydrating snack with skin-calming properties", [
+        ["Cucumber", "1 medium", "Silica and hydration support skin elasticity"],
+        ["Hummus", "3 tbsp", "Chickpea zinc and tahini vitamin E nourish skin"],
+      ]),
     },
     "Day 5": {
-      breakfast: "Buckwheat pancakes with strawberries, maple syrup, hemp seeds",
-      lunch: "Grilled chicken salad with walnuts, cranberries, fennel, ACV dressing",
-      dinner: "Wild shrimp with zucchini noodles, tomatoes, basil, garlic in olive oil",
-      snack: "Dark chocolate (85%+) with Brazil nuts",
+      breakfast: buildMeal("Buckwheat Berry Pancakes", "Gluten-free breakfast rich in rutin and antioxidants", [
+        ["Buckwheat Flour", "1/2 cup", "Rutin strengthens capillaries and reduces redness"],
+        ["Strawberries", "1/2 cup", "Ellagic acid protects collagen from UV degradation"],
+        ["Hemp Seeds", "1 tbsp", "GLA omega-6 supports skin barrier ceramide production"],
+        ["Maple Syrup", "1 tsp", "Lower glycemic than sugar — manganese supports antioxidants"],
+      ]),
+      lunch: buildMeal("Grilled Chicken Walnut Salad", "Protein and omega-3 combo for midday skin repair", [
+        ["Chicken Breast", "120g", "Niacin (B3) supports skin barrier and reduces redness"],
+        ["Walnuts", "2 tbsp", "ALA omega-3 directly reduces inflammatory mediators"],
+        ["Dried Cranberries", "1 tbsp", "Proanthocyanidins support microvascular skin health"],
+        ["Fennel", "1/2 cup", "Anethole compound has anti-inflammatory properties"],
+        ["ACV Dressing", "1 tbsp", "Acetic acid supports digestive enzymes and gut pH"],
+      ]),
+      dinner: buildMeal("Shrimp Zucchini Noodles", "Light evening meal with Mediterranean anti-inflammatories", [
+        ["Wild Shrimp", "150g", "Astaxanthin provides potent antioxidant skin protection"],
+        ["Zucchini Noodles", "2 cups", "Low-carb base prevents insulin-driven inflammation"],
+        ["Cherry Tomatoes", "1 cup", "Lycopene provides internal SPF-like photoprotection"],
+        ["Basil", "1/4 cup", "Eugenol has antibacterial and anti-inflammatory effects"],
+        ["Garlic & Olive Oil", "1 tbsp each", "Synergistic anti-inflammatory and antimicrobial action"],
+      ]),
+      snack: buildMeal("Dark Chocolate Brazil Nuts", "Selenium-rich treat for antioxidant skin defense", [
+        ["Dark Chocolate 85%", "2 squares", "Flavanols improve skin blood flow and hydration"],
+        ["Brazil Nuts", "3 nuts", "Selenium activates glutathione — master skin antioxidant"],
+      ]),
     },
     "Day 6": {
-      breakfast: "Savory oatmeal with poached egg, kale, nutritional yeast, pumpkin seeds",
-      lunch: "Lentil soup with carrots, celery, turmeric, side of sauerkraut",
-      dinner: "Baked salmon with asparagus, roasted garlic, side of kimchi",
-      snack: "Frozen grapes with macadamia nuts",
+      breakfast: buildMeal("Savory Oatmeal with Egg", "Protein-packed savory bowl for sustained skin energy", [
+        ["Gluten-Free Oats", "1/2 cup", "Beta-glucan supports gut barrier and reduces inflammation"],
+        ["Poached Egg", "1 large", "Biotin and choline support skin cell membrane integrity"],
+        ["Kale", "1 cup", "Vitamin K reduces dark circles and supports wound healing"],
+        ["Nutritional Yeast", "1 tbsp", "B-vitamins support skin cell energy metabolism"],
+        ["Pumpkin Seeds", "1 tbsp", "Zinc regulates sebum production and accelerates healing"],
+      ]),
+      lunch: buildMeal("Turmeric Lentil Soup", "Gut-healing legume soup with anti-inflammatory spices", [
+        ["Red Lentils", "1/2 cup", "Folate and iron support skin cell division and repair"],
+        ["Carrots", "1 medium", "Beta-carotene converts to retinol for skin renewal"],
+        ["Celery", "2 stalks", "Apigenin flavonoid reduces UV-induced skin damage"],
+        ["Turmeric", "1 tsp", "Curcumin suppresses NF-kB master inflammation switch"],
+        ["Sauerkraut (side)", "2 tbsp", "Lactobacillus probiotics strengthen gut-skin axis"],
+      ]),
+      dinner: buildMeal("Baked Salmon with Kimchi", "Omega-3 and probiotic synergy for skin healing", [
+        ["Wild Salmon", "150g", "EPA/DHA reduce inflammatory prostaglandins in skin"],
+        ["Asparagus", "6 spears", "Prebiotic inulin feeds beneficial gut bacteria"],
+        ["Roasted Garlic", "4 cloves", "Allicin supports skin's antimicrobial defense system"],
+        ["Kimchi", "1/4 cup", "Diverse probiotics reduce gut permeability and skin flares"],
+      ]),
+      snack: buildMeal("Frozen Grape Macadamia Mix", "Cooling anti-inflammatory snack", [
+        ["Frozen Grapes", "1 cup", "Resveratrol activates SIRT1 for cellular skin repair"],
+        ["Macadamia Nuts", "2 tbsp", "Palmitoleic acid mimics skin's natural sebum composition"],
+      ]),
     },
     "Day 7": {
-      breakfast: "Coconut yogurt parfait with granola, berries, flaxseed, manuka honey",
-      lunch: "Mediterranean bowl with falafel, tabbouleh, hummus, cucumber, greens",
-      dinner: "Herb-crusted chicken with Brussels sprouts, sweet potato mash",
-      snack: "Rice cakes with avocado",
+      breakfast: buildMeal("Coconut Yogurt Parfait", "Probiotic-rich breakfast for gut-skin axis support", [
+        ["Coconut Yogurt", "3/4 cup", "Dairy-free probiotics reduce gut-driven skin inflammation"],
+        ["Grain-Free Granola", "1/4 cup", "Nuts and seeds provide vitamin E and zinc"],
+        ["Mixed Berries", "1/2 cup", "Anthocyanins and vitamin C protect against oxidative damage"],
+        ["Flaxseed", "1 tbsp", "Lignans have anti-estrogenic effect — reduces hormonal acne"],
+        ["Manuka Honey", "1 tsp", "Methylglyoxal has unique antibacterial skin benefits"],
+      ]),
+      lunch: buildMeal("Mediterranean Falafel Bowl", "Plant-based protein with diverse anti-inflammatory compounds", [
+        ["Baked Falafel", "4 pieces", "Chickpea protein with cumin's anti-inflammatory benefits"],
+        ["Tabbouleh", "1/2 cup", "Parsley apigenin reduces inflammatory mediator production"],
+        ["Hummus", "3 tbsp", "Tahini vitamin E and chickpea zinc for skin repair"],
+        ["Cucumber", "1/2 cup", "Hydrating silica supports connective tissue strength"],
+        ["Mixed Greens", "2 cups", "Diverse phytonutrients support broad antioxidant defense"],
+      ]),
+      dinner: buildMeal("Herb-Crusted Chicken Dinner", "Aromatic herbs with skin-protective polyphenols", [
+        ["Chicken Breast", "150g", "Complete protein for keratin and collagen production"],
+        ["Brussels Sprouts", "1 cup", "Sulforaphane activates Nrf2 antioxidant pathway in skin"],
+        ["Sweet Potato Mash", "1/2 cup", "Beta-carotene and vitamin A for skin cell differentiation"],
+        ["Fresh Herbs", "2 tbsp", "Rosemary and thyme polyphenols protect skin collagen"],
+      ]),
+      snack: buildMeal("Avocado Rice Cakes", "Quick healthy fats for skin barrier maintenance", [
+        ["Rice Cakes", "2 pieces", "Light gluten-free base for nutrient toppings"],
+        ["Avocado", "1/2", "Oleic acid and vitamin E strengthen skin lipid barrier"],
+      ]),
     },
+  };
+
+  const normalizeMeal = (raw: any, fallback: any): any => {
+    if (raw && typeof raw === "object" && raw.name) {
+      // New structured format
+      return {
+        name: safeString(raw.name),
+        description: safeString(raw.description),
+        ingredients: Array.isArray(raw.ingredients)
+          ? raw.ingredients.map((ing: any) => ({
+              name: safeString(ing?.name),
+              amount: safeString(ing?.amount),
+              benefit: safeString(ing?.benefit),
+            })).filter((ing: any) => ing.name)
+          : [],
+      };
+    }
+    if (typeof raw === "string" && raw.trim()) {
+      // Legacy string format — return as-is for backward compat
+      return raw.trim();
+    }
+    return fallback;
   };
 
   const mealPlan = Array.isArray(healingProtocol.sevenDayMealPlan) ? healingProtocol.sevenDayMealPlan : [];
@@ -494,10 +703,10 @@ const normalizeFullAnalysisFormatting = (parsed: Record<string, any>) => {
     const defaults = DEFAULT_MEALS[dayLabel] || DEFAULT_MEALS["Day 1"];
     return {
       day: dayLabel,
-      breakfast: safeString((source as any).breakfast) || defaults.breakfast,
-      lunch: safeString((source as any).lunch) || defaults.lunch,
-      dinner: safeString((source as any).dinner) || defaults.dinner,
-      snack: safeString((source as any).snack) || defaults.snack,
+      breakfast: normalizeMeal((source as any).breakfast, defaults.breakfast),
+      lunch: normalizeMeal((source as any).lunch, defaults.lunch),
+      dinner: normalizeMeal((source as any).dinner, defaults.dinner),
+      snack: normalizeMeal((source as any).snack, defaults.snack),
     };
   });
 
