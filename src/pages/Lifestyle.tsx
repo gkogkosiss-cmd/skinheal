@@ -9,8 +9,8 @@ const sections = [
     title: "Sleep",
     subtitle: "Quality rest for skin repair",
     points: [
-      "Keep a consistent bedtime each night",
-      "Dark, cool room — no screens before bed",
+      "Keep a consistent bedtime each night — even weekends. It regulates melatonin and speeds skin repair.",
+      "Dark, cool room — no screens 1hr before bed. Blue light disrupts deep sleep cycles.",
     ],
   },
   {
@@ -18,8 +18,8 @@ const sections = [
     title: "Stress Management",
     subtitle: "Quick calming techniques",
     points: [
-      "Box breathe: 4 in, 4 hold, 6 out",
-      "10-minute outdoor walk daily",
+      "Box breathe: 4 in, 4 hold, 6 out. Do it for 2 minutes to instantly lower cortisol.",
+      "10-minute outdoor walk daily — nature and movement together drop stress hormones fast.",
     ],
   },
   {
@@ -27,8 +27,8 @@ const sections = [
     title: "Exercise",
     subtitle: "Simple, realistic movement",
     points: [
-      "20–30 min moderate movement most days",
-      "Shower soon after sweating",
+      "20–30 min moderate movement most days. Boosts circulation, delivering nutrients directly to skin cells.",
+      "Shower soon after sweating to prevent clogged pores and bacterial buildup on skin.",
     ],
   },
   {
@@ -36,8 +36,8 @@ const sections = [
     title: "Sunlight",
     subtitle: "Balanced and safe exposure",
     points: [
-      "10–15 min morning sun for vitamin D",
-      "Mineral SPF 30+ on affected areas",
+      "10–15 min morning sun for vitamin D — essential for skin barrier repair and immune balance.",
+      "Mineral SPF 30+ on affected areas daily. UV exposure worsens inflammation and post-acne marks.",
     ],
   },
 ];
