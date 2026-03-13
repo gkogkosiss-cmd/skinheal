@@ -1,25 +1,54 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 
 interface RootCause {
   title: string;
   description: string;
 }
 
-const splitDescription = (desc: string): string[] => {
-  if (desc.length < 200) return [desc];
-  const sentences = desc.match(/[^.!?]+[.!?]+/g) || [desc];
-  const chunks: string[] = [];
-  let current = "";
-  for (const s of sentences) {
-    current += s;
-    if (current.length > 150) {
-      chunks.push(current.trim());
-      current = "";
-    }
-  }
-  if (current.trim()) chunks.push(current.trim());
-  return chunks;
+const RootCauseCard = ({ cause, index }: { cause: RootCause; index: number }) => {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = cause.description.length > 120;
+  const preview = isLong ? cause.description.slice(0, 120).replace(/\s+\S*$/, "") + "…" : cause.description;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 + index * 0.06 }}
+      className="p-4 rounded-xl bg-muted/30 border border-border/50"
+    >
+      <div className="flex items-start gap-3">
+        <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0 mt-0.5">
+          {index + 1}
+        </span>
+        <div className="min-w-0">
+          <h3 className="font-medium text-sm mb-1.5">{cause.title}</h3>
+          <div
+            className="overflow-hidden transition-all duration-300 ease-in-out"
+            style={{ maxHeight: expanded || !isLong ? "1000px" : "3.6em" }}
+          >
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {expanded ? cause.description : preview}
+            </p>
+          </div>
+          {isLong && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="mt-2 flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+            >
+              {expanded ? "Show less" : "Show more"}
+              <ChevronDown
+                className="w-3.5 h-3.5 transition-transform duration-300"
+                style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
+              />
+            </button>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
 };
 
 export const RootCausesList = ({ rootCauses }: { rootCauses: RootCause[] }) => {
@@ -39,27 +68,7 @@ export const RootCausesList = ({ rootCauses }: { rootCauses: RootCause[] }) => {
 
       <div className="space-y-3">
         {rootCauses.map((cause, i) => (
-          <motion.div
-            key={cause.title}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 + i * 0.06 }}
-            className="p-4 rounded-xl bg-muted/30 border border-border/50"
-          >
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0 mt-0.5">
-                {i + 1}
-              </span>
-              <div className="min-w-0">
-                <h3 className="font-medium text-sm mb-1.5">{cause.title}</h3>
-                <div className="space-y-1.5">
-                  {splitDescription(cause.description).map((chunk, j) => (
-                    <p key={j} className="text-xs text-muted-foreground leading-relaxed">{chunk}</p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          <RootCauseCard key={cause.title} cause={cause} index={i} />
         ))}
       </div>
     </div>
