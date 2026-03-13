@@ -3,39 +3,55 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ScanFace, Search, HeartPulse, Apple, Leaf, CheckCircle2 } from "lucide-react";
 
 const steps = [
-  { icon: ScanFace, label: "Detecting skin type", detail: "Identifying body area and visual patterns" },
-  { icon: Search, label: "Calculating skin score", detail: "Evaluating inflammation, barrier health, and more" },
-  { icon: HeartPulse, label: "Analyzing conditions", detail: "Matching against known skin conditions" },
-  { icon: Leaf, label: "Finding root causes", detail: "Analyzing inflammation markers and triggers" },
-  { icon: Apple, label: "Building healing protocol", detail: "Designing your personalized daily routine" },
-  { icon: CheckCircle2, label: "Preparing nutrition plan", detail: "Crafting your anti-inflammatory meal plan" },
+  { icon: ScanFace, label: "Analyzing skin patterns", detail: "Detecting body area and visual features" },
+  { icon: Search, label: "Identifying root causes", detail: "Tracing inflammation pathways and triggers" },
+  { icon: HeartPulse, label: "Building your healing protocol", detail: "Creating your personalized daily routine" },
+  { icon: Apple, label: "Personalizing your nutrition plan", detail: "Crafting your anti-inflammatory meal plan" },
+  { icon: Leaf, label: "Optimizing gut health plan", detail: "Connecting gut-skin axis recommendations" },
+  { icon: CheckCircle2, label: "Almost ready", detail: "Finalizing your complete skin analysis" },
+];
+
+const contextualMessages = [
+  "Examining inflammation markers...",
+  "Mapping skin barrier integrity...",
+  "Cross-referencing gut-skin patterns...",
+  "Analyzing hormonal indicators...",
+  "Evaluating microbiome signals...",
+  "Designing your healing timeline...",
+  "Selecting anti-inflammatory foods...",
+  "Building 7-day meal plan...",
+  "Personalizing lifestyle changes...",
+  "Finalizing recommendations...",
 ];
 
 interface Props {
   imageCount: number;
   imagePreviews: string[];
-  /** Current streaming progress step (0-5). When provided, overrides timer-based progress. */
   streamStep?: number;
 }
 
 export const AnalysisLoadingScreen = ({ imageCount, imagePreviews, streamStep }: Props) => {
   const [timerStep, setTimerStep] = useState(0);
+  const [contextMsgIndex, setContextMsgIndex] = useState(0);
 
-  // Timer-based fallback: advance steps on a schedule if no streaming progress
+  // Timer-based fallback
   useEffect(() => {
-    if (streamStep !== undefined) return; // streaming controls progress
-
-    const intervals = [3500, 5000, 6500, 8500, 11000, 14000];
+    if (streamStep !== undefined) return;
+    const intervals = [4000, 8000, 13000, 19000, 26000, 34000];
     const timers: ReturnType<typeof setTimeout>[] = [];
-
     intervals.forEach((ms, i) => {
-      if (i > 0) {
-        timers.push(setTimeout(() => setTimerStep(i), ms));
-      }
+      if (i > 0) timers.push(setTimeout(() => setTimerStep(i), ms));
     });
-
     return () => timers.forEach(clearTimeout);
   }, [streamStep]);
+
+  // Rotate contextual messages every 3.5s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setContextMsgIndex((prev) => (prev + 1) % contextualMessages.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
 
   const activeStep = streamStep !== undefined ? streamStep : timerStep;
 
@@ -96,9 +112,23 @@ export const AnalysisLoadingScreen = ({ imageCount, imagePreviews, streamStep }:
             transition={{ duration: 0.4 }}
             className="text-center px-4"
           >
-            <p className="font-serif text-xl sm:text-2xl mb-1">{steps[activeStep].label}…</p>
-            <p className="text-xs sm:text-sm text-muted-foreground">{steps[activeStep].detail}</p>
+            <p className="font-serif text-xl sm:text-2xl mb-1">{steps[activeStep]?.label ?? "Processing"}…</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">{steps[activeStep]?.detail ?? ""}</p>
           </motion.div>
+        </AnimatePresence>
+
+        {/* Rotating contextual message */}
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={contextMsgIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.7 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-xs text-muted-foreground italic"
+          >
+            {contextualMessages[contextMsgIndex]}
+          </motion.p>
         </AnimatePresence>
 
         {/* Step indicators */}
@@ -153,9 +183,9 @@ export const AnalysisLoadingScreen = ({ imageCount, imagePreviews, streamStep }:
           })}
         </div>
 
-        {/* Estimated time */}
+        {/* Status text */}
         <p className="text-[11px] text-muted-foreground/60 mt-2">
-          {streamStep !== undefined ? "Streaming results in real-time" : "This usually takes 15–30 seconds"}
+          {streamStep !== undefined ? "Streaming results in real-time" : "This usually takes 20–40 seconds"}
         </p>
       </div>
     </div>
