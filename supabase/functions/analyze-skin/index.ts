@@ -30,8 +30,8 @@ const buildUnsupportedFormatMessage = (mimeType: string) =>
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const GATEWAY_TIMEOUT_MS = 120000;
-const QUESTION_MODELS = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"];
-const FULL_ANALYSIS_MODELS = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"];
+const QUESTION_MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite"];
+const FULL_ANALYSIS_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"];
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // exponential backoff
 
