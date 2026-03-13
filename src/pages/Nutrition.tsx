@@ -37,7 +37,7 @@ const Nutrition = () => {
   const goodFoods = protocol?.foodsToEat?.length ? protocol.foodsToEat : defaultGoodFoods;
   const badFoods = protocol?.foodsToAvoid?.length ? protocol.foodsToAvoid : defaultBadFoods;
   const foodPriorities = protocol?.foodPriorities || [];
-  const mealTemplate = protocol?.mealTemplate;
+  
   const triggerFoods = protocol?.commonTriggerFoods || [];
   const hydration = protocol?.hydrationGuidance;
   const sevenDayMealPlan = nutritionPlan?.seven_day_meal_plan || protocol?.sevenDayMealPlan || [];
