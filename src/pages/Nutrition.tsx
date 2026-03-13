@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Check, X, Leaf, ArrowRight, AlertCircle, Droplets, Target, Utensils, FlaskConical, CalendarDays, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, X, Leaf, ArrowRight, AlertCircle, Droplets, Target, Utensils, FlaskConical } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { type FoodItem, type MealPlanDay } from "@/hooks/useAnalysis";
 import { PremiumGate } from "@/components/premium/PremiumGate";
