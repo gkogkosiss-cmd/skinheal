@@ -74,13 +74,7 @@ type SelectedImage = {
   uploadedPath?: string;
 };
 
-const healthQuestions = [
-  { id: "sugar", question: "Do you frequently consume sugary foods or drinks?", options: ["Yes", "No", "Sometimes"] },
-  { id: "digestion", question: "Do you experience digestive issues (bloating, gas, irregular bowels)?", options: ["Yes", "No", "Sometimes"] },
-  { id: "stress", question: "How would you rate your daily stress levels?", options: ["Low", "Moderate", "High", "Very High"] },
-  { id: "sleep", question: "Do you regularly sleep less than 7 hours per night?", options: ["Yes", "No", "Sometimes"] },
-  { id: "water", question: "Do you drink at least 2 liters of water daily?", options: ["Yes", "No", "Sometimes"] },
-];
+// Health questions removed - now using only 5 AI-generated dynamic questions
 
 const SkinAnalysis = () => {
   const [step, setStep] = useState<Step>("upload");
