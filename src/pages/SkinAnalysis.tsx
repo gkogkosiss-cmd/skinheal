@@ -941,43 +941,7 @@ const SkinAnalysis = () => {
             </motion.div>
           )}
 
-          {/* STEP 4: Health questions */}
-          {step === "health-questions" && (
-            <motion.div key="health" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.4, ease: easeSmooth }}>
-              <div className="card-elevated">
-                <p className="text-xs text-primary font-medium mb-4">Root Cause Assessment</p>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="text-xs text-muted-foreground">Question {currentTotal + 1} of {totalQuestions}</span>
-                  <div className="flex-1 mx-4 h-1.5 rounded-full bg-muted overflow-hidden">
-                    <motion.div
-                      className="h-full bg-primary rounded-full"
-                      initial={{ width: `${(currentTotal / totalQuestions) * 100}%` }}
-                      animate={{ width: `${((currentTotal + 1) / totalQuestions) * 100}%` }}
-                      transition={{ duration: 0.4, ease: easeSmooth }}
-                    />
-                  </div>
-                </div>
-
-                <AnimatePresence mode="wait">
-                  <motion.div key={healthQ} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.3 }}>
-                    <h2 className="font-serif text-2xl mb-6">{healthQuestions[healthQ].question}</h2>
-                    <div className="space-y-3">
-                      {healthQuestions[healthQ].options.map((opt) => (
-                        <button
-                          key={opt}
-                          onClick={() => handleHealthAnswer(opt)}
-                          className="w-full text-left px-5 py-3.5 rounded-xl border border-border hover:border-primary/30 hover:bg-accent/50 transition-all text-sm font-medium flex items-center justify-between group"
-                        >
-                          {opt}
-                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          )}
+          {/* Health questions step removed — 5 AI questions go directly to analysis */}
 
           {/* STEP 5: Loading */}
           {step === "loading" && (
