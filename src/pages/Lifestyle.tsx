@@ -9,8 +9,8 @@ const sections = [
     title: "Sleep",
     subtitle: "Quality rest for skin repair",
     points: [
-      "Keep a consistent bedtime each night",
-      "Dark, cool room — no screens before bed",
+      "Keep a consistent bedtime each night — even weekends. It regulates melatonin and speeds skin repair.",
+      "Dark, cool room — no screens 1hr before bed. Blue light disrupts deep sleep cycles.",
     ],
   },
   {
