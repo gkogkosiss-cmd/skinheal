@@ -32,7 +32,7 @@ const Nutrition = () => {
   const protocol = analysis?.healing_protocol;
   const nutritionPlan = analysis?.nutrition_plan;
   const hasAnalysis = !!analysis;
-  const [expandedDay, setExpandedDay] = useState<number | null>(0);
+  
 
   const goodFoods = protocol?.foodsToEat?.length ? protocol.foodsToEat : defaultGoodFoods;
   const badFoods = protocol?.foodsToAvoid?.length ? protocol.foodsToAvoid : defaultBadFoods;
