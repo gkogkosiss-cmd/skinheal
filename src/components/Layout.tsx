@@ -117,8 +117,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 w-full min-w-0 overflow-x-hidden content-safe">
-        <div className="max-w-5xl mx-auto px-4 py-5 sm:px-5 sm:py-8 lg:px-10 lg:py-12 min-w-0 w-full content-safe">
+      <main className="flex-1 lg:ml-64 pt-16 lg:pt-0 w-full min-w-0 overflow-x-hidden content-safe">
+        <div className="max-w-5xl mx-auto px-4 py-6 sm:px-5 sm:py-8 lg:px-10 lg:py-12 min-w-0 w-full content-safe">
           {children}
         </div>
       </main>

@@ -31,7 +31,6 @@ const Dashboard = () => {
   const protocol = analysis?.healing_protocol;
   const skinScore = analysis?.skin_score;
 
-  // Find previous analysis for score comparison
   const previousAnalysis = allAnalyses && allAnalyses.length >= 2
     ? allAnalyses.find((a) => a.id !== analysis?.id)
     : null;
@@ -43,52 +42,50 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <p className="text-sm text-primary font-medium mb-1">Welcome back</p>
-        <h1 className="font-serif text-3xl md:text-4xl mb-2">Your Skin Dashboard</h1>
-        <p className="text-muted-foreground mb-8">Track your healing journey and stay on protocol.</p>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-6">
+        <div>
+          <p className="text-sm text-primary font-medium mb-1">Welcome back</p>
+          <h1 className="font-serif mb-2">Your Skin Dashboard</h1>
+          <p className="text-muted-foreground">Track your healing journey and stay on protocol.</p>
+        </div>
 
         {/* Status Card */}
-        <div className="card-elevated gradient-sage mb-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="card-elevated gradient-sage">
+          <div className="flex flex-col gap-4">
             <div>
               <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">
                 {hasAnalysis ? "Current Assessment" : "Get Started"}
               </p>
               {hasAnalysis && topCondition ? (
                 <>
-                  <h2 className="font-serif text-2xl mb-1">{topCondition.condition}</h2>
+                  <h2 className="font-serif mb-1">{topCondition.condition}</h2>
                   <p className="text-sm text-muted-foreground">
                     {topCondition.probability}% likelihood — {topCondition.explanation?.slice(0, 120)}…
                   </p>
                 </>
               ) : (
                 <>
-                  <h2 className="font-serif text-2xl mb-1">Start your skin analysis</h2>
+                  <h2 className="font-serif mb-1">Start your skin analysis</h2>
                   <p className="text-sm text-muted-foreground">Upload a photo to receive your personalized assessment and healing protocol.</p>
                 </>
               )}
             </div>
-            <Link to="/analysis" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity shrink-0">
+            <Link to="/analysis" className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity min-h-[44px] sm:w-fit">
               {hasAnalysis ? "New Analysis" : "Analyze Now"} <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
 
         {/* Daily Progress Indicator */}
-        {hasAnalysis && (
-          <div className="mb-6">
-            <DailyProgressIndicator />
-          </div>
-        )}
+        {hasAnalysis && <DailyProgressIndicator />}
 
-        {/* Skin Score + Weekly Check (side by side on desktop) */}
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
+        {/* Skin Score + Weekly Check */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {hasAnalysis && skinScore && skinScore.overall > 0 ? (
-            <div>
+            <div className="space-y-3">
               <SkinScoreCard score={skinScore} />
               {scoreDelta !== null && (
-                <div className="mt-3 p-3 rounded-xl bg-muted/50 flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-muted/50 flex flex-wrap items-center gap-3">
                   <span className="text-xs text-muted-foreground">Previous: {previousScore}/100</span>
                   <ArrowRight className="w-3 h-3 text-muted-foreground" />
                   <span className="text-xs font-medium">Current: {currentScore}/100</span>
@@ -98,7 +95,7 @@ const Dashboard = () => {
                 </div>
               )}
               {scoreDelta !== null && (
-                <p className="text-xs text-muted-foreground mt-2 px-1">
+                <p className="text-xs text-muted-foreground px-1">
                   {scoreDelta > 0 ? "Your skin appears to be improving based on your latest analysis." : scoreDelta < 0 ? "Your skin may need more attention based on recent changes." : "Little visible change since your last analysis."}
                 </p>
               )}
@@ -115,32 +112,26 @@ const Dashboard = () => {
           <WeeklyCheckReminder lastAnalysisDate={analysis?.created_at} />
         </div>
 
-        {/* Detected Conditions - Visual probability bars */}
+        {/* Detected Conditions */}
         {hasAnalysis && analysis.conditions?.length > 0 && (
-          <div className="mb-6">
-            <ConditionsList conditions={analysis.conditions} />
-          </div>
+          <ConditionsList conditions={analysis.conditions} />
         )}
 
-        {/* What's Happening - Engaging biological story */}
+        {/* What's Happening */}
         {hasAnalysis && (protocol?.whatIsHappening || analysis.biological_explanation) && (
-          <div className="mb-6">
-            <BiologicalExplanation text={protocol?.whatIsHappening || analysis.biological_explanation || ""} />
-          </div>
+          <BiologicalExplanation text={protocol?.whatIsHappening || analysis.biological_explanation || ""} />
         )}
 
         {/* Root Causes */}
         {hasAnalysis && analysis.root_causes?.length > 0 && (
-          <div className="mb-6">
-            <RootCausesList rootCauses={analysis.root_causes} />
-          </div>
+          <RootCausesList rootCauses={analysis.root_causes} />
         )}
 
         {/* This Week Focus */}
         {hasAnalysis && protocol?.thisWeekFocus && (
-          <div className="card-elevated gradient-warm mb-6">
+          <div className="card-elevated gradient-warm">
             <div className="flex items-center gap-2 mb-3">
-              <Target className="w-5 h-5 text-primary" />
+              <Target className="w-5 h-5 text-primary shrink-0" />
               <h3 className="font-serif text-xl">This Week's Focus</h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">{protocol.thisWeekFocus}</p>
@@ -148,26 +139,24 @@ const Dashboard = () => {
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           {quickActions.map((action, i) => (
             <motion.div key={action.path} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}>
-              <Link to={action.path} className="card-elevated-hover flex flex-col items-center text-center py-6 gap-3">
-                <div className={`w-12 h-12 rounded-xl ${action.color} flex items-center justify-center`}>
+              <Link to={action.path} className="card-elevated-hover flex flex-col items-center text-center py-5 sm:py-6 gap-3">
+                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl ${action.color} flex items-center justify-center`}>
                   <action.icon className="w-5 h-5 text-accent-foreground" />
                 </div>
-                <span className="text-sm font-medium">{action.label}</span>
+                <span className="text-xs sm:text-sm font-medium">{action.label}</span>
               </Link>
             </motion.div>
           ))}
         </div>
 
         {/* Daily Healing Checklist */}
-        <div className="mb-6">
-          <DailyHealingChecklist />
-        </div>
+        <DailyHealingChecklist />
 
         {/* Progress Snapshot */}
-        <div className="card-elevated mb-6">
+        <div className="card-elevated">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-serif text-xl">Your Progress</h3>
             <Link to="/progress" className="flex items-center gap-1 text-xs text-primary font-medium hover:underline">
@@ -187,9 +176,9 @@ const Dashboard = () => {
 
         {/* Safety / Red Flags */}
         {hasAnalysis && protocol?.safetyGuidance && (
-          <div className="p-5 rounded-2xl border border-destructive/20 bg-destructive/5 mb-6">
+          <div className="p-4 sm:p-5 rounded-2xl border border-destructive/20 bg-destructive/5">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
               <h3 className="font-serif text-lg text-destructive">When to See a Doctor</h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">{protocol.safetyGuidance}</p>
