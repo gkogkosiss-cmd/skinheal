@@ -13,7 +13,7 @@ import { allAnalysesQueryKey, latestAnalysisQueryKey, setLatestAnalysisId } from
 import { normalizeAnalysisRecordPayload } from "@/lib/analysisRecord";
 import { MAX_IMAGE_COUNT, prepareImageForAnalysis, validateImageFile, getFileFingerprint } from "@/lib/imageUpload";
 
-type Step = "upload" | "analyzing-photo" | "questions" | "health-questions" | "loading" | "results";
+type Step = "upload" | "analyzing-photo" | "questions" | "loading" | "results";
 
 interface DynamicQuestion {
   id: string;
@@ -74,13 +74,7 @@ type SelectedImage = {
   uploadedPath?: string;
 };
 
-const healthQuestions = [
-  { id: "sugar", question: "Do you frequently consume sugary foods or drinks?", options: ["Yes", "No", "Sometimes"] },
-  { id: "digestion", question: "Do you experience digestive issues (bloating, gas, irregular bowels)?", options: ["Yes", "No", "Sometimes"] },
-  { id: "stress", question: "How would you rate your daily stress levels?", options: ["Low", "Moderate", "High", "Very High"] },
-  { id: "sleep", question: "Do you regularly sleep less than 7 hours per night?", options: ["Yes", "No", "Sometimes"] },
-  { id: "water", question: "Do you drink at least 2 liters of water daily?", options: ["Yes", "No", "Sometimes"] },
-];
+// Health questions removed - now using only 5 AI-generated dynamic questions
 
 const SkinAnalysis = () => {
   const [step, setStep] = useState<Step>("upload");
@@ -472,8 +466,8 @@ const SkinAnalysis = () => {
       setCurrentQ(0);
 
       if (nextQuestions.length === 0) {
-        console.warn("[SkinAnalysis] dynamic question generation returned no questions; continuing to health questions");
-        setStep("health-questions");
+        console.warn("[SkinAnalysis] dynamic question generation returned no questions; running full analysis directly");
+        runFullAnalysis();
         return;
       }
 
@@ -488,29 +482,13 @@ const SkinAnalysis = () => {
   const handleDynamicAnswer = (answer: string) => {
     const q = dynamicQuestions[currentQ];
     if (!q) {
-      setStep("health-questions");
+      runFullAnalysis();
       return;
     }
 
     setAnswers((prev) => ({ ...prev, [q.id]: answer }));
     if (currentQ < dynamicQuestions.length - 1) {
       setCurrentQ(currentQ + 1);
-    } else {
-      setCurrentQ(0);
-      setStep("health-questions");
-    }
-  };
-
-  const handleHealthAnswer = (answer: string) => {
-    const q = healthQuestions[healthQ];
-    if (!q) {
-      runFullAnalysis();
-      return;
-    }
-
-    setAnswers((prev) => ({ ...prev, [q.id]: answer }));
-    if (healthQ < healthQuestions.length - 1) {
-      setHealthQ(healthQ + 1);
     } else {
       runFullAnalysis();
     }
@@ -715,8 +693,8 @@ const SkinAnalysis = () => {
     }
   };
 
-  const totalQuestions = dynamicQuestions.length + healthQuestions.length;
-  const currentTotal = step === "questions" ? currentQ : step === "health-questions" ? dynamicQuestions.length + healthQ : 0;
+  const totalQuestions = dynamicQuestions.length;
+  const currentTotal = step === "questions" ? currentQ : 0;
 
   const easeSmooth = [0.22, 1, 0.36, 1] as const;
 
@@ -963,43 +941,7 @@ const SkinAnalysis = () => {
             </motion.div>
           )}
 
-          {/* STEP 4: Health questions */}
-          {step === "health-questions" && (
-            <motion.div key="health" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.4, ease: easeSmooth }}>
-              <div className="card-elevated">
-                <p className="text-xs text-primary font-medium mb-4">Root Cause Assessment</p>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="text-xs text-muted-foreground">Question {currentTotal + 1} of {totalQuestions}</span>
-                  <div className="flex-1 mx-4 h-1.5 rounded-full bg-muted overflow-hidden">
-                    <motion.div
-                      className="h-full bg-primary rounded-full"
-                      initial={{ width: `${(currentTotal / totalQuestions) * 100}%` }}
-                      animate={{ width: `${((currentTotal + 1) / totalQuestions) * 100}%` }}
-                      transition={{ duration: 0.4, ease: easeSmooth }}
-                    />
-                  </div>
-                </div>
-
-                <AnimatePresence mode="wait">
-                  <motion.div key={healthQ} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.3 }}>
-                    <h2 className="font-serif text-2xl mb-6">{healthQuestions[healthQ].question}</h2>
-                    <div className="space-y-3">
-                      {healthQuestions[healthQ].options.map((opt) => (
-                        <button
-                          key={opt}
-                          onClick={() => handleHealthAnswer(opt)}
-                          className="w-full text-left px-5 py-3.5 rounded-xl border border-border hover:border-primary/30 hover:bg-accent/50 transition-all text-sm font-medium flex items-center justify-between group"
-                        >
-                          {opt}
-                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          )}
+          {/* Health questions step removed — 5 AI questions go directly to analysis */}
 
           {/* STEP 5: Loading */}
           {step === "loading" && (
