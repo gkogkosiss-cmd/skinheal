@@ -36,8 +36,8 @@ const sections = [
     title: "Sunlight",
     subtitle: "Balanced and safe exposure",
     points: [
-      "10–15 min morning sun for vitamin D",
-      "Mineral SPF 30+ on affected areas",
+      "10–15 min morning sun for vitamin D — essential for skin barrier repair and immune balance.",
+      "Mineral SPF 30+ on affected areas daily. UV exposure worsens inflammation and post-acne marks.",
     ],
   },
 ];
