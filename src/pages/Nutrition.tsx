@@ -88,78 +88,9 @@ const Nutrition = () => {
             </div>
           )}
 
-          {/* 7-Day Meal Plan — Premium Card Layout */}
+          {/* 7-Day Meal Plan */}
           {sevenDayMealPlan.length > 0 && (
-            <div className="card-elevated">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <CalendarDays className="w-5 h-5 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="font-serif text-xl">7-Day Meal Plan</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">Anti-inflammatory meals tailored to your skin</p>
-                </div>
-              </div>
-
-              {/* Principles */}
-              {mealPlanPrinciples.length > 0 && (
-                <div className="p-3.5 rounded-xl bg-accent/40 mb-5 mt-4">
-                  <p className="text-[11px] font-semibold text-primary uppercase tracking-wider mb-2">Key Principles</p>
-                  <ul className="space-y-1.5">
-                    {mealPlanPrinciples.map((p: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
-                        <span className="text-primary shrink-0 mt-px">•</span>
-                        <span className="break-words min-w-0">{p}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                {sevenDayMealPlan.map((day: MealPlanDay, i: number) => {
-                  const isExpanded = expandedDay === i;
-                  const dayLabel = day.day || `Day ${i + 1}`;
-                  return (
-                    <div key={i} className="rounded-xl border border-border overflow-hidden">
-                      <button
-                        onClick={() => setExpandedDay(isExpanded ? null : i)}
-                        className="w-full flex items-center justify-between p-3.5 sm:p-4 hover:bg-muted/30 transition-colors"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                            {i + 1}
-                          </span>
-                          <span className="font-medium text-sm">{dayLabel}</span>
-                        </div>
-                        {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                      </button>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="px-3.5 sm:px-4 pb-4"
-                        >
-                          <div className="flex flex-col gap-0">
-                            {[
-                              { label: "Breakfast", value: day.breakfast },
-                              { label: "Lunch", value: day.lunch },
-                              { label: "Dinner", value: day.dinner },
-                              { label: "Snack", value: day.snack },
-                            ].map((meal, mi, arr) => (
-                              <div key={meal.label}>
-                                <MealCard label={meal.label} value={meal.value} icon={mealIcons[meal.label]} />
-                                {mi < arr.length - 1 && <div className="border-t border-border/40 my-2 mx-2" />}
-                              </div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <SevenDayMealPlan mealPlan={sevenDayMealPlan} principles={mealPlanPrinciples} />
           )}
 
           {/* Foods to Eat */}
