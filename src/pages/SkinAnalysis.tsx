@@ -466,8 +466,8 @@ const SkinAnalysis = () => {
       setCurrentQ(0);
 
       if (nextQuestions.length === 0) {
-        console.warn("[SkinAnalysis] dynamic question generation returned no questions; continuing to health questions");
-        setStep("health-questions");
+        console.warn("[SkinAnalysis] dynamic question generation returned no questions; running full analysis directly");
+        runFullAnalysis();
         return;
       }
 
