@@ -139,27 +139,6 @@ const Nutrition = () => {
             </div>
           </div>
 
-          {/* Meal Template (single day fallback) */}
-          {mealTemplate && !sevenDayMealPlan.length && (
-            <div className="card-elevated">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                  <Utensils className="w-5 h-5 text-accent-foreground" />
-                </div>
-                <h2 className="font-serif text-xl">Example Day of Eating</h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
-                {[
-                  { label: "Breakfast", value: mealTemplate.breakfast },
-                  { label: "Lunch", value: mealTemplate.lunch },
-                  { label: "Dinner", value: mealTemplate.dinner },
-                  { label: "Snack", value: mealTemplate.snack },
-                ].map((meal) => (
-                  <MealCard key={meal.label} label={meal.label} value={meal.value} icon={mealIcons[meal.label]} />
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Hydration */}
           {hydration && (
