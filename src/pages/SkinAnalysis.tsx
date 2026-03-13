@@ -13,7 +13,7 @@ import { allAnalysesQueryKey, latestAnalysisQueryKey, setLatestAnalysisId } from
 import { normalizeAnalysisRecordPayload } from "@/lib/analysisRecord";
 import { MAX_IMAGE_COUNT, prepareImageForAnalysis, validateImageFile, getFileFingerprint } from "@/lib/imageUpload";
 
-type Step = "upload" | "analyzing-photo" | "questions" | "health-questions" | "loading" | "results";
+type Step = "upload" | "analyzing-photo" | "questions" | "loading" | "results";
 
 interface DynamicQuestion {
   id: string;
