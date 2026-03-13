@@ -18,8 +18,8 @@ const sections = [
     title: "Stress Management",
     subtitle: "Quick calming techniques",
     points: [
-      "Box breathe: 4 in, 4 hold, 6 out",
-      "10-minute outdoor walk daily",
+      "Box breathe: 4 in, 4 hold, 6 out. Do it for 2 minutes to instantly lower cortisol.",
+      "10-minute outdoor walk daily — nature and movement together drop stress hormones fast.",
     ],
   },
   {
