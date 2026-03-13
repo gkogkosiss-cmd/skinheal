@@ -1062,7 +1062,7 @@ Respond with ONLY a JSON object: {"appropriate": true} or {"appropriate": false,
 
       try {
         const moderationResponse = await createGeminiRequest(
-          apiKey,
+          GEMINI_API_KEY,
           QUESTION_MODELS[0],
           moderationPayload,
           false
