@@ -131,25 +131,7 @@ const GutHealth = () => {
             </div>
           </div>
 
-          {/* Digestion Support */}
-          {digestiveSupport.length > 0 && (
-            <div className="card-elevated">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                  <Utensils className="w-5 h-5 text-secondary-foreground" />
-                </div>
-                <h2 className="font-serif text-xl">Digestion Support Basics</h2>
-              </div>
-              <div className="space-y-3">
-                {digestiveSupport.map((tip: string, i: number) => (
-                  <div key={i} className="flex items-start gap-3 text-sm">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                    <p className="text-muted-foreground">{tip}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Digestion Support - REMOVED */}
 
           {/* Gut Healing Foods */}
           <div className="card-elevated">

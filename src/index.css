@@ -111,7 +111,7 @@
   }
 
   .card-elevated {
-    @apply rounded-2xl border border-border bg-card p-4 sm:p-6;
+    @apply rounded-2xl border border-border/60 bg-card p-5 sm:p-7;
     box-shadow: var(--shadow-card);
     min-width: 0;
     overflow-wrap: break-word;
