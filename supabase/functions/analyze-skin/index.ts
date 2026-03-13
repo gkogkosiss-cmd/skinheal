@@ -1033,6 +1033,73 @@ serve(async (req) => {
       imageMeta: images.map((img, index) => ({ index, mimeType: img.mimeType, base64Length: img.base64.length })),
     });
 
+    // --- NSFW / Content Moderation Check (before any analysis) ---
+    if (!answers) {
+      const moderationImageParts = images.map((img) => ({
+        inlineData: { mimeType: img.mimeType, data: img.base64 },
+      }));
+
+      const moderationPayload = {
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `You are a content moderation system for a skin health analysis app. Examine the provided image(s) and determine if they are appropriate for skin analysis.
+
+ACCEPT: Photos of skin on any body area (face, arms, back, chest, legs, hands, scalp, neck, etc.), close-ups of skin conditions (acne, rashes, moles, eczema, psoriasis, etc.), body parts showing skin concerns. These are medical/health photos and are always acceptable even if they show bare skin.
+
+REJECT: Explicit sexual content, pornographic images, violent/gory content not related to skin conditions, images with no skin visible at all (landscapes, objects, text, memes, animals, food, screenshots), deliberately obscene gestures.
+
+Respond with ONLY a JSON object: {"appropriate": true} or {"appropriate": false, "reason": "brief reason"}`,
+              },
+              ...moderationImageParts,
+            ],
+          },
+        ],
+        generationConfig: { temperature: 0.1, topP: 0.8 },
+      };
+
+      try {
+        const moderationResponse = await createGeminiRequest(
+          apiKey,
+          QUESTION_MODELS[0],
+          moderationPayload,
+          false
+        );
+
+        if (moderationResponse.ok) {
+          const moderationResult = await moderationResponse.json();
+          const moderationText =
+            moderationResult?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          const moderationJson = extractJsonCandidate(moderationText);
+
+          if (moderationJson && moderationJson.appropriate === false) {
+            console.warn("[analyze-skin] content moderation rejected image", {
+              reason: moderationJson.reason || "non-skin content",
+            });
+            return new Response(
+              JSON.stringify({
+                error:
+                  "Please upload a clear photo of your skin for accurate analysis.",
+                moderationRejected: true,
+              }),
+              {
+                status: 400,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
+          }
+        } else {
+          // If moderation call fails, log and continue (don't block the user)
+          console.warn("[analyze-skin] content moderation check failed, proceeding with analysis");
+        }
+      } catch (moderationError) {
+        console.warn("[analyze-skin] content moderation error, proceeding", moderationError);
+      }
+    }
+    // --- End Content Moderation ---
+
     // Build messages in OpenAI-style format (will be converted to Gemini format by buildGeminiPayload)
     const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
 
