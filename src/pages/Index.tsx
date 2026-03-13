@@ -397,7 +397,12 @@ const Index = () => {
             <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
           </div>
-          <p className="text-xs text-muted-foreground">© 2026 SkinHeal</p>
+          <div className="flex flex-col items-center md:items-end gap-1">
+            <a href="mailto:hello@skinheal.ai" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+              Support: hello@skinheal.ai
+            </a>
+            <p className="text-xs text-muted-foreground">© 2026 SkinHeal</p>
+          </div>
         </div>
       </footer>
     </div>
