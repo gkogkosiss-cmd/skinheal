@@ -6,6 +6,7 @@ import { Check, X, Leaf, ArrowRight, AlertCircle, Droplets, Target, Utensils, Fl
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { type FoodItem, type MealPlanDay } from "@/hooks/useAnalysis";
 import { PremiumGate } from "@/components/premium/PremiumGate";
+import { SevenDayMealPlan } from "@/components/nutrition/SevenDayMealPlan";
 
 const defaultGoodFoods: FoodItem[] = [
   { food: "Fatty Fish (salmon, sardines, mackerel)", reason: "Rich in omega-3s which often help reduce skin inflammation" },
