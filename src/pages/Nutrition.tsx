@@ -26,56 +26,6 @@ const defaultBadFoods: FoodItem[] = [
   { food: "Alcohol", reason: "Can deplete zinc, disrupt sleep, and increase inflammation for many people" },
 ];
 
-/** Splits a meal string like "Greek yogurt with berries and chia seeds" into bullet items */
-const parseMealItems = (meal: string | undefined): string[] => {
-  if (!meal) return [];
-  // Split on common delimiters: commas, "and", "with", semicolons — but keep it readable
-  const items = meal
-    .split(/[,;]|\band\b/gi)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 2);
-  // If we couldn't split meaningfully, return as single item
-  return items.length > 0 ? items : [meal];
-};
-
-const skinBenefitMap: Record<string, string> = {
-  Breakfast: "Morning nutrients prime your skin barrier and reduce overnight inflammation buildup.",
-  Lunch: "Midday anti-inflammatory compounds help calm active skin flare-ups.",
-  Dinner: "Evening nutrients support overnight skin repair and collagen synthesis.",
-  Snack: "Antioxidant-rich snacks help neutralize free radicals that accelerate skin aging.",
-};
-
-const MealCard = ({ label, value, icon }: { label: string; value?: string; icon?: string }) => {
-  if (!value) return null;
-  const items = parseMealItems(value);
-  return (
-    <div className="p-3.5 rounded-xl bg-muted/40 space-y-2">
-      <p className="text-[11px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
-        {icon && <span>{icon}</span>}
-        {label}
-      </p>
-      <ul className="space-y-1">
-        {items.map((item, i) => (
-          <li key={i} className="text-xs text-muted-foreground leading-relaxed flex items-start gap-1.5">
-            <span className="text-primary/60 mt-px shrink-0">•</span>
-            <span className="break-words min-w-0">{item}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-[11px] leading-snug pl-1 flex items-start gap-1" style={{ color: "#528164" }}>
-        <span className="shrink-0 mt-px">🌿</span>
-        <span className="italic">Skin benefit: {skinBenefitMap[label] || "Supports overall skin healing through anti-inflammatory nutrition."}</span>
-      </p>
-    </div>
-  );
-};
-
-const mealIcons: Record<string, string> = {
-  Breakfast: "🌅",
-  Lunch: "☀️",
-  Dinner: "🌙",
-  Snack: "🍎",
-};
 
 const Nutrition = () => {
   const { currentAnalysis: analysis } = useCurrentAnalysis();
