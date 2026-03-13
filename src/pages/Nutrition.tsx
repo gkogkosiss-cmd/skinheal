@@ -1,11 +1,12 @@
-import { useState } from "react";
+
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Check, X, Leaf, ArrowRight, AlertCircle, Droplets, Target, Utensils, FlaskConical, CalendarDays, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, X, Leaf, ArrowRight, AlertCircle, Droplets, Target, Utensils, FlaskConical } from "lucide-react";
 import { useCurrentAnalysis } from "@/hooks/useCurrentAnalysis";
 import { type FoodItem, type MealPlanDay } from "@/hooks/useAnalysis";
 import { PremiumGate } from "@/components/premium/PremiumGate";
+import { SevenDayMealPlan } from "@/components/nutrition/SevenDayMealPlan";
 
 const defaultGoodFoods: FoodItem[] = [
   { food: "Fatty Fish (salmon, sardines, mackerel)", reason: "Rich in omega-3s which often help reduce skin inflammation" },
@@ -25,68 +26,18 @@ const defaultBadFoods: FoodItem[] = [
   { food: "Alcohol", reason: "Can deplete zinc, disrupt sleep, and increase inflammation for many people" },
 ];
 
-/** Splits a meal string like "Greek yogurt with berries and chia seeds" into bullet items */
-const parseMealItems = (meal: string | undefined): string[] => {
-  if (!meal) return [];
-  // Split on common delimiters: commas, "and", "with", semicolons — but keep it readable
-  const items = meal
-    .split(/[,;]|\band\b/gi)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 2);
-  // If we couldn't split meaningfully, return as single item
-  return items.length > 0 ? items : [meal];
-};
-
-const skinBenefitMap: Record<string, string> = {
-  Breakfast: "Morning nutrients prime your skin barrier and reduce overnight inflammation buildup.",
-  Lunch: "Midday anti-inflammatory compounds help calm active skin flare-ups.",
-  Dinner: "Evening nutrients support overnight skin repair and collagen synthesis.",
-  Snack: "Antioxidant-rich snacks help neutralize free radicals that accelerate skin aging.",
-};
-
-const MealCard = ({ label, value, icon }: { label: string; value?: string; icon?: string }) => {
-  if (!value) return null;
-  const items = parseMealItems(value);
-  return (
-    <div className="p-3.5 rounded-xl bg-muted/40 space-y-2">
-      <p className="text-[11px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
-        {icon && <span>{icon}</span>}
-        {label}
-      </p>
-      <ul className="space-y-1">
-        {items.map((item, i) => (
-          <li key={i} className="text-xs text-muted-foreground leading-relaxed flex items-start gap-1.5">
-            <span className="text-primary/60 mt-px shrink-0">•</span>
-            <span className="break-words min-w-0">{item}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-[11px] leading-snug pl-1 flex items-start gap-1" style={{ color: "#528164" }}>
-        <span className="shrink-0 mt-px">🌿</span>
-        <span className="italic">Skin benefit: {skinBenefitMap[label] || "Supports overall skin healing through anti-inflammatory nutrition."}</span>
-      </p>
-    </div>
-  );
-};
-
-const mealIcons: Record<string, string> = {
-  Breakfast: "🌅",
-  Lunch: "☀️",
-  Dinner: "🌙",
-  Snack: "🍎",
-};
 
 const Nutrition = () => {
   const { currentAnalysis: analysis } = useCurrentAnalysis();
   const protocol = analysis?.healing_protocol;
   const nutritionPlan = analysis?.nutrition_plan;
   const hasAnalysis = !!analysis;
-  const [expandedDay, setExpandedDay] = useState<number | null>(0);
+  
 
   const goodFoods = protocol?.foodsToEat?.length ? protocol.foodsToEat : defaultGoodFoods;
   const badFoods = protocol?.foodsToAvoid?.length ? protocol.foodsToAvoid : defaultBadFoods;
   const foodPriorities = protocol?.foodPriorities || [];
-  const mealTemplate = protocol?.mealTemplate;
+  
   const triggerFoods = protocol?.commonTriggerFoods || [];
   const hydration = protocol?.hydrationGuidance;
   const sevenDayMealPlan = nutritionPlan?.seven_day_meal_plan || protocol?.sevenDayMealPlan || [];
@@ -137,78 +88,9 @@ const Nutrition = () => {
             </div>
           )}
 
-          {/* 7-Day Meal Plan — Premium Card Layout */}
+          {/* 7-Day Meal Plan */}
           {sevenDayMealPlan.length > 0 && (
-            <div className="card-elevated">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <CalendarDays className="w-5 h-5 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="font-serif text-xl">7-Day Meal Plan</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">Anti-inflammatory meals tailored to your skin</p>
-                </div>
-              </div>
-
-              {/* Principles */}
-              {mealPlanPrinciples.length > 0 && (
-                <div className="p-3.5 rounded-xl bg-accent/40 mb-5 mt-4">
-                  <p className="text-[11px] font-semibold text-primary uppercase tracking-wider mb-2">Key Principles</p>
-                  <ul className="space-y-1.5">
-                    {mealPlanPrinciples.map((p: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
-                        <span className="text-primary shrink-0 mt-px">•</span>
-                        <span className="break-words min-w-0">{p}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                {sevenDayMealPlan.map((day: MealPlanDay, i: number) => {
-                  const isExpanded = expandedDay === i;
-                  const dayLabel = day.day || `Day ${i + 1}`;
-                  return (
-                    <div key={i} className="rounded-xl border border-border overflow-hidden">
-                      <button
-                        onClick={() => setExpandedDay(isExpanded ? null : i)}
-                        className="w-full flex items-center justify-between p-3.5 sm:p-4 hover:bg-muted/30 transition-colors"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                            {i + 1}
-                          </span>
-                          <span className="font-medium text-sm">{dayLabel}</span>
-                        </div>
-                        {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                      </button>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="px-3.5 sm:px-4 pb-4"
-                        >
-                          <div className="flex flex-col gap-0">
-                            {[
-                              { label: "Breakfast", value: day.breakfast },
-                              { label: "Lunch", value: day.lunch },
-                              { label: "Dinner", value: day.dinner },
-                              { label: "Snack", value: day.snack },
-                            ].map((meal, mi, arr) => (
-                              <div key={meal.label}>
-                                <MealCard label={meal.label} value={meal.value} icon={mealIcons[meal.label]} />
-                                {mi < arr.length - 1 && <div className="border-t border-border/40 my-2 mx-2" />}
-                              </div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <SevenDayMealPlan mealPlan={sevenDayMealPlan} principles={mealPlanPrinciples} />
           )}
 
           {/* Foods to Eat */}
@@ -257,27 +139,6 @@ const Nutrition = () => {
             </div>
           </div>
 
-          {/* Meal Template (single day fallback) */}
-          {mealTemplate && !sevenDayMealPlan.length && (
-            <div className="card-elevated">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                  <Utensils className="w-5 h-5 text-accent-foreground" />
-                </div>
-                <h2 className="font-serif text-xl">Example Day of Eating</h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
-                {[
-                  { label: "Breakfast", value: mealTemplate.breakfast },
-                  { label: "Lunch", value: mealTemplate.lunch },
-                  { label: "Dinner", value: mealTemplate.dinner },
-                  { label: "Snack", value: mealTemplate.snack },
-                ].map((meal) => (
-                  <MealCard key={meal.label} label={meal.label} value={meal.value} icon={mealIcons[meal.label]} />
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Hydration */}
           {hydration && (
