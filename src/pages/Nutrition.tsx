@@ -266,7 +266,7 @@ const Nutrition = () => {
                 </div>
                 <h2 className="font-serif text-xl">Example Day of Eating</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
                 {[
                   { label: "Breakfast", value: mealTemplate.breakfast },
                   { label: "Lunch", value: mealTemplate.lunch },

@@ -64,9 +64,9 @@ export const SkinScoreCard = ({ score }: { score: SkinScore }) => {
     <div className="card-elevated">
       <p className="text-xs font-medium text-primary uppercase tracking-wide mb-5">Skin Health Score</p>
 
-      {/* Main Score - Large and Prominent */}
-      <div className="flex items-center gap-6 mb-6">
-        <div className="relative w-28 h-28 shrink-0">
+      {/* Main Score */}
+      <div className="flex items-center gap-4 sm:gap-6 mb-6">
+        <div className="relative w-20 h-20 sm:w-28 sm:h-28 shrink-0">
           <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
             <circle cx="50" cy="50" r="42" fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
             <motion.circle
@@ -83,7 +83,7 @@ export const SkinScoreCard = ({ score }: { score: SkinScore }) => {
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <motion.span
-              className={`text-3xl font-bold ${getScoreColor(score.overall)}`}
+              className={`text-2xl sm:text-3xl font-bold ${getScoreColor(score.overall)}`}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5, duration: 0.4 }}
@@ -93,9 +93,9 @@ export const SkinScoreCard = ({ score }: { score: SkinScore }) => {
             <span className="text-[10px] text-muted-foreground">/100</span>
           </div>
         </div>
-        <div>
-          <h3 className="font-serif text-2xl mb-1">{getScoreLabel(score.overall)}</h3>
-          <p className="text-xs text-muted-foreground leading-relaxed max-w-[220px]">
+        <div className="min-w-0">
+          <h3 className="font-serif text-xl sm:text-2xl mb-1">{getScoreLabel(score.overall)}</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
             {getScoreDescription(score.overall)}
           </p>
         </div>
@@ -113,11 +113,11 @@ export const SkinScoreCard = ({ score }: { score: SkinScore }) => {
               transition={{ delay: 0.3 + i * 0.1 }}
             >
               <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <span className="text-sm">{factorIcons[key] || "📊"}</span>
-                  {factorLabels[key] || key}
+                <span className="flex items-center gap-1.5 font-medium min-w-0 truncate">
+                  <span className="text-sm shrink-0">{factorIcons[key] || "📊"}</span>
+                  <span className="truncate">{factorLabels[key] || key}</span>
                 </span>
-                <span className={`text-sm font-bold tabular-nums ${getScoreColor(factor.score)}`}>
+                <span className={`text-sm font-bold tabular-nums shrink-0 ml-2 ${getScoreColor(factor.score)}`}>
                   {factor.score}
                 </span>
               </div>
