@@ -374,7 +374,7 @@ const Index = () => {
             Take the First Step Toward Healthier Skin
           </h2>
           <p className="text-accent-foreground/70 mb-8 max-w-md mx-auto">
-            Join thousands of people using AI to understand and improve their skin health.
+            Join a growing community of people healing their skin from within.
           </p>
           <button
             onClick={handleAnalyze}
