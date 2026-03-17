@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   User, CreditCard, Heart, Shield, LogOut, ChevronRight,
-  Save, X, Trash2, MessageSquare, Sparkles, FileText
+  Save, X, Trash2, MessageSquare, Sparkles, FileText, RefreshCw
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -20,6 +20,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 import { supabase } from "@/lib/supabase";
 
@@ -33,7 +34,7 @@ const Profile = () => {
   const { profile, updateProfile, deleteAccount } = useProfile();
   const { currentAnalysis } = useCurrentAnalysis();
   const { isPremium, subscribed, subscriptionEnd, startCheckout, openPricingModal, isCheckingOut, refreshSubscription, isLoading: isSubLoading } = useSubscription();
-  
+  const { toast } = useToast();
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -41,24 +42,28 @@ const Profile = () => {
   const [editConcern, setEditConcern] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
   const [sendingFeedback, setSendingFeedback] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Handle checkout success redirect — poll until subscription is active
   useEffect(() => {
     if (searchParams.get("checkout") !== "success") return;
-    
+
     let attempts = 0;
-    const maxAttempts = 10;
-    
+    const maxAttempts = 15;
+    let cancelled = false;
+
     const poll = async () => {
+      if (cancelled) return;
       await refreshSubscription();
       attempts++;
-      if (attempts < maxAttempts) {
-        // Keep polling every 3s — webhook may take a moment
+      if (attempts < maxAttempts && !cancelled) {
         setTimeout(poll, 3000);
       }
     };
-    
+
     poll();
+
+    return () => { cancelled = true; };
   }, [searchParams]);
 
   if (!user) {
@@ -109,8 +114,25 @@ const Profile = () => {
     setFeedbackText("");
   };
 
+  const handleRefreshSubscription = async () => {
+    setIsRefreshing(true);
+    await refreshSubscription();
+    setIsRefreshing(false);
+    toast({
+      title: "Subscription status refreshed",
+      description: isPremium ? "Your premium subscription is active." : "No active premium subscription found.",
+    });
+  };
+
   const skinScore = currentAnalysis?.skin_score as any;
   const scoreValue = skinScore?.overall ?? skinScore?.score ?? null;
+
+  const InfoRow = ({ label, value }: { label: string; value: string }) => (
+    <div className="flex justify-between items-center py-1.5">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground text-right">{value}</span>
+    </div>
+  );
 
   return (
     <Layout>
@@ -202,17 +224,32 @@ const Profile = () => {
                   <p className="font-medium text-foreground text-sm">{isPremium ? "Premium Plan" : "Free Plan"}</p>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">
                     {isPremium
-                      ? `$9.99/mo · Renews ${subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}`
+                      ? `Renews ${subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}`
                       : "Basic skin analysis and score"}
                   </p>
                 </div>
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${isPremium ? "bg-primary/10 text-primary" : "bg-accent text-accent-foreground"}`}>
-                  {isPremium ? "Active" : "Free"}
+                  {isSubLoading ? "Checking..." : isPremium ? "✓ Active" : "Free"}
                 </span>
               </div>
 
               {isPremium ? (
-                <p className="text-xs text-muted-foreground">Your premium subscription is active.</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                    <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                    <p className="text-xs text-primary font-medium">Your premium subscription is active. All features unlocked!</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={handleRefreshSubscription}
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                    {isRefreshing ? "Refreshing..." : "Refresh subscription status"}
+                  </Button>
+                </div>
               ) : (
                 <>
                   <Button className="w-full justify-between gap-2 bg-[#528164] hover:bg-[#528164]/90 text-white" onClick={openPricingModal} disabled={isCheckingOut || isSubLoading}>
@@ -221,6 +258,16 @@ const Profile = () => {
                       <span className="truncate">{isCheckingOut ? "Loading..." : "Upgrade to Premium"}</span>
                     </span>
                     <ChevronRight className="w-4 h-4 shrink-0" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full gap-2 text-muted-foreground"
+                    onClick={handleRefreshSubscription}
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                    {isRefreshing ? "Checking..." : "Already paid? Refresh status"}
                   </Button>
                   <div className="space-y-2 pt-2">
                     <p className="text-xs font-medium text-foreground">Premium includes:</p>
@@ -380,12 +427,5 @@ const Profile = () => {
     </Layout>
   );
 };
-
-const InfoRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex items-center justify-between py-1.5 gap-3 min-w-0">
-    <span className="text-sm text-muted-foreground shrink-0">{label}</span>
-    <span className="text-sm font-medium text-foreground text-right truncate min-w-0">{value}</span>
-  </div>
-);
 
 export default Profile;

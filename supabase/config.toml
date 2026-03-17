@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.creem-webhook]
 verify_jwt = false
+
+[functions.verify-subscription]
+verify_jwt = false

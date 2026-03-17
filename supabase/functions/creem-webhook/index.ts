@@ -17,41 +17,42 @@ serve(async (req) => {
 
   try {
     logStep("Webhook received");
+    logStep("Headers", Object.fromEntries(req.headers.entries()));
 
     const body = await req.json();
-    logStep("Webhook payload", body);
+    logStep("Full webhook payload", body);
 
     // Creem sends eventType at the top level
     const eventType = body.eventType || body.event_type || body.type || body.event;
     const obj = body.object || body.data || body;
 
-    // Extract metadata & customer depending on event type
-    // For checkout.completed: subscription info is nested in obj.subscription
-    // For subscription.* events: obj IS the subscription
+    logStep("Event type detected", { eventType });
+
+    // Extract subscription data depending on event type
     let subscriptionData: any;
     let metadata: any;
     let customerEmail: string | undefined;
     let userId: string | undefined;
 
     if (eventType === "checkout.completed") {
-      // checkout.completed has obj.subscription and obj.customer at top level
-      subscriptionData = obj.subscription || {};
-      metadata = obj.metadata || subscriptionData.metadata || {};
+      // checkout.completed: subscription is nested inside obj
+      subscriptionData = obj.subscription || obj;
+      metadata = obj.metadata || subscriptionData?.metadata || {};
       customerEmail = obj.customer?.email;
       userId = metadata.user_id;
     } else {
-      // subscription.* events: obj is the subscription itself
+      // All subscription.* events: obj IS the subscription
       subscriptionData = obj;
       metadata = obj.metadata || {};
       customerEmail = obj.customer?.email;
       userId = metadata.user_id;
     }
 
-    logStep("Event parsed", { eventType, userId, customerEmail });
+    logStep("Extracted identifiers", { eventType, userId, customerEmail });
 
     if (!userId && !customerEmail) {
-      logStep("No user identifier found, skipping");
-      return new Response(JSON.stringify({ received: true }), {
+      logStep("No user identifier found in payload, skipping");
+      return new Response(JSON.stringify({ received: true, skipped: true, reason: "no_user_identifier" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -60,6 +61,9 @@ serve(async (req) => {
     // Connect to the Supabase project where user data lives
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    
+    logStep("Connecting to Supabase", { url: supabaseUrl ? supabaseUrl.substring(0, 30) + "..." : "NOT SET" });
+    
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
@@ -68,18 +72,23 @@ serve(async (req) => {
     let targetUserId = userId;
 
     if (!targetUserId && customerEmail) {
-      const { data: profile } = await supabaseClient
+      const { data: profile, error: lookupError } = await supabaseClient
         .from("profiles")
         .select("user_id")
         .eq("email", customerEmail)
         .maybeSingle();
+      
+      if (lookupError) {
+        logStep("Error looking up user by email", { error: lookupError.message });
+      }
+      
       targetUserId = profile?.user_id;
-      logStep("Looked up user by email", { customerEmail, targetUserId });
+      logStep("Looked up user by email", { customerEmail, targetUserId, found: !!profile });
     }
 
     if (!targetUserId) {
-      logStep("Could not determine user, skipping");
-      return new Response(JSON.stringify({ received: true, skipped: true }), {
+      logStep("Could not determine user after all lookups, skipping");
+      return new Response(JSON.stringify({ received: true, skipped: true, reason: "user_not_found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -94,8 +103,9 @@ serve(async (req) => {
       || subscriptionData?.period_start;
     const creemSubId = subscriptionData?.id || subscriptionData?.subscription_id;
     const planType = metadata?.plan || "monthly";
+    const subscriptionStatus = subscriptionData?.status;
 
-    logStep("Subscription details", { creemSubId, periodStart, periodEnd, planType });
+    logStep("Subscription details", { creemSubId, periodStart, periodEnd, planType, subscriptionStatus });
 
     // Events that activate premium
     const activateEvents = [
@@ -105,6 +115,9 @@ serve(async (req) => {
       "subscription.renewed",
       "subscription.created",
     ];
+
+    // subscription.update: activate if the subscription status is active
+    const isUpdateWithActiveStatus = eventType === "subscription.update" && subscriptionStatus === "active";
 
     // Events that keep premium but mark as canceling (access until period end)
     const cancelingEvents = ["subscription.canceled", "subscription.cancelled"];
@@ -117,29 +130,37 @@ serve(async (req) => {
       "subscription.paused",
     ];
 
-    if (activateEvents.includes(eventType)) {
-      logStep("Activating premium for user", { targetUserId });
+    if (activateEvents.includes(eventType) || isUpdateWithActiveStatus) {
+      logStep("ACTIVATING premium for user", { targetUserId, eventType });
 
-      await supabaseClient
+      const upsertData = {
+        user_id: targetUserId,
+        status: "active",
+        plan: "premium",
+        stripe_subscription_id: creemSubId || null,
+        stripe_customer_id: customerEmail || null,
+        current_period_start: periodStart || new Date().toISOString(),
+        current_period_end: periodEnd || null,
+        updated_at: new Date().toISOString(),
+      };
+      
+      logStep("Upserting subscription data", upsertData);
+
+      const { data: upsertResult, error: upsertError } = await supabaseClient
         .from("subscriptions")
-        .upsert({
-          user_id: targetUserId,
-          status: "active",
-          plan: "premium",
-          stripe_subscription_id: creemSubId || null,
-          stripe_customer_id: customerEmail || null,
-          current_period_start: periodStart || new Date().toISOString(),
-          current_period_end: periodEnd || null,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id" });
+        .upsert(upsertData, { onConflict: "user_id" })
+        .select();
 
-      logStep("Subscription activated successfully");
+      if (upsertError) {
+        logStep("UPSERT ERROR", { message: upsertError.message, details: upsertError.details, hint: upsertError.hint, code: upsertError.code });
+      } else {
+        logStep("Subscription activated successfully", { result: upsertResult });
+      }
 
     } else if (cancelingEvents.includes(eventType)) {
-      // User canceled but still has access until period end
-      logStep("Subscription canceled, keeping access until period end", { targetUserId, periodEnd });
+      logStep("Subscription CANCELED, keeping access until period end", { targetUserId, periodEnd });
 
-      await supabaseClient
+      const { error: upsertError } = await supabaseClient
         .from("subscriptions")
         .upsert({
           user_id: targetUserId,
@@ -150,12 +171,16 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
 
-      logStep("Subscription marked as canceled (access continues until period end)");
+      if (upsertError) {
+        logStep("UPSERT ERROR on cancel", { message: upsertError.message });
+      } else {
+        logStep("Subscription marked as canceled");
+      }
 
     } else if (revokeEvents.includes(eventType)) {
-      logStep("Revoking premium for user", { targetUserId });
+      logStep("REVOKING premium for user", { targetUserId, eventType });
 
-      await supabaseClient
+      const { error: upsertError } = await supabaseClient
         .from("subscriptions")
         .upsert({
           user_id: targetUserId,
@@ -164,19 +189,32 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
 
-      logStep("Subscription deactivated successfully");
+      if (upsertError) {
+        logStep("UPSERT ERROR on revoke", { message: upsertError.message });
+      } else {
+        logStep("Subscription deactivated successfully");
+      }
 
     } else {
       logStep("Unhandled event type, ignoring", { eventType });
     }
 
-    return new Response(JSON.stringify({ received: true }), {
+    // Verify: read back the subscription to confirm it was written
+    const { data: verifyData, error: verifyError } = await supabaseClient
+      .from("subscriptions")
+      .select("*")
+      .eq("user_id", targetUserId)
+      .maybeSingle();
+    
+    logStep("Verification read-back", { data: verifyData, error: verifyError?.message });
+
+    return new Response(JSON.stringify({ received: true, processed: eventType }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
     const errorMessage = (error as Error).message;
-    logStep("ERROR", { message: errorMessage });
+    logStep("FATAL ERROR", { message: errorMessage, stack: (error as Error).stack });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

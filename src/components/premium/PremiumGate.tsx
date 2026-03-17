@@ -10,10 +10,8 @@ interface PremiumGateProps {
 export const PremiumGate = ({ children, featureName }: PremiumGateProps) => {
   const { isPremium, isLoading, openPricingModal } = useSubscription();
 
-  const isDevMode = import.meta.env.DEV;
-
   if (isLoading) return <>{children}</>;
-  if (isPremium || isDevMode) return <>{children}</>;
+  if (isPremium) return <>{children}</>;
 
   return (
     <div className="relative min-h-[60vh]">

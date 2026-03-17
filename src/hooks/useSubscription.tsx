@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 import { supabase, EDGE_FUNCTIONS_URL, EDGE_FUNCTIONS_KEY, invokeEdgeFunction } from "@/lib/supabase";
 import { useAuth } from "./useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -47,7 +47,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
   });
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
-  const [hasShownWelcome, setHasShownWelcome] = useState(false);
+  const hasShownWelcomeRef = useRef(false);
 
   const refreshSubscription = useCallback(async () => {
     if (!user) {
@@ -56,31 +56,39 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     }
 
     try {
-      const { data: sub } = await supabase
-        .from("subscriptions" as any)
-        .select("status, plan, current_period_end")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      console.log("[Subscription] Refreshing subscription for user:", user.id);
 
-      const subscription = sub as any;
+      // Use the verify-subscription edge function which reads from the correct database
+      let stillValid = false;
+      let subscriptionEnd: string | null = null;
 
-      // Premium check: status must be active or canceled (grace period), 
-      // AND current_period_end must be in the future
-      const hasActiveStatus = subscription?.status === "active" || subscription?.status === "canceled";
-      const hasPremiumPlan = subscription?.plan === "premium";
-      
-      let periodValid = false;
-      if (hasActiveStatus && hasPremiumPlan && subscription?.current_period_end) {
-        const endDate = new Date(subscription.current_period_end);
-        periodValid = endDate > new Date();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const response = await fetch(`${EDGE_FUNCTIONS_URL}/verify-subscription`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`,
+              "apikey": EDGE_FUNCTIONS_KEY,
+            },
+          });
+          const verifyData = await response.json();
+          console.log("[Subscription] verify-subscription response:", verifyData);
+
+          if (verifyData.isPremium) {
+            stillValid = true;
+            subscriptionEnd = verifyData.currentPeriodEnd || null;
+          }
+        }
+      } catch (verifyErr: any) {
+        console.error("[Subscription] verify-subscription failed:", verifyErr?.message);
       }
-
-      const stillValid = hasActiveStatus && hasPremiumPlan && periodValid;
 
       const newState: SubscriptionState = {
         subscribed: stillValid,
         plan: stillValid ? "premium" : "free",
-        subscriptionEnd: subscription?.current_period_end || null,
+        subscriptionEnd,
         isLoading: false,
       };
 
@@ -112,7 +120,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
 
       setState(newState);
     } catch (err) {
-      console.error("Error checking subscription:", err);
+      console.error("[Subscription] Error checking subscription:", err);
       setState(s => ({ ...s, isLoading: false }));
     }
   }, [user]);
@@ -121,10 +129,10 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     refreshSubscription();
   }, [refreshSubscription]);
 
-  // Auto-refresh on focus and every 60s
+  // Auto-refresh on focus and every 30s
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(refreshSubscription, 60000);
+    const interval = setInterval(refreshSubscription, 30000);
     const handleFocus = () => refreshSubscription();
     window.addEventListener("focus", handleFocus);
     return () => {
@@ -135,17 +143,17 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
 
   // Show welcome toast when premium activates after checkout redirect
   useEffect(() => {
-    if (state.subscribed && !hasShownWelcome) {
+    if (state.subscribed && !hasShownWelcomeRef.current) {
       const params = new URLSearchParams(window.location.search);
       if (params.get("checkout") === "success") {
-        setHasShownWelcome(true);
+        hasShownWelcomeRef.current = true;
         toast({
           title: "Welcome to Premium! 🎉",
           description: "Your full healing plan is now unlocked.",
         });
       }
     }
-  }, [state.subscribed, hasShownWelcome, toast]);
+  }, [state.subscribed, toast]);
 
   const startCheckout = useCallback(async (plan: "monthly" | "yearly" = "monthly") => {
     setIsCheckingOut(true);
