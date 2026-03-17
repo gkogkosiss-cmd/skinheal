@@ -7,6 +7,7 @@ interface SubscriptionState {
   subscribed: boolean;
   plan: string;
   subscriptionEnd: string | null;
+  cancelAtPeriodEnd: boolean;
   isLoading: boolean;
 }
 
@@ -14,24 +15,29 @@ interface SubscriptionContextType extends SubscriptionState {
   isPremium: boolean;
   refreshSubscription: () => Promise<void>;
   startCheckout: (plan?: "monthly" | "yearly") => Promise<void>;
+  cancelSubscription: () => Promise<boolean>;
   openPricingModal: () => void;
   closePricingModal: () => void;
   pricingModalOpen: boolean;
   isCheckingOut: boolean;
+  isCancelling: boolean;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   subscribed: false,
   plan: "free",
   subscriptionEnd: null,
+  cancelAtPeriodEnd: false,
   isLoading: true,
   isPremium: false,
   refreshSubscription: async () => {},
   startCheckout: async () => {},
+  cancelSubscription: async () => false,
   openPricingModal: () => {},
   closePricingModal: () => {},
   pricingModalOpen: false,
   isCheckingOut: false,
+  isCancelling: false,
 });
 
 export const useSubscription = () => useContext(SubscriptionContext);
@@ -43,24 +49,26 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     subscribed: false,
     plan: "free",
     subscriptionEnd: null,
+    cancelAtPeriodEnd: false,
     isLoading: true,
   });
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const hasShownWelcomeRef = useRef(false);
 
   const refreshSubscription = useCallback(async () => {
     if (!user) {
-      setState({ subscribed: false, plan: "free", subscriptionEnd: null, isLoading: false });
+      setState({ subscribed: false, plan: "free", subscriptionEnd: null, cancelAtPeriodEnd: false, isLoading: false });
       return;
     }
 
     try {
       console.log("[Subscription] Refreshing subscription for user:", user.id);
 
-      // Use the verify-subscription edge function which reads from the correct database
       let stillValid = false;
       let subscriptionEnd: string | null = null;
+      let cancelAtPeriodEnd = false;
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -79,6 +87,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
           if (verifyData.isPremium) {
             stillValid = true;
             subscriptionEnd = verifyData.currentPeriodEnd || null;
+            cancelAtPeriodEnd = verifyData.cancelAtPeriodEnd || false;
           }
         }
       } catch (verifyErr: any) {
@@ -89,6 +98,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
         subscribed: stillValid,
         plan: stillValid ? "premium" : "free",
         subscriptionEnd,
+        cancelAtPeriodEnd,
         isLoading: false,
       };
 
@@ -155,6 +165,42 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     }
   }, [state.subscribed, toast]);
 
+  const cancelSubscription = useCallback(async (): Promise<boolean> => {
+    setIsCancelling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await fetch(`${EDGE_FUNCTIONS_URL}/cancel-subscription`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+          "apikey": EDGE_FUNCTIONS_KEY,
+        },
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to cancel subscription");
+      }
+
+      await refreshSubscription();
+      return true;
+    } catch (err: any) {
+      console.error("Cancel error:", err);
+      toast({
+        title: "Cancellation failed",
+        description: err?.message || "Could not cancel subscription. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsCancelling(false);
+    }
+  }, [toast, refreshSubscription]);
+
   const startCheckout = useCallback(async (plan: "monthly" | "yearly" = "monthly") => {
     setIsCheckingOut(true);
     try {
@@ -202,10 +248,12 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       isPremium,
       refreshSubscription,
       startCheckout,
+      cancelSubscription,
       openPricingModal: () => setPricingModalOpen(true),
       closePricingModal: () => setPricingModalOpen(false),
       pricingModalOpen,
       isCheckingOut,
+      isCancelling,
     }}>
       {children}
     </SubscriptionContext.Provider>
