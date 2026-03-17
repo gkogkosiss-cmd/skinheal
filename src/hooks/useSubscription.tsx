@@ -47,6 +47,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
   });
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [hasShownWelcome, setHasShownWelcome] = useState(false);
 
   const refreshSubscription = useCallback(async () => {
     if (!user) {
@@ -55,7 +56,6 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     }
 
     try {
-      // Check subscription status from the subscriptions table directly
       const { data: sub } = await supabase
         .from("subscriptions" as any)
         .select("status, plan, current_period_end")
@@ -63,14 +63,19 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
         .maybeSingle();
 
       const subscription = sub as any;
-      const isActive = subscription?.status === "active" && subscription?.plan === "premium";
 
-      // Check if subscription hasn't expired
-      let stillValid = isActive;
-      if (isActive && subscription?.current_period_end) {
+      // Premium check: status must be active or canceled (grace period), 
+      // AND current_period_end must be in the future
+      const hasActiveStatus = subscription?.status === "active" || subscription?.status === "canceled";
+      const hasPremiumPlan = subscription?.plan === "premium";
+      
+      let periodValid = false;
+      if (hasActiveStatus && hasPremiumPlan && subscription?.current_period_end) {
         const endDate = new Date(subscription.current_period_end);
-        stillValid = endDate > new Date();
+        periodValid = endDate > new Date();
       }
+
+      const stillValid = hasActiveStatus && hasPremiumPlan && periodValid;
 
       const newState: SubscriptionState = {
         subscribed: stillValid,
@@ -127,6 +132,20 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       window.removeEventListener("focus", handleFocus);
     };
   }, [user, refreshSubscription]);
+
+  // Show welcome toast when premium activates after checkout redirect
+  useEffect(() => {
+    if (state.subscribed && !hasShownWelcome) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("checkout") === "success") {
+        setHasShownWelcome(true);
+        toast({
+          title: "Welcome to Premium! 🎉",
+          description: "Your full healing plan is now unlocked.",
+        });
+      }
+    }
+  }, [state.subscribed, hasShownWelcome, toast]);
 
   const startCheckout = useCallback(async (plan: "monthly" | "yearly" = "monthly") => {
     setIsCheckingOut(true);
