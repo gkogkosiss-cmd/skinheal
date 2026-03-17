@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Check, X, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -21,17 +22,56 @@ const features = [
 ];
 
 const PricingSection = () => {
-  const { isPremium, openPricingModal, isCheckingOut } = useSubscription();
+  const { isPremium, startCheckout, isCheckingOut } = useSubscription();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("yearly");
+
+  const handleUpgrade = () => {
+    if (!user) { navigate("/auth"); return; }
+    startCheckout(billingPeriod);
+  };
 
   return (
     <section className="section-padding">
       <div className="max-w-4xl mx-auto">
         <h2 className="font-serif text-3xl md:text-4xl text-center mb-3">Simple, Transparent Pricing</h2>
-        <p className="text-muted-foreground text-center max-w-lg mx-auto mb-12">
+        <p className="text-muted-foreground text-center max-w-lg mx-auto mb-8">
           Start free with core analysis, or unlock your full healing journey with Premium.
         </p>
+
+        {/* Billing Toggle */}
+        <div className="flex items-center justify-center mb-10">
+          <div className="inline-flex items-center rounded-full bg-muted p-1 gap-0.5">
+            <button
+              onClick={() => setBillingPeriod("monthly")}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                billingPeriod === "monthly"
+                  ? "bg-[#528164] text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingPeriod("yearly")}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                billingPeriod === "yearly"
+                  ? "bg-[#528164] text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Yearly
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                billingPeriod === "yearly"
+                  ? "bg-white/20 text-white"
+                  : "bg-[#528164]/10 text-[#528164]"
+              }`}>
+                -33%
+              </span>
+            </button>
+          </div>
+        </div>
 
         <div className="grid sm:grid-cols-2 gap-5 sm:gap-6 max-w-3xl mx-auto">
           {/* Free Plan */}
@@ -65,12 +105,23 @@ const PricingSection = () => {
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
                   <CardDescription className="text-xs uppercase tracking-wider font-semibold text-[#528164]">Premium</CardDescription>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#528164]/10 text-[#528164] text-[10px] font-semibold">
-                    <Sparkles className="w-3 h-3" /> Recommended
-                  </span>
+                  {billingPeriod === "yearly" && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#528164]/10 text-[#528164] text-[10px] font-semibold">
+                      Save 33%
+                    </span>
+                  )}
                 </div>
-                <CardTitle className="font-serif text-2xl">From $6.67<span className="text-sm font-normal text-muted-foreground ml-1">/month</span></CardTitle>
-                <p className="text-xs text-muted-foreground pt-1">Full personalized healing guidance</p>
+                {billingPeriod === "yearly" ? (
+                  <>
+                    <CardTitle className="font-serif text-2xl">$79.99<span className="text-sm font-normal text-muted-foreground ml-1">/year</span></CardTitle>
+                    <p className="text-xs text-[#528164] font-medium pt-1">Just $6.67/month</p>
+                  </>
+                ) : (
+                  <>
+                    <CardTitle className="font-serif text-2xl">$9.99<span className="text-sm font-normal text-muted-foreground ml-1">/month</span></CardTitle>
+                    <p className="text-xs text-muted-foreground pt-1">Full personalized healing guidance</p>
+                  </>
+                )}
               </CardHeader>
               <CardContent className="space-y-3">
                 {features.map((f) => (
@@ -85,14 +136,11 @@ const PricingSection = () => {
                   ) : (
                     <Button
                       className="w-full gap-2 bg-[#528164] hover:bg-[#528164]/90 text-white"
-                      onClick={() => {
-                        if (!user) { navigate("/auth"); return; }
-                        openPricingModal();
-                      }}
+                      onClick={handleUpgrade}
                       disabled={isCheckingOut}
                     >
                       <Sparkles className="w-4 h-4" />
-                      {isCheckingOut ? "Loading..." : "Upgrade to Premium"}
+                      {isCheckingOut ? "Loading..." : "Get Premium"}
                     </Button>
                   )}
                 </div>
