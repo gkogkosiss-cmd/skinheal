@@ -129,7 +129,7 @@ const Index = () => {
           >
             Understand your skin.
             <br />
-            <span className="text-primary text-[inherit]">Heal from within.</span>
+            <span className="block text-primary text-[1em] leading-[1.1]">Heal from within.</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
