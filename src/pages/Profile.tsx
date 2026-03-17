@@ -42,11 +42,23 @@ const Profile = () => {
   const [feedbackText, setFeedbackText] = useState("");
   const [sendingFeedback, setSendingFeedback] = useState(false);
 
-  // Handle checkout success redirect
+  // Handle checkout success redirect — poll until subscription is active
   useEffect(() => {
-    if (searchParams.get("checkout") === "success") {
-      refreshSubscription();
-    }
+    if (searchParams.get("checkout") !== "success") return;
+    
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    const poll = async () => {
+      await refreshSubscription();
+      attempts++;
+      if (attempts < maxAttempts) {
+        // Keep polling every 3s — webhook may take a moment
+        setTimeout(poll, 3000);
+      }
+    };
+    
+    poll();
   }, [searchParams]);
 
   if (!user) {

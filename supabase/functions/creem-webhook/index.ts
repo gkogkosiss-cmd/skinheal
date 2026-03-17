@@ -21,11 +21,31 @@ serve(async (req) => {
     const body = await req.json();
     logStep("Webhook payload", body);
 
-    const eventType = body.event_type || body.type || body.event;
-    const subscription = body.object || body.data || body;
-    const metadata = subscription?.metadata || {};
-    const userId = metadata.user_id;
-    const customerEmail = subscription?.customer_email || subscription?.customer?.email || body.customer_email;
+    // Creem sends eventType at the top level
+    const eventType = body.eventType || body.event_type || body.type || body.event;
+    const obj = body.object || body.data || body;
+
+    // Extract metadata & customer depending on event type
+    // For checkout.completed: subscription info is nested in obj.subscription
+    // For subscription.* events: obj IS the subscription
+    let subscriptionData: any;
+    let metadata: any;
+    let customerEmail: string | undefined;
+    let userId: string | undefined;
+
+    if (eventType === "checkout.completed") {
+      // checkout.completed has obj.subscription and obj.customer at top level
+      subscriptionData = obj.subscription || {};
+      metadata = obj.metadata || subscriptionData.metadata || {};
+      customerEmail = obj.customer?.email;
+      userId = metadata.user_id;
+    } else {
+      // subscription.* events: obj is the subscription itself
+      subscriptionData = obj;
+      metadata = obj.metadata || {};
+      customerEmail = obj.customer?.email;
+      userId = metadata.user_id;
+    }
 
     logStep("Event parsed", { eventType, userId, customerEmail });
 
@@ -37,7 +57,7 @@ serve(async (req) => {
       });
     }
 
-    // Connect to the custom Supabase project where data lives
+    // Connect to the Supabase project where user data lives
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
@@ -47,7 +67,6 @@ serve(async (req) => {
     // Determine the target user_id
     let targetUserId = userId;
 
-    // If we only have email, try to find user by email in profiles
     if (!targetUserId && customerEmail) {
       const { data: profile } = await supabaseClient
         .from("profiles")
@@ -66,15 +85,40 @@ serve(async (req) => {
       });
     }
 
-    const activateEvents = ["subscription.created", "subscription.active", "subscription.renewed", "checkout.completed"];
-    const deactivateEvents = ["subscription.cancelled", "subscription.expired", "subscription.canceled"];
+    // Extract period dates from Creem payload (they use _date suffix)
+    const periodEnd = subscriptionData?.current_period_end_date
+      || subscriptionData?.current_period_end
+      || subscriptionData?.period_end;
+    const periodStart = subscriptionData?.current_period_start_date
+      || subscriptionData?.current_period_start
+      || subscriptionData?.period_start;
+    const creemSubId = subscriptionData?.id || subscriptionData?.subscription_id;
+    const planType = metadata?.plan || "monthly";
+
+    logStep("Subscription details", { creemSubId, periodStart, periodEnd, planType });
+
+    // Events that activate premium
+    const activateEvents = [
+      "checkout.completed",
+      "subscription.active",
+      "subscription.paid",
+      "subscription.renewed",
+      "subscription.created",
+    ];
+
+    // Events that keep premium but mark as canceling (access until period end)
+    const cancelingEvents = ["subscription.canceled", "subscription.cancelled"];
+
+    // Events that immediately revoke premium
+    const revokeEvents = [
+      "subscription.expired",
+      "subscription.unpaid",
+      "subscription.past_due",
+      "subscription.paused",
+    ];
 
     if (activateEvents.includes(eventType)) {
       logStep("Activating premium for user", { targetUserId });
-
-      const periodEnd = subscription?.current_period_end || subscription?.period_end;
-      const periodStart = subscription?.current_period_start || subscription?.period_start;
-      const creemSubId = subscription?.id || subscription?.subscription_id;
 
       await supabaseClient
         .from("subscriptions")
@@ -90,8 +134,26 @@ serve(async (req) => {
         }, { onConflict: "user_id" });
 
       logStep("Subscription activated successfully");
-    } else if (deactivateEvents.includes(eventType)) {
-      logStep("Deactivating premium for user", { targetUserId });
+
+    } else if (cancelingEvents.includes(eventType)) {
+      // User canceled but still has access until period end
+      logStep("Subscription canceled, keeping access until period end", { targetUserId, periodEnd });
+
+      await supabaseClient
+        .from("subscriptions")
+        .upsert({
+          user_id: targetUserId,
+          status: "canceled",
+          plan: "premium",
+          stripe_subscription_id: creemSubId || null,
+          current_period_end: periodEnd || null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+
+      logStep("Subscription marked as canceled (access continues until period end)");
+
+    } else if (revokeEvents.includes(eventType)) {
+      logStep("Revoking premium for user", { targetUserId });
 
       await supabaseClient
         .from("subscriptions")
@@ -103,6 +165,7 @@ serve(async (req) => {
         }, { onConflict: "user_id" });
 
       logStep("Subscription deactivated successfully");
+
     } else {
       logStep("Unhandled event type, ignoring", { eventType });
     }
