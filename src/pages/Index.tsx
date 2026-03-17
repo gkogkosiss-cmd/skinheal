@@ -125,11 +125,11 @@ const Index = () => {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.15, ease }}
-            className="font-serif text-3xl sm:text-4xl md:text-6xl lg:text-7xl text-foreground leading-[1.1] mb-5 sm:mb-6"
+            className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-foreground leading-[1.1] mb-5 sm:mb-6"
           >
             Understand your skin.
             <br />
-            <span className="text-primary">Heal from within.</span>
+            <span className="text-primary text-[inherit]">Heal from within.</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
