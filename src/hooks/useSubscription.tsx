@@ -58,62 +58,37 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     try {
       console.log("[Subscription] Refreshing subscription for user:", user.id);
 
-      // First try reading directly from Supabase subscriptions table
-      const { data: sub, error: subError } = await supabase
-        .from("subscriptions" as any)
-        .select("status, plan, current_period_end")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      // Use the verify-subscription edge function which reads from the correct database
+      let stillValid = false;
+      let subscriptionEnd: string | null = null;
 
-      const subscription = sub as any;
-      
-      console.log("[Subscription] DB query result:", { subscription, error: subError?.message });
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const response = await fetch(`${EDGE_FUNCTIONS_URL}/verify-subscription`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`,
+              "apikey": EDGE_FUNCTIONS_KEY,
+            },
+          });
+          const verifyData = await response.json();
+          console.log("[Subscription] verify-subscription response:", verifyData);
 
-      // Premium check: status must be active or canceled (grace period),
-      // AND current_period_end must be in the future
-      const hasActiveStatus = subscription?.status === "active" || subscription?.status === "canceled";
-      const hasPremiumPlan = subscription?.plan === "premium";
-
-      let periodValid = false;
-      if (hasActiveStatus && hasPremiumPlan && subscription?.current_period_end) {
-        const endDate = new Date(subscription.current_period_end);
-        periodValid = endDate > new Date();
-      }
-
-      let stillValid = hasActiveStatus && hasPremiumPlan && periodValid;
-
-      console.log("[Subscription] Check result:", { hasActiveStatus, hasPremiumPlan, periodValid, stillValid });
-
-      // If not valid from DB, try the verify-subscription edge function as fallback
-      if (!stillValid) {
-        console.log("[Subscription] Not active in DB, trying verify-subscription fallback...");
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            const response = await fetch(`${EDGE_FUNCTIONS_URL}/verify-subscription`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${session.access_token}`,
-                "apikey": EDGE_FUNCTIONS_KEY,
-              },
-            });
-            const verifyData = await response.json();
-            console.log("[Subscription] Verify-subscription response:", verifyData);
-
-            if (verifyData.isPremium) {
-              stillValid = true;
-            }
+          if (verifyData.isPremium) {
+            stillValid = true;
+            subscriptionEnd = verifyData.currentPeriodEnd || null;
           }
-        } catch (verifyErr: any) {
-          console.error("[Subscription] Verify fallback failed:", verifyErr?.message);
         }
+      } catch (verifyErr: any) {
+        console.error("[Subscription] verify-subscription failed:", verifyErr?.message);
       }
 
       const newState: SubscriptionState = {
         subscribed: stillValid,
         plan: stillValid ? "premium" : "free",
-        subscriptionEnd: subscription?.current_period_end || null,
+        subscriptionEnd,
         isLoading: false,
       };
 
