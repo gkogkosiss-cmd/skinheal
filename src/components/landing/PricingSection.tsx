@@ -21,7 +21,7 @@ const features = [
 ];
 
 const PricingSection = () => {
-  const { isPremium, startCheckout, isCheckingOut } = useSubscription();
+  const { isPremium, openPricingModal, isCheckingOut } = useSubscription();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -35,41 +35,23 @@ const PricingSection = () => {
 
         <div className="grid sm:grid-cols-2 gap-5 sm:gap-6 max-w-3xl mx-auto">
           {/* Free Plan */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1, duration: 0.5 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1, duration: 0.5 }}>
             <Card className="h-full border-border">
               <CardHeader className="pb-4">
-                <CardDescription className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  Free
-                </CardDescription>
-                <CardTitle className="font-serif text-2xl">
-                  $0
-                  <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
-                </CardTitle>
+                <CardDescription className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Free</CardDescription>
+                <CardTitle className="font-serif text-2xl">$0<span className="text-sm font-normal text-muted-foreground ml-1">/month</span></CardTitle>
                 <p className="text-xs text-muted-foreground pt-1">Core skin analysis and scoring</p>
               </CardHeader>
               <CardContent className="space-y-3">
                 {features.map((f) => (
                   <div key={f.name} className="flex items-center gap-2.5 text-sm">
-                    {f.free ? (
-                      <Check className="w-4 h-4 text-primary shrink-0" />
-                    ) : (
-                      <X className="w-4 h-4 text-muted-foreground/40 shrink-0" />
-                    )}
-                    <span className={f.free ? "text-foreground" : "text-muted-foreground/50"}>
-                      {f.name}
-                    </span>
+                    {f.free ? <Check className="w-4 h-4 text-[#528164] shrink-0" /> : <X className="w-4 h-4 text-muted-foreground/40 shrink-0" />}
+                    <span className={f.free ? "text-foreground" : "text-muted-foreground/50"}>{f.name}</span>
                   </div>
                 ))}
                 <div className="pt-4">
                   <Button variant="outline" className="w-full" asChild>
-                    <Link to={user ? "/dashboard" : "/auth"}>
-                      {user ? "Go to Dashboard" : "Get Started Free"}
-                    </Link>
+                    <Link to={user ? "/dashboard" : "/auth"}>{user ? "Go to Dashboard" : "Get Started Free"}</Link>
                   </Button>
                 </div>
               </CardContent>
@@ -77,51 +59,35 @@ const PricingSection = () => {
           </motion.div>
 
           {/* Premium Plan */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <Card className="h-full border-primary/30 ring-2 ring-primary/10 relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-1 bg-primary" />
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2, duration: 0.5 }}>
+            <Card className="h-full border-[#528164]/30 ring-2 ring-[#528164]/10 relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-1 bg-[#528164]" />
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
-                  <CardDescription className="text-xs uppercase tracking-wider font-semibold text-primary">
-                    Premium
-                  </CardDescription>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
-                    <Sparkles className="w-3 h-3" />
-                    Recommended
+                  <CardDescription className="text-xs uppercase tracking-wider font-semibold text-[#528164]">Premium</CardDescription>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#528164]/10 text-[#528164] text-[10px] font-semibold">
+                    <Sparkles className="w-3 h-3" /> Recommended
                   </span>
                 </div>
-                <CardTitle className="font-serif text-2xl">
-                  $9.99
-                  <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
-                </CardTitle>
+                <CardTitle className="font-serif text-2xl">From $6.67<span className="text-sm font-normal text-muted-foreground ml-1">/month</span></CardTitle>
                 <p className="text-xs text-muted-foreground pt-1">Full personalized healing guidance</p>
               </CardHeader>
               <CardContent className="space-y-3">
                 {features.map((f) => (
                   <div key={f.name} className="flex items-center gap-2.5 text-sm">
-                    <Check className="w-4 h-4 text-primary shrink-0" />
+                    <Check className="w-4 h-4 text-[#528164] shrink-0" />
                     <span className="text-foreground">{f.name}</span>
                   </div>
                 ))}
                 <div className="pt-4">
                   {isPremium ? (
-                    <Button className="w-full" disabled>
-                      Current Plan
-                    </Button>
+                    <Button className="w-full" disabled>Current Plan</Button>
                   ) : (
                     <Button
-                      className="w-full gap-2"
+                      className="w-full gap-2 bg-[#528164] hover:bg-[#528164]/90 text-white"
                       onClick={() => {
-                        if (!user) {
-                          navigate("/auth");
-                          return;
-                        }
-                        startCheckout();
+                        if (!user) { navigate("/auth"); return; }
+                        openPricingModal();
                       }}
                       disabled={isCheckingOut}
                     >
@@ -135,9 +101,7 @@ const PricingSection = () => {
           </motion.div>
         </div>
 
-        <p className="text-center text-[11px] text-muted-foreground mt-6">
-          Cancel anytime. No long-term commitment required.
-        </p>
+        <p className="text-center text-[11px] text-muted-foreground mt-6">Cancel anytime. No long-term commitment required.</p>
       </div>
     </section>
   );

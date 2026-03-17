@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   User, CreditCard, Heart, Shield, LogOut, ChevronRight,
-  Save, X, Trash2, MessageSquare, Sparkles, ExternalLink, FileText
+  Save, X, Trash2, MessageSquare, Sparkles, FileText
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -32,7 +32,7 @@ const Profile = () => {
   const { user, signOut } = useAuth();
   const { profile, updateProfile, deleteAccount } = useProfile();
   const { currentAnalysis } = useCurrentAnalysis();
-  const { isPremium, subscribed, subscriptionEnd, startCheckout, openCustomerPortal, isCheckingOut, refreshSubscription, isLoading: isSubLoading } = useSubscription();
+  const { isPremium, subscribed, subscriptionEnd, startCheckout, openPricingModal, isCheckingOut, refreshSubscription, isLoading: isSubLoading } = useSubscription();
   
 
   const [editing, setEditing] = useState(false);
@@ -200,16 +200,13 @@ const Profile = () => {
               </div>
 
               {isPremium ? (
-                <Button variant="outline" className="w-full justify-between" onClick={openCustomerPortal}>
-                  <span className="flex items-center gap-2"><ExternalLink className="w-4 h-4" /> Manage Subscription</span>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                <p className="text-xs text-muted-foreground">Your premium subscription is active.</p>
               ) : (
                 <>
-                  <Button className="w-full justify-between gap-2" onClick={startCheckout} disabled={isCheckingOut || isSubLoading}>
+                  <Button className="w-full justify-between gap-2 bg-[#528164] hover:bg-[#528164]/90 text-white" onClick={openPricingModal} disabled={isCheckingOut || isSubLoading}>
                     <span className="flex items-center gap-2 min-w-0 truncate">
                       <Sparkles className="w-4 h-4 shrink-0" />
-                      <span className="truncate">{isCheckingOut ? "Loading..." : "Upgrade to Premium — $9.99/mo"}</span>
+                      <span className="truncate">{isCheckingOut ? "Loading..." : "Upgrade to Premium"}</span>
                     </span>
                     <ChevronRight className="w-4 h-4 shrink-0" />
                   </Button>

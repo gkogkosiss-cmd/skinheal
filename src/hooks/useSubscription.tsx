@@ -3,11 +3,9 @@ import { supabase, EDGE_FUNCTIONS_URL, EDGE_FUNCTIONS_KEY, invokeEdgeFunction } 
 import { useAuth } from "./useAuth";
 import { useToast } from "@/hooks/use-toast";
 
-const PREMIUM_PRODUCT_ID = "prod_U69eH6djMBf4gA";
-
 interface SubscriptionState {
   subscribed: boolean;
-  productId: string | null;
+  plan: string;
   subscriptionEnd: string | null;
   isLoading: boolean;
 }
@@ -15,20 +13,24 @@ interface SubscriptionState {
 interface SubscriptionContextType extends SubscriptionState {
   isPremium: boolean;
   refreshSubscription: () => Promise<void>;
-  startCheckout: () => Promise<void>;
-  openCustomerPortal: () => Promise<void>;
+  startCheckout: (plan?: "monthly" | "yearly") => Promise<void>;
+  openPricingModal: () => void;
+  closePricingModal: () => void;
+  pricingModalOpen: boolean;
   isCheckingOut: boolean;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   subscribed: false,
-  productId: null,
+  plan: "free",
   subscriptionEnd: null,
   isLoading: true,
   isPremium: false,
   refreshSubscription: async () => {},
   startCheckout: async () => {},
-  openCustomerPortal: async () => {},
+  openPricingModal: () => {},
+  closePricingModal: () => {},
+  pricingModalOpen: false,
   isCheckingOut: false,
 });
 
@@ -39,69 +41,48 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
   const { toast } = useToast();
   const [state, setState] = useState<SubscriptionState>({
     subscribed: false,
-    productId: null,
+    plan: "free",
     subscriptionEnd: null,
     isLoading: true,
   });
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   const refreshSubscription = useCallback(async () => {
     if (!user) {
-      setState({ subscribed: false, productId: null, subscriptionEnd: null, isLoading: false });
+      setState({ subscribed: false, plan: "free", subscriptionEnd: null, isLoading: false });
       return;
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setState(s => ({ ...s, isLoading: false }));
-        return;
+      // Check subscription status from the subscriptions table directly
+      const { data: sub } = await supabase
+        .from("subscriptions" as any)
+        .select("status, plan, current_period_end")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const subscription = sub as any;
+      const isActive = subscription?.status === "active" && subscription?.plan === "premium";
+
+      // Check if subscription hasn't expired
+      let stillValid = isActive;
+      if (isActive && subscription?.current_period_end) {
+        const endDate = new Date(subscription.current_period_end);
+        stillValid = endDate > new Date();
       }
 
-      const response = await fetch(`${EDGE_FUNCTIONS_URL}/check-subscription`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-          "apikey": EDGE_FUNCTIONS_KEY,
-        },
-      });
-
-      if (!response.ok) throw new Error("Failed to check subscription");
-      const data = await response.json();
-
-      const newState = {
-        subscribed: data.subscribed || false,
-        productId: data.product_id || null,
-        subscriptionEnd: data.subscription_end || null,
+      const newState: SubscriptionState = {
+        subscribed: stillValid,
+        plan: stillValid ? "premium" : "free",
+        subscriptionEnd: subscription?.current_period_end || null,
         isLoading: false,
       };
 
-      // Persist subscription status to the subscriptions table
-      try {
-        const upsertPayload: Record<string, unknown> = {
-          user_id: user.id,
-          status: newState.subscribed ? "active" : "inactive",
-          plan: newState.subscribed ? "premium" : "free",
-          updated_at: new Date().toISOString(),
-        };
-        if (newState.subscriptionEnd) {
-          upsertPayload.current_period_end = newState.subscriptionEnd;
-        }
-        await supabase
-          .from("subscriptions" as any)
-          .upsert(upsertPayload as any, { onConflict: "user_id" });
-      } catch (persistErr: any) {
-        console.warn("[Subscription] failed to persist to subscriptions table", persistErr?.message);
-      }
-
       // Send premium welcome email if user just became premium
-      const wasPremium = state.subscribed && state.productId === PREMIUM_PRODUCT_ID;
-      const isNowPremium = newState.subscribed && newState.productId === PREMIUM_PRODUCT_ID;
-      if (!wasPremium && isNowPremium) {
-        console.log("[Subscription] User became premium, checking premium email flag");
+      const wasPremium = state.subscribed;
+      if (!wasPremium && stillValid) {
         try {
-          // Client-side dedup: check flag on custom project DB
           const { data: profile } = await supabase
             .from("profiles" as any)
             .select("premium_email_sent")
@@ -111,19 +92,16 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
           if (!alreadySent) {
             const email = user.email || "";
             const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split("@")[0] || "there";
-            const { data: emailData, error: emailError } = await invokeEdgeFunction("send-welcome-email", { type: "premium", email, name });
-            console.log("[Subscription] premium_email_result", { data: emailData, error: emailError?.message ?? null });
+            const { error: emailError } = await invokeEdgeFunction("send-welcome-email", { type: "premium", email, name });
             if (!emailError) {
               await supabase
                 .from("profiles" as any)
                 .update({ premium_email_sent: true } as any)
                 .eq("user_id", user.id);
             }
-          } else {
-            console.log("[Subscription] premium_email already sent, skipping");
           }
         } catch (err: any) {
-          console.error("[Subscription] premium_email_failed", { error: err?.message });
+          console.error("[Subscription] premium_email_failed", err?.message);
         }
       }
 
@@ -138,7 +116,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     refreshSubscription();
   }, [refreshSubscription]);
 
-  // Auto-refresh every 60 seconds and on window focus (e.g. returning from checkout tab)
+  // Auto-refresh on focus and every 60s
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(refreshSubscription, 60000);
@@ -150,34 +128,29 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     };
   }, [user, refreshSubscription]);
 
-  const startCheckout = useCallback(async () => {
+  const startCheckout = useCallback(async (plan: "monthly" | "yearly" = "monthly") => {
     setIsCheckingOut(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated. Please sign in first.");
 
-      console.log("[Checkout] Starting, token present:", Boolean(session.access_token));
-
-      const response = await fetch(`${EDGE_FUNCTIONS_URL}/create-checkout`, {
+      const response = await fetch(`${EDGE_FUNCTIONS_URL}/creem-checkout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session.access_token}`,
           "apikey": EDGE_FUNCTIONS_KEY,
         },
+        body: JSON.stringify({ plan }),
       });
 
       const data = await response.json().catch(() => ({}));
-      console.log("[Checkout] Response:", { status: response.status, data });
 
       if (!response.ok) {
-        const errMsg = data?.error || "Failed to create checkout";
-        if (errMsg.includes("live") || errMsg.includes("activate")) {
-          throw new Error("Payment system is being set up. Please try again later or contact support.");
-        }
-        throw new Error(errMsg);
+        throw new Error(data?.error || "Failed to create checkout");
       }
       if (data.url) {
+        setPricingModalOpen(false);
         window.location.href = data.url;
       } else {
         throw new Error("No checkout URL received");
@@ -194,29 +167,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     }
   }, [toast]);
 
-  const openCustomerPortal = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
-      const response = await fetch(`${EDGE_FUNCTIONS_URL}/customer-portal`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-          "apikey": EDGE_FUNCTIONS_KEY,
-        },
-      });
-
-      if (!response.ok) throw new Error("Failed to open portal");
-      const data = await response.json();
-      if (data.url) window.open(data.url, "_blank");
-    } catch (err) {
-      console.error("Portal error:", err);
-    }
-  }, []);
-
-  const isPremium = state.subscribed && state.productId === PREMIUM_PRODUCT_ID;
+  const isPremium = state.subscribed;
 
   return (
     <SubscriptionContext.Provider value={{
@@ -224,7 +175,9 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       isPremium,
       refreshSubscription,
       startCheckout,
-      openCustomerPortal,
+      openPricingModal: () => setPricingModalOpen(true),
+      closePricingModal: () => setPricingModalOpen(false),
+      pricingModalOpen,
       isCheckingOut,
     }}>
       {children}

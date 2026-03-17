@@ -12,11 +12,8 @@ verify_jwt = false
 [functions.send-welcome-email]
 verify_jwt = false
 
-[functions.create-checkout]
+[functions.creem-checkout]
 verify_jwt = false
 
-[functions.check-subscription]
-verify_jwt = false
-
-[functions.customer-portal]
+[functions.creem-webhook]
 verify_jwt = false
