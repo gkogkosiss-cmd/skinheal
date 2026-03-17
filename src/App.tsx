@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CurrentAnalysisProvider } from "@/hooks/useCurrentAnalysis";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
+import { PricingModalWrapper } from "@/components/premium/PricingModalWrapper";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import SkinAnalysis from "./pages/SkinAnalysis";
@@ -33,6 +34,7 @@ const App = () => (
         <SubscriptionProvider>
           <Toaster />
           <Sonner />
+          <PricingModalWrapper />
           <BrowserRouter>
             <CurrentAnalysisProvider>
               <Routes>
@@ -53,7 +55,6 @@ const App = () => (
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/pricing" element={<Pricing />} />
-                <Route path="*" element={<NotFound />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </CurrentAnalysisProvider>

@@ -200,16 +200,13 @@ const Profile = () => {
               </div>
 
               {isPremium ? (
-                <Button variant="outline" className="w-full justify-between" onClick={openCustomerPortal}>
-                  <span className="flex items-center gap-2"><ExternalLink className="w-4 h-4" /> Manage Subscription</span>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                <p className="text-xs text-muted-foreground">Your premium subscription is active.</p>
               ) : (
                 <>
-                  <Button className="w-full justify-between gap-2" onClick={startCheckout} disabled={isCheckingOut || isSubLoading}>
+                  <Button className="w-full justify-between gap-2 bg-[#528164] hover:bg-[#528164]/90 text-white" onClick={openPricingModal} disabled={isCheckingOut || isSubLoading}>
                     <span className="flex items-center gap-2 min-w-0 truncate">
                       <Sparkles className="w-4 h-4 shrink-0" />
-                      <span className="truncate">{isCheckingOut ? "Loading..." : "Upgrade to Premium — $9.99/mo"}</span>
+                      <span className="truncate">{isCheckingOut ? "Loading..." : "Upgrade to Premium"}</span>
                     </span>
                     <ChevronRight className="w-4 h-4 shrink-0" />
                   </Button>
