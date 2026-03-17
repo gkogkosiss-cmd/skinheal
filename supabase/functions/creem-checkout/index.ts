@@ -59,7 +59,6 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         product_id: productId,
-        customer_email: email,
         success_url: `${origin}/profile?checkout=success`,
         metadata: {
           user_id: userId,
