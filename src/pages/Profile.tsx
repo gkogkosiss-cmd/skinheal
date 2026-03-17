@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   User, CreditCard, Heart, Shield, LogOut, ChevronRight,
-  Save, X, Trash2, MessageSquare, Sparkles, ExternalLink, FileText
+  Save, X, Trash2, MessageSquare, Sparkles, FileText
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
