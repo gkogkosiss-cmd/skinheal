@@ -52,7 +52,7 @@ serve(async (req) => {
 
     logStep("Current subscription", { sub, error: subError?.message });
 
-    if (sub && sub.status === "active" && sub.plan === "premium") {
+    if (sub && (sub.status === "active" || sub.status === "canceled") && sub.plan === "premium") {
       const periodEnd = sub.current_period_end ? new Date(sub.current_period_end) : null;
       const isValid = periodEnd ? periodEnd > new Date() : true;
 
@@ -61,6 +61,8 @@ serve(async (req) => {
         status: sub.status,
         plan: sub.plan,
         currentPeriodEnd: sub.current_period_end,
+        cancelAtPeriodEnd: sub.status === "canceled",
+        subscriptionId: sub.stripe_subscription_id,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
