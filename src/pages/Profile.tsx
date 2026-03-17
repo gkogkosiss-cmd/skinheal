@@ -221,24 +221,42 @@ const Profile = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-xl bg-muted/50 min-w-0">
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-foreground text-sm">{isPremium ? "Premium Plan" : "Free Plan"}</p>
+                  <p className="font-medium text-foreground text-sm">
+                    {isPremium ? "Premium Plan" : "Free Plan"}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    {isPremium
-                      ? `Renews ${subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}`
-                      : "Basic skin analysis and score"}
+                    {isPremium && cancelAtPeriodEnd
+                      ? `Cancelled — Access until ${subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}`
+                      : isPremium
+                        ? `Renews ${subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}`
+                        : "Basic skin analysis and score"}
                   </p>
                 </div>
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${isPremium ? "bg-primary/10 text-primary" : "bg-accent text-accent-foreground"}`}>
-                  {isSubLoading ? "Checking..." : isPremium ? "✓ Active" : "Free"}
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${
+                  isPremium && cancelAtPeriodEnd
+                    ? "bg-amber-100 text-amber-700"
+                    : isPremium
+                      ? "bg-primary/10 text-primary"
+                      : "bg-accent text-accent-foreground"
+                }`}>
+                  {isSubLoading ? "Checking..." : isPremium && cancelAtPeriodEnd ? "Cancelled" : isPremium ? "✓ Active" : "Free"}
                 </span>
               </div>
 
               {isPremium ? (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
-                    <Sparkles className="w-4 h-4 text-primary shrink-0" />
-                    <p className="text-xs text-primary font-medium">Your premium subscription is active. All features unlocked!</p>
-                  </div>
+                  {cancelAtPeriodEnd ? (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                      <p className="text-xs text-amber-700 font-medium">
+                        Your subscription has been cancelled. You'll keep Premium access until {subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "the end of your billing period"}.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                      <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                      <p className="text-xs text-primary font-medium">Your premium subscription is active. All features unlocked!</p>
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -249,6 +267,55 @@ const Profile = () => {
                     <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
                     {isRefreshing ? "Refreshing..." : "Refresh subscription status"}
                   </Button>
+
+                  {/* Cancel subscription — only show if not already cancelled */}
+                  {!cancelAtPeriodEnd && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-muted-foreground hover:text-destructive/70 text-xs"
+                        >
+                          Cancel Subscription
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            You'll keep Premium access until{" "}
+                            <span className="font-medium text-foreground">
+                              {subscriptionEnd
+                                ? new Date(subscriptionEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                                : "the end of your billing period"}
+                            </span>
+                            . After that your account will return to the free plan.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-[#528164] text-white hover:bg-[#528164]/90 border-0">
+                            Keep My Premium
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={async () => {
+                              const success = await cancelSubscription();
+                              if (success) {
+                                toast({
+                                  title: "Subscription cancelled",
+                                  description: `You'll keep Premium access until ${subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "the end of your billing period"}.`,
+                                });
+                              }
+                            }}
+                            disabled={isCancelling}
+                            className="bg-muted text-muted-foreground hover:bg-muted/80 border border-border"
+                          >
+                            {isCancelling ? "Cancelling..." : "Cancel Subscription"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               ) : (
                 <>
